@@ -15,7 +15,7 @@ class RoadNetworkRenderer : public Renderer
 public:
 	////////////////////////////////////////////////////////////////////////////////////////////////////
 	RoadNetworkRenderer(Camera& camera, RoadNetworkGeometry& geometry)
-		: Renderer(camera), shader("../../../shaders/roadnetwork.vs.glsl", "../../../shaders/roadnetwork.fs.glsl"), geometry(geometry)
+		: Renderer(camera), shader("../../../../../shaders/roadnetwork.vs.glsl", "../../../../../shaders/roadnetwork.fs.glsl"), geometry(geometry)
 	{
 		glClearColor(0, 0, 0, 1);
 		glEnable(GL_CULL_FACE);
