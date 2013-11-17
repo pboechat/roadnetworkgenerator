@@ -1,3 +1,17 @@
+[Oo]bj/
+[Dd]ebug/
+[Bb]uild/
+ipch/
+
+memory_leak_report.txt
+
+*.orig
+
+*.sdf
+*.opensdf
+*.suo
+*.vcxproj.user
+
 # Compiled Object files
 *.slo
 *.lo
