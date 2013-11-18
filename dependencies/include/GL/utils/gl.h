@@ -57,7 +57,7 @@ namespace GL
     {
 #if defined(_WIN32) && defined(_DEBUG)
       OutputDebugStringA(genErrorString(error).c_str());
-      DebugBreak();
+      //DebugBreak();
 #else
       throw GL::error(error, file, line);
 #endif

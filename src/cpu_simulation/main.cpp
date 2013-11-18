@@ -10,6 +10,8 @@
 #include <RoadNetworkGenerator.h>
 #include <ImageMap.h>
 
+#include <glm/glm.hpp>
+
 #include <string>
 #include <iostream>
 #include <io.h>
@@ -18,7 +20,7 @@
 #define DEFAULT_SCREEN_WIDTH 1024
 #define DEFAULT_SCREEN_HEIGHT 768
 #define ZNEAR 0.3f
-#define ZFAR 100.0f
+#define ZFAR 1000.0f
 #define FOVY_DEG 60.0f
 #define HALF_PI 1.570796325f
 
@@ -26,6 +28,16 @@
 void printUsage()
 {
 	std::cerr << "Command line options: <configuration file>";
+}
+
+//////////////////////////////////////////////////////////////////////////
+void centerGeometryOnScreen(RoadNetworkGeometry& geometry, Camera& camera)
+{
+	float width = geometry.bounds.extents().x;
+	float height = geometry.bounds.extents().y;
+	float screenDiagonal = glm::sqrt(glm::pow(width, 2.0f) + glm::pow(height, 2.0f) + 1.0f);
+	float distance = glm::min((screenDiagonal / 2.0f) / glm::tan(glm::radians(camera.getFovY() / 2.0f)), camera.getFar());
+	camera.localTransform.position = glm::vec3(geometry.bounds.min.x + width / 2.0f, geometry.bounds.min.y + height / 2.0f, distance);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -49,7 +61,6 @@ int main(int argc, char** argv)
 
 		Configuration configuration;
 		configuration.loadFromFile(configurationFile);
-
 		Application application("Road Network Generator (CPU)", DEFAULT_SCREEN_WIDTH, DEFAULT_SCREEN_HEIGHT);
 
 		if (gl3wInit())
@@ -65,9 +76,9 @@ int main(int argc, char** argv)
 		application.setRenderer(renderer);
 		application.setInputController(inputController);
 		// ---
-		// TODO:
 		RoadNetworkGenerator roadNetworkGenerator;
 		roadNetworkGenerator.execute(configuration, geometry);
+		centerGeometryOnScreen(geometry, camera);
 		// ---
 		return application.run();
 	}

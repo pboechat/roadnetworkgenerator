@@ -16,8 +16,12 @@ class Configuration
 public:
 	int worldWidth;
 	int worldHeight;
-	int roadLength;
+	int highwayLength;
+	int streetLength;
 	int maxDerivations;
+	int angleIncrement;
+	int maxAngleIncrement;
+	int angleArc;
 	ImageMap populationDensityMap;
 	ImageMap waterBodiesMap;
 
@@ -63,8 +67,12 @@ public:
 
 		worldWidth = atoi(find(keyValuePairs, "world_width").c_str());
 		worldHeight = atoi(find(keyValuePairs, "world_height").c_str());
-		roadLength = atoi(find(keyValuePairs, "road_length").c_str());
+		highwayLength = atoi(find(keyValuePairs, "highway_length").c_str());
+		streetLength = atoi(find(keyValuePairs, "street_length").c_str());
 		maxDerivations = atoi(find(keyValuePairs, "max_derivations").c_str());
+		angleIncrement = atoi(find(keyValuePairs, "angle_increment").c_str());
+		maxAngleIncrement = atoi(find(keyValuePairs, "max_angle_increment").c_str());
+		angleArc = atoi(find(keyValuePairs, "angle_arc").c_str());
 
 		std::string populationDensityMapFile = find(keyValuePairs, "population_density_map");
 		std::string waterBodiesMapFile = find(keyValuePairs, "water_bodies_map");

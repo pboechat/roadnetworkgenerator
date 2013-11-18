@@ -20,13 +20,13 @@ public:
 	RoadNetworkGenerator() {}
 	~RoadNetworkGenerator() {}
 
-	void execute(Configuration& configuration, RoadNetworkGeometry& geometry)
+	void execute(const Configuration& configuration, RoadNetworkGeometry& geometry)
 	{
 		segments.clear();
 
 		WorkQueuesManager<Procedure>* frontBuffer = &buffer1;
 		WorkQueuesManager<Procedure>* backBuffer = &buffer2;
-		RoadAttributes initialRoadAttributes(glm::vec3(configuration.worldWidth / 2.0f, configuration.worldWidth / 2.0f, 0), configuration.roadLength, 0, true);
+		RoadAttributes initialRoadAttributes(glm::vec3(configuration.worldWidth / 2.0f, configuration.worldWidth / 2.0f, 0), configuration.highwayLength, 0, true);
 		RuleAttributes initialRuleAttributes;
 		frontBuffer->addWorkItem(new EvaluateRoad(Road(0, initialRoadAttributes, initialRuleAttributes, UNASSIGNED)));
 		int derivation = 0;
@@ -41,7 +41,7 @@ public:
 
 				while ((procedure = frontBuffer->popWorkItem()) != 0)
 				{
-					procedure->execute(*backBuffer, segments, configuration.populationDensityMap, configuration.waterBodiesMap);
+					procedure->execute(*backBuffer, segments, configuration);
 					delete procedure;
 				}
 			}
@@ -53,7 +53,7 @@ public:
 		frontBuffer->clear();
 		backBuffer->clear();
 
-		geometry.build(segments);
+		geometry.build(configuration, segments);
 	}
 
 private:

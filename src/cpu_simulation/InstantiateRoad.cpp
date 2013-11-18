@@ -2,7 +2,6 @@
 #include <EvaluateBranch.h>
 #include <EvaluateRoad.h>
 
-#include <glm/glm.hpp>
 #include <glm/gtx/quaternion.hpp>
 
 #include <exception>
@@ -16,7 +15,7 @@ unsigned int InstantiateRoad::getCode()
 	return 0;
 }
 
-void InstantiateRoad::execute(WorkQueuesManager<Procedure>& workQueuesManager, std::vector<Segment>& segments, ImageMap& populationDensityMap, ImageMap& waterBodiesMap)
+void InstantiateRoad::execute(WorkQueuesManager<Procedure>& workQueuesManager, std::vector<Segment>& segments, const Configuration& configuration)
 {
 	// p2
 
@@ -26,34 +25,63 @@ void InstantiateRoad::execute(WorkQueuesManager<Procedure>& workQueuesManager, s
 		throw std::exception("road.state != SUCCEED");
 	}
 
-	glm::vec3 end(0.0f, road.roadAttributes.length, 0.0f);
-	end = glm::rotate(glm::quat(glm::vec3(0, 0, road.roadAttributes.angle)), end);
+	glm::vec3 direction(0.0f, 1.0f, 0.0f);
+	direction = glm::rotate(glm::quat(glm::vec3(0, 0, road.roadAttributes.angle)), direction);
+	direction = glm::normalize(direction);
+	glm::vec3 end = road.roadAttributes.start + (direction * (float)road.roadAttributes.length);
 	segments.push_back(Segment(road.roadAttributes.start, end));
 	int delays[3];
 	RoadAttributes roadAttributes[3];
 	RuleAttributes ruleAttributes[3];
-	evaluateGlobalGoals(delays, roadAttributes, ruleAttributes);
+	evaluateGlobalGoals(configuration, end, delays, roadAttributes, ruleAttributes);
 	workQueuesManager.addWorkItem(new EvaluateBranch(Branch(delays[0], roadAttributes[0], ruleAttributes[0])));
 	workQueuesManager.addWorkItem(new EvaluateBranch(Branch(delays[1], roadAttributes[1], ruleAttributes[1])));
 	workQueuesManager.addWorkItem(new EvaluateRoad(Road(delays[2], roadAttributes[2], ruleAttributes[2], UNASSIGNED)));
 }
 
-void InstantiateRoad::evaluateGlobalGoals(int* delays, RoadAttributes* roadAttributes, RuleAttributes* ruleAttributes)
+void InstantiateRoad::evaluateGlobalGoals(const Configuration& configuration, const glm::vec3& roadEnd, int* delays, RoadAttributes* roadAttributes, RuleAttributes* ruleAttributes)
 {
-	delays[0] = 2;
-	delays[1] = 2;
-	delays[2] = 1;
+	if (road.roadAttributes.highway)
+	{
+		delays[0] = 2;
+		delays[1] = 2;
+		delays[2] = 1;
 
-	roadAttributes[0].start = road.roadAttributes.start;
-	roadAttributes[0].length = road.roadAttributes.length;
-	roadAttributes[0].angle = -90.0f;
+		roadAttributes[0].start = roadEnd;
+		roadAttributes[0].length = configuration.streetLength;
+		roadAttributes[0].angle = road.roadAttributes.angle -90.0f;
+		roadAttributes[0].highway = false;
 
-	roadAttributes[1].start = road.roadAttributes.start;
-	roadAttributes[1].length = road.roadAttributes.length;
-	roadAttributes[1].angle = 90.0f;
+		roadAttributes[1].start = roadEnd;
+		roadAttributes[1].length = configuration.streetLength;
+		roadAttributes[1].angle = road.roadAttributes.angle + 90.0f;
+		roadAttributes[1].highway = false;
 
-	roadAttributes[2].start = road.roadAttributes.start;
-	roadAttributes[2].length = road.roadAttributes.length;
+		roadAttributes[2].start = roadEnd;
+		roadAttributes[2].length = configuration.highwayLength;
+		roadAttributes[2].angle = road.roadAttributes.angle;
+		roadAttributes[2].highway = true;
+	}
 
-	// TODO:
+	else
+	{
+		delays[0] = 2;
+		delays[1] = 2;
+		delays[2] = 1;
+
+		roadAttributes[0].start = roadEnd;
+		roadAttributes[0].length = configuration.streetLength;
+		roadAttributes[0].angle = road.roadAttributes.angle -90.0f;
+		roadAttributes[0].highway = false;
+
+		roadAttributes[1].start = roadEnd;
+		roadAttributes[1].length = configuration.streetLength;
+		roadAttributes[1].angle = road.roadAttributes.angle + 90.0f;
+		roadAttributes[1].highway = false;
+
+		roadAttributes[2].start = roadEnd;
+		roadAttributes[2].length = configuration.streetLength;
+		roadAttributes[2].angle = road.roadAttributes.angle;
+		roadAttributes[2].highway = false;
+	}
 }

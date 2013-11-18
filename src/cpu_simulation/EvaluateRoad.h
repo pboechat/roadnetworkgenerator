@@ -10,12 +10,12 @@ public:
 	EvaluateRoad(const Road& road);
 
 	virtual unsigned int getCode();
-	virtual void execute(WorkQueuesManager<Procedure>& workQueuesManager, std::vector<Segment>& segments, ImageMap& populationDensityMap, ImageMap& waterBodiesMap);
+	virtual void execute(WorkQueuesManager<Procedure>& workQueuesManager, std::vector<Segment>& segments, const Configuration& configuration);
 
 private:
 	Road road;
 
-	void checkLocalContraints(ImageMap& waterBodiesMap);
+	void checkLocalContraints(const Configuration& configuration);
 
 };
 
