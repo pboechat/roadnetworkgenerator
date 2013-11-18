@@ -5,10 +5,18 @@
 
 struct Segment
 {
-public:
 	glm::vec3 start;
 	glm::vec3 end;
 
+	Segment(const glm::vec3& start, const glm::vec3& end) : start(start), end(end) {}
+	~Segment() {}
+
+	Segment& operator = (const Segment& other)
+	{
+		start = other.start;
+		end = other.end;
+		return *this;
+	}
 };
 
 #endif

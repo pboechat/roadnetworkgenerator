@@ -6,9 +6,11 @@
 #include <RoadNetworkInputController.h>
 #include <RoadNetworkRenderer.h>
 #include <RoadNetworkGeometry.h>
-#include <Config.h>
+#include <Configuration.h>
 #include <RoadNetworkGenerator.h>
+#include <ImageMap.h>
 
+#include <string>
 #include <iostream>
 #include <io.h>
 #include <iomanip>
@@ -29,8 +31,6 @@ void printUsage()
 //////////////////////////////////////////////////////////////////////////
 int main(int argc, char** argv)
 {
-	Config* config = 0;
-
 	try
 	{
 		if (argc < 2)
@@ -39,16 +39,18 @@ int main(int argc, char** argv)
 			exit(EXIT_FAILURE);
 		}
 
-		std::string configFile = argv[1];
+		std::string configurationFile = argv[1];
 
-		if (configFile.empty())
+		if (configurationFile.empty())
 		{
 			printUsage();
 			exit(EXIT_FAILURE);
 		}
 
-		config = Config::loadFromFile(configFile);
-		Application application("RoadNetworkGenerator", DEFAULT_SCREEN_WIDTH, DEFAULT_SCREEN_HEIGHT);
+		Configuration configuration;
+		configuration.loadFromFile(configurationFile);
+
+		Application application("Road Network Generator (CPU)", DEFAULT_SCREEN_WIDTH, DEFAULT_SCREEN_HEIGHT);
 
 		if (gl3wInit())
 		{
@@ -65,9 +67,8 @@ int main(int argc, char** argv)
 		// ---
 		// TODO:
 		RoadNetworkGenerator roadNetworkGenerator;
-		roadNetworkGenerator.execute();
+		roadNetworkGenerator.execute(configuration, geometry);
 		// ---
-		delete config;
 		return application.run();
 	}
 

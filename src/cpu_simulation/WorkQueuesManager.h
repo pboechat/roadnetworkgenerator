@@ -6,8 +6,6 @@
 #include <map>
 #include <deque>
 
-class Procedure;
-
 template <class WorkItem>
 class WorkQueuesManager
 {
@@ -19,6 +17,7 @@ public:
 	void resetCursors();
 	bool nextWorkQueue();
 	WorkItem* popWorkItem();
+	void clear();
 
 private:
 	typedef std::deque<WorkItem*> WorkQueue;
@@ -38,18 +37,18 @@ template<class WorkItem>
 void WorkQueuesManager<WorkItem>::addWorkItem(WorkItem* workItem)
 {
 	unsigned int code = workItem->getCode();
-	std::map<unsigned int, std::deque<WorkItem*> >::iterator i;
+	std::map<unsigned int, WorkQueue>::iterator i;
 
 	if ((i = workQueues.find(code)) == workQueues.end())
 	{
-		std::deque<WorkItem*> workQueue;
+		WorkQueue workQueue;
 		workQueue.push_back(workItem);
 		workQueues.insert(std::make_pair(code, workQueue));
 	}
 
 	else
 	{
-		std::deque<WorkItem*>& workQueue = i->second;
+		WorkQueue& workQueue = i->second;
 		workQueue.push_back(workItem);
 	}
 
@@ -103,6 +102,29 @@ WorkItem* WorkQueuesManager<WorkItem>::popWorkItem()
 	workQueueCursor->second.pop_front();
 	workItemsCounter--;
 	return workItem;
+}
+
+template<class WorkItem>
+void WorkQueuesManager<WorkItem>::clear()
+{
+	if (workItemsCounter < 1)
+	{
+		return;
+	}
+
+	typename std::map<unsigned int, WorkQueue>::iterator i1 = workQueues.begin();
+	while (i1 != workQueues.end())
+	{
+		WorkQueue& workQueue = i1->second;
+		WorkQueue::iterator i2 = workQueue.begin();
+		while (i2 != workQueue.end())
+		{
+			WorkItem* workItem = *i2;
+			delete workItem;
+			i2++;
+		}
+		i1++;
+	}
 }
 
 #endif

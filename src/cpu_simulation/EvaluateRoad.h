@@ -2,19 +2,20 @@
 #define EVALUATEROAD_H
 
 #include <Procedure.h>
+#include <Road.h>
 
 class EvaluateRoad : public Procedure
 {
 public:
-	virtual unsigned int getCode()
-	{
-		return 2;
-	}
+	EvaluateRoad(const Road& road);
 
-	virtual void execute(WorkQueuesManager<Procedure>& workQueuesManager, std::vector<Segment>& segments)
-	{
-		// TODO:
-	}
+	virtual unsigned int getCode();
+	virtual void execute(WorkQueuesManager<Procedure>& workQueuesManager, std::vector<Segment>& segments, ImageMap& populationDensityMap, ImageMap& waterBodiesMap);
+
+private:
+	Road road;
+
+	void checkLocalContraints(ImageMap& waterBodiesMap);
 
 };
 

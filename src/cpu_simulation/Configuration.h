@@ -1,5 +1,7 @@
-#ifndef CONFIG_H
-#define CONFIG_H
+#ifndef CONFIGURATION_H
+#define CONFIGURATION_H
+
+#include <ImageMap.h>
 
 #include <FileReader.h>
 #include <StringUtils.h>
@@ -9,15 +11,20 @@
 #include <map>
 #include <exception>
 
-class Config
+class Configuration
 {
 public:
-	std::string populationMapFile;
-	std::string waterBodiesMapFile;
+	int worldWidth;
+	int worldHeight;
+	int roadLength;
+	int maxDerivations;
+	ImageMap populationDensityMap;
+	ImageMap waterBodiesMap;
 
-	~Config() {}
+	Configuration() : worldWidth(-1), worldHeight(-1) {}
+	~Configuration() {}
 
-	static Config* loadFromFile(const std::string& filePath)
+	void loadFromFile(const std::string& filePath)
 	{
 		std::string fileContent = FileReader::read(filePath);
 
@@ -54,18 +61,19 @@ public:
 			keyValuePairs.insert(std::make_pair(key, value));
 		}
 
-		std::string populationMapFile = find(keyValuePairs, "population_map");
-		std::string waterBodiesMapFile = find(keyValuePairs, "waterbodies_map");
+		worldWidth = atoi(find(keyValuePairs, "world_width").c_str());
+		worldHeight = atoi(find(keyValuePairs, "world_height").c_str());
+		roadLength = atoi(find(keyValuePairs, "road_length").c_str());
+		maxDerivations = atoi(find(keyValuePairs, "max_derivations").c_str());
 
-		Config* config = new Config();
-		config->populationMapFile = populationMapFile;
-		config->waterBodiesMapFile = waterBodiesMapFile;
-		return config;
+		std::string populationDensityMapFile = find(keyValuePairs, "population_density_map");
+		std::string waterBodiesMapFile = find(keyValuePairs, "water_bodies_map");
+
+		populationDensityMap.import(populationDensityMapFile, worldWidth, worldHeight);
+		waterBodiesMap.import(waterBodiesMapFile, worldWidth, worldHeight);
 	}
 
 private:
-	Config() {}
-
 	static const std::string& find(const std::map<std::string, std::string>& keyValuePairs, const std::string& key)
 	{
 		std::map<std::string, std::string>::const_iterator i;

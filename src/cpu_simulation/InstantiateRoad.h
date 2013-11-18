@@ -2,23 +2,19 @@
 #define INSTANTIATEROAD_H
 
 #include <Procedure.h>
-#include <EvaluateBranch.h>
-#include <EvaluateRoad.h>
+#include <Road.h>
 
 class InstantiateRoad : public Procedure
 {
 public:
-	virtual unsigned int getCode()
-	{
-		return 0;
-	}
+	InstantiateRoad(const Road& road);
 
-	virtual void execute(WorkQueuesManager<Procedure>& workQueuesManager, std::vector<Segment>& segments)
-	{
-		workQueuesManager.addWorkItem(new EvaluateBranch());
-		workQueuesManager.addWorkItem(new EvaluateBranch());
-		workQueuesManager.addWorkItem(new EvaluateRoad());
-	}
+	virtual unsigned int getCode();
+	virtual void execute(WorkQueuesManager<Procedure>& workQueuesManager, std::vector<Segment>& segments, ImageMap& populationDensityMap, ImageMap& waterBodiesMap);
+	void evaluateGlobalGoals(int* delays, RoadAttributes* roadAttributes, RuleAttributes* ruleAttributes);
+
+private:
+	Road road;
 
 };
 

@@ -2,19 +2,18 @@
 #define EVALUATEBRANCH_H
 
 #include <Procedure.h>
+#include <Branch.h>
 
 class EvaluateBranch : public Procedure
 {
 public:
-	virtual unsigned int getCode()
-	{
-		return 1;
-	}
+	EvaluateBranch(const Branch& branch);
 
-	virtual void execute(WorkQueuesManager<Procedure>& workQueuesManager, std::vector<Segment>& segments)
-	{
-		// TODO:
-	}
+	virtual unsigned int getCode();
+	virtual void execute(WorkQueuesManager<Procedure>& workQueuesManager, std::vector<Segment>& segments, ImageMap& populationDensityMap, ImageMap& waterBodiesMap);
+
+private:
+	Branch branch;
 
 };
 
