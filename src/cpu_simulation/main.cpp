@@ -1,11 +1,12 @@
 // memory leak detection
-//#include <vld.h>
+#include <vld.h>
 
 #include <Application.h>
 #include <Camera.h>
 #include <RoadNetworkInputController.h>
 #include <RoadNetworkRenderer.h>
 #include <RoadNetworkGeometry.h>
+#include <Config.h>
 #include <RoadNetworkGenerator.h>
 
 #include <iostream>
@@ -28,6 +29,8 @@ void printUsage()
 //////////////////////////////////////////////////////////////////////////
 int main(int argc, char** argv)
 {
+	Config* config = 0;
+
 	try
 	{
 		if (argc < 2)
@@ -36,14 +39,15 @@ int main(int argc, char** argv)
 			exit(EXIT_FAILURE);
 		}
 
-		std::string configurationFile = argv[1];
+		std::string configFile = argv[1];
 
-		if (configurationFile.empty())
+		if (configFile.empty())
 		{
 			printUsage();
 			exit(EXIT_FAILURE);
 		}
 
+		config = Config::loadFromFile(configFile);
 		Application application("RoadNetworkGenerator", DEFAULT_SCREEN_WIDTH, DEFAULT_SCREEN_HEIGHT);
 
 		if (gl3wInit())
@@ -60,22 +64,21 @@ int main(int argc, char** argv)
 		application.setInputController(inputController);
 		// ---
 		// TODO:
-
 		RoadNetworkGenerator roadNetworkGenerator;
 		roadNetworkGenerator.execute();
-
 		// ---
+		delete config;
 		return application.run();
 	}
 
 	catch (std::exception& e)
 	{
-		std::cout << "Error: " << e.what() << std::endl;
+		std::cout << "Exception: " << std::endl  << std::endl << e.what() << std::endl << std::endl;
 	}
 
 	catch (...)
 	{
-		std::cout << "Unknown error" << std::endl;
+		std::cout << "Unknown error" << std::endl << std::endl;
 	}
 
 	// DEBUG:

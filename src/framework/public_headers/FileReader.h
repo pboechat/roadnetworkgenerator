@@ -13,7 +13,7 @@ public:
 	////////////////////////////////////////////////////////////////////////////////////////////////////
 	static std::string read(const std::string& fileName)
 	{
-		char* buffer = NULL;
+		char* buffer = 0;
 
 		if (!fileName.empty())
 		{
@@ -37,9 +37,14 @@ public:
 
 			fclose(file);
 		}
-		
-		std::string fileContent = buffer;
-		free(buffer);
+
+		std::string fileContent = "";
+
+		if (buffer != 0)
+		{
+			fileContent = buffer;
+			free(buffer);
+		}
 
 		return fileContent;
 	}

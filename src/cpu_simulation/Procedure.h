@@ -1,5 +1,5 @@
-#ifndef BASEPROCEDURE_H
-#define BASEPROCEDURE_H
+#ifndef PROCEDURE_H
+#define PROCEDURE_H
 
 #include <WorkItem.h>
 #include <WorkQueuesManager.h>
