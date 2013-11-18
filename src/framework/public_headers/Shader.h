@@ -22,7 +22,7 @@ private:
 
 public:
 	////////////////////////////////////////////////////////////////////////////////////////////////////
-	Shader(const std::string& vertexShaderFile, const std::string& fragmentShaderFile) : vertexShader(FileReader::read(vertexShaderFile)), fragmentShader(FileReader::read(fragmentShaderFile))
+	Shader(const std::string& vertexShaderFile, const std::string& fragmentShaderFile) : vertexShader(FileReader::read(vertexShaderFile).c_str()), fragmentShader(FileReader::read(fragmentShaderFile).c_str())
 	{
 		program.attachShader(vertexShader);
 		program.attachShader(fragmentShader);

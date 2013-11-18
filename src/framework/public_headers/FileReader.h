@@ -5,13 +5,15 @@
 #include <exception>
 #include <stdio.h>
 
+#include <string>
+
 class FileReader
 {
 public:
 	////////////////////////////////////////////////////////////////////////////////////////////////////
-	static char* read(const std::string& fileName)
+	static std::string read(const std::string& fileName)
 	{
-		char* fileContent = NULL;
+		char* buffer = NULL;
 
 		if (!fileName.empty())
 		{
@@ -28,13 +30,16 @@ public:
 
 			if (bytesRead > 0)
 			{
-				fileContent = (char*)malloc(sizeof(char) * (bytesRead + 1));
-				bytesRead = fread(fileContent, sizeof(char), bytesRead, file);
-				fileContent[bytesRead] = '\0';
+				buffer = (char*)malloc(sizeof(char) * (bytesRead + 1));
+				bytesRead = fread(buffer, sizeof(char), bytesRead, file);
+				buffer[bytesRead] = '\0';
 			}
 
 			fclose(file);
 		}
+		
+		std::string fileContent = buffer;
+		free(buffer);
 
 		return fileContent;
 	}

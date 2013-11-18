@@ -1,8 +1,12 @@
+// memory leak detection
+//#include <vld.h>
+
 #include <Application.h>
 #include <Camera.h>
 #include <RoadNetworkInputController.h>
 #include <RoadNetworkRenderer.h>
 #include <RoadNetworkGeometry.h>
+#include <RoadNetworkGenerator.h>
 
 #include <iostream>
 #include <io.h>
@@ -56,6 +60,10 @@ int main(int argc, char** argv)
 		application.setInputController(inputController);
 		// ---
 		// TODO:
+
+		RoadNetworkGenerator roadNetworkGenerator;
+		roadNetworkGenerator.execute();
+
 		// ---
 		return application.run();
 	}
