@@ -2,9 +2,10 @@
 #define CONFIGURATION_H
 
 #include <ImageMap.h>
-
 #include <FileReader.h>
 #include <StringUtils.h>
+
+#include <glm/glm.hpp>
 
 #include <string>
 #include <vector>
@@ -24,10 +25,14 @@ public:
 	int deviationStep; // degrees
 	int maxDeviation; // degrees
 	int samplingArc; // degrees
-	int quadtreeCellSize;
+	int quadtreeCellArea;
 	int quadtreeQueryRadius;
 	ImageMap populationDensityMap;
 	ImageMap waterBodiesMap;
+	glm::vec4 highwayColor;
+	glm::vec4 streetColor;
+	glm::vec4 snapColor;
+	glm::vec4 quadtreeColor;
 
 	Configuration() {}
 	~Configuration() {}
@@ -49,7 +54,7 @@ public:
 		{
 			std::string line = lines[i];
 
-			if (line.length() < 2 || (line[0] == '\\' && line[1] == '\\'))
+			if (line.length() < 2 || (line[0] == '/' && line[1] == '/'))
 			{
 				continue;
 			}
@@ -79,8 +84,12 @@ public:
 		deviationStep = getPropertyAsInt(properties, "deviation_step");
 		maxDeviation = getPropertyAsInt(properties, "max_deviation");
 		samplingArc = getPropertyAsInt(properties, "sampling_arc");
-		quadtreeCellSize = getPropertyAsInt(properties, "quadtree_cell_size");
+		quadtreeCellArea = getPropertyAsInt(properties, "quadtree_cell_area");
 		quadtreeQueryRadius = getPropertyAsInt(properties, "quadtree_query_radius");
+		highwayColor = getPropertyAsColor(properties, "highway_color");
+		streetColor = getPropertyAsColor(properties, "street_color");
+		snapColor = getPropertyAsColor(properties, "snap_color");
+		quadtreeColor = getPropertyAsColor(properties, "quadtree_color");
 
 		std::string populationDensityMapFile = getProperty(properties, "population_density_map");
 		std::string waterBodiesMapFile = getProperty(properties, "water_bodies_map");
@@ -107,6 +116,39 @@ private:
 	{
 		return atoi(getProperty(properties, propertyName).c_str());
 	}
+
+	glm::vec4 getPropertyAsColor(const std::map<std::string, std::string>& properties, const std::string& propertyName) 
+	{
+		std::string vectorStr = getProperty(properties, propertyName);
+		std::vector<std::string> vectorComponentsStrs;
+		StringUtils::tokenize(vectorStr, ",", vectorComponentsStrs);
+		if (vectorComponentsStrs.size() != 4)
+		{
+			std::string errorMessage = "config: invalid color property ('" + propertyName + "')";
+			throw std::exception(errorMessage.c_str());
+		}
+
+		std::string vectorComponentStr = vectorComponentsStrs[0];
+		StringUtils::replace(vectorComponentStr, "(", "");
+		StringUtils::trim(vectorComponentStr);
+		float x = (float)atof(vectorComponentStr.c_str());
+
+		vectorComponentStr = vectorComponentsStrs[1];
+		StringUtils::trim(vectorComponentStr);
+		float y = (float)atof(vectorComponentStr.c_str());
+
+		vectorComponentStr = vectorComponentsStrs[2];
+		StringUtils::trim(vectorComponentStr);
+		float z = (float)atof(vectorComponentStr.c_str());
+
+		vectorComponentStr = vectorComponentsStrs[3];
+		StringUtils::replace(vectorComponentStr, ")", "");
+		StringUtils::trim(vectorComponentStr);
+		float w = (float)atof(vectorComponentStr.c_str());
+
+		return glm::vec4(x, y, z, w);
+	}
+
 
 };
 

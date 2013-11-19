@@ -72,6 +72,26 @@ public:
 		return data[i];
 	}
 
+	inline int getWidth() const
+	{
+		return width;
+	}
+
+	inline int getHeight() const
+	{
+		return height;
+	}
+
+	inline const char* getData() const
+	{
+		return data;
+	}
+
+	inline char* getData()
+	{
+		return data;
+	}
+
 private:
 	int width;
 	int height;

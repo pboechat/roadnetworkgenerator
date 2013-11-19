@@ -4,8 +4,9 @@
 #include <Application.h>
 #include <Camera.h>
 #include <RoadNetworkInputController.h>
-#include <RoadNetworkRenderer.h>
+#include <SceneRenderer.h>
 #include <RoadNetworkGeometry.h>
+#include <ImageMapQuad.h>
 #include <Configuration.h>
 #include <RoadNetworkGenerator.h>
 #include <ImageMap.h>
@@ -17,10 +18,8 @@
 #include <io.h>
 #include <iomanip>
 
-#define DEFAULT_SCREEN_WIDTH 1024
-#define DEFAULT_SCREEN_HEIGHT 768
-#define ZNEAR 0.3f
-#define ZFAR 4000.0f
+#define ZNEAR 10.0f
+#define ZFAR 10000.0f
 #define FOVY_DEG 60.0f
 #define HALF_PI 1.570796325f
 
@@ -33,7 +32,7 @@ void printUsage()
 //////////////////////////////////////////////////////////////////////////
 void centerWorldOnScreen(const Configuration& configuration, Camera& camera)
 {
-	float screenDiagonal = glm::sqrt(glm::pow((float)configuration.worldWidth, 2.0f) + glm::pow((float)configuration.worldHeight, 2.0f) + 1.0f);
+	float screenDiagonal = glm::sqrt(glm::pow((float)configuration.worldWidth, 2.0f) + glm::pow((float)configuration.worldHeight, 2.0f));
 	float distance = glm::min((screenDiagonal / 2.0f) / glm::tan(glm::radians(camera.getFovY() / 2.0f)), camera.getFar());
 	camera.localTransform.position = glm::vec3(configuration.worldWidth / 2.0f, configuration.worldHeight / 2.0f, distance);
 }
@@ -41,7 +40,7 @@ void centerWorldOnScreen(const Configuration& configuration, Camera& camera)
 //////////////////////////////////////////////////////////////////////////
 void centerGeometryOnScreen(const RoadNetworkGeometry& geometry, Camera& camera)
 {
-	float screenDiagonal = glm::sqrt(glm::pow(geometry.bounds.extents().x, 2.0f) + glm::pow(geometry.bounds.extents().y, 2.0f) + 1.0f);
+	float screenDiagonal = glm::sqrt(glm::pow(geometry.bounds.extents().x, 2.0f) + glm::pow(geometry.bounds.extents().y, 2.0f));
 	float distance = glm::min((screenDiagonal / 2.0f) / glm::tan(glm::radians(camera.getFovY() / 2.0f)), camera.getFar());
 	camera.localTransform.position = glm::vec3(geometry.bounds.min.x + geometry.bounds.extents().x / 2.0f, geometry.bounds.min.y + geometry.bounds.extents().y / 2.0f, distance);
 }
@@ -67,26 +66,41 @@ int main(int argc, char** argv)
 
 		Configuration configuration;
 		configuration.loadFromFile(configurationFile);
-		Application application("Road Network Generator (CPU)", DEFAULT_SCREEN_WIDTH, DEFAULT_SCREEN_HEIGHT);
+
+		Application application("Road Network Generator (CPU)", configuration.worldWidth, configuration.worldHeight);
 
 		if (gl3wInit())
 		{
 			throw std::runtime_error("gl3wInit() failed");
 		}
 
-		RoadNetworkGeometry geometry;
-		Camera camera(DEFAULT_SCREEN_WIDTH, DEFAULT_SCREEN_HEIGHT, FOVY_DEG, ZNEAR, ZFAR);
+		std::vector<ImageMapQuad*> imageMapQuads;
+
+		ImageMapQuad waterBodiesImageMap;
+		waterBodiesImageMap.build(configuration.waterBodiesMap);
+		imageMapQuads.push_back(&waterBodiesImageMap);
+
+		ImageMapQuad populationDensityImageMap;
+		populationDensityImageMap.build(configuration.populationDensityMap);
+		imageMapQuads.push_back(&populationDensityImageMap);
+
+		Camera camera(configuration.worldWidth, configuration.worldHeight, FOVY_DEG, ZNEAR, ZFAR);
+
 		RoadNetworkInputController inputController(camera);
-		RoadNetworkRenderer renderer(camera, geometry);
+
+		RoadNetworkGeometry roadNetworkGeometry;
+		SceneRenderer renderer(camera, roadNetworkGeometry, imageMapQuads);
+
 		application.setCamera(camera);
 		application.setRenderer(renderer);
 		application.setInputController(inputController);
-		// ---
+		
 		RoadNetworkGenerator roadNetworkGenerator;
-		roadNetworkGenerator.execute(configuration, geometry);
-		//centerWorldOnScreen(configuration, camera);
-		centerGeometryOnScreen(geometry, camera);
-		// ---
+		roadNetworkGenerator.execute(configuration, roadNetworkGeometry);
+
+		centerWorldOnScreen(configuration, camera);
+		//centerGeometryOnScreen(geometry, camera);
+		
 		return application.run();
 	}
 

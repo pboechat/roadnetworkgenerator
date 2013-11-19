@@ -10,12 +10,12 @@
 #include <GL/utils/gl.h>
 #include <glm/glm.hpp>
 
-class RoadNetworkRenderer : public Renderer
+class SceneRenderer : public Renderer
 {
 public:
 	////////////////////////////////////////////////////////////////////////////////////////////////////
-	RoadNetworkRenderer(Camera& camera, RoadNetworkGeometry& geometry)
-		: Renderer(camera), shader("../../../../../shaders/roadnetwork.vs.glsl", "../../../../../shaders/roadnetwork.fs.glsl"), geometry(geometry)
+	SceneRenderer(Camera& camera, RoadNetworkGeometry& geometry)
+		: Renderer(camera), solidShader("../../../../../shaders/roadnetwork.vs.glsl", "../../../../../shaders/roadnetwork.fs.glsl"), geometry(geometry)
 	{
 		glClearColor(0, 0, 0, 1);
 		glEnable(GL_CULL_FACE);
@@ -30,26 +30,26 @@ public:
 		glm::mat4 viewInverse = glm::inverse(view);
 		glm::mat4 projection = camera.getProjectionMatrix();
 		glm::mat4 viewProjection = projection * view;
-		shader.bind();
-		shader.setMat4("uView", view);
-		shader.setMat4("uViewInverse", viewInverse);
-		shader.setMat4("uViewInverseTranspose", glm::transpose(viewInverse));
-		shader.setMat4("uViewProjection", viewProjection);
-		shader.setVec4("uLightDir", -glm::normalize(glm::vec4(0.0f, -1.0f, -1.0f, 1.0f) * viewInverse));
-		shader.setFloat("uLightIntensity", 0.8f);
-		shader.setVec4("uLightColor", glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
-		shader.setVec4("uAmbientColor", glm::vec4(0.1f, 0.1f, 0.1f, 1.0f));
-		shader.setVec4("uDiffuseColor", glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
-		shader.setVec4("uSpecularColor", glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
-		shader.setFloat("uShininess", 30.0f);
-		geometry.draw();
+		solidShader.bind();
+		solidShader.setMat4("uView", view);
+		solidShader.setMat4("uViewInverse", viewInverse);
+		solidShader.setMat4("uViewInverseTranspose", glm::transpose(viewInverse));
+		solidShader.setMat4("uViewProjection", viewProjection);
+		solidShader.setVec4("uLightDir", -glm::normalize(glm::vec4(0.0f, -1.0f, -1.0f, 1.0f) * viewInverse));
+		solidShader.setFloat("uLightIntensity", 0.8f);
+		solidShader.setVec4("uLightColor", glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
+		solidShader.setVec4("uAmbientColor", glm::vec4(0.1f, 0.1f, 0.1f, 1.0f));
+		solidShader.setVec4("uDiffuseColor", glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
+		solidShader.setVec4("uSpecularColor", glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
+		solidShader.setFloat("uShininess", 30.0f);
+		roadNetworkGeometry.draw();
 		GL_CHECK_ERROR();
-		shader.unbind();
+		solidShader.unbind();
 	}
 
 private:
-	Shader shader;
-	RoadNetworkGeometry geometry;
+	Shader solidShader;
+	RoadNetworkGeometry roadNetworkGeometry;
 
 };
 

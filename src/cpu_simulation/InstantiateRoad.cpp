@@ -26,14 +26,17 @@ void InstantiateRoad::execute(WorkQueuesManager<Procedure>& workQueuesManager, Q
 		throw std::exception("road.state != SUCCEED");
 	}
 
-	glm::vec3 direction = glm::normalize(glm::rotate(glm::quat(glm::vec3(0, 0, glm::radians(road.roadAttributes.angle))), glm::vec3(0.0f, 1.0f, 0.0f)));
 	glm::vec3 start = road.roadAttributes.start;
+	glm::vec3 direction = glm::normalize(glm::rotate(glm::quat(glm::vec3(0, 0, glm::radians(road.roadAttributes.angle))), glm::vec3(0.0f, 1.0f, 0.0f)));
 	glm::vec3 end = start + (direction * (float)road.roadAttributes.length);
 
-	start = snap(start, configuration, quadtree);
-	end = snap(end, configuration, quadtree);
+	glm::vec3 newStart = snap(start, configuration, quadtree);
+	glm::vec3 newEnd = snap(end, configuration, quadtree);
 
-	quadtree.insert(Line(start, end, road.roadAttributes.width));
+	glm::vec4 color1 = (newStart != start) ? configuration.snapColor : (road.roadAttributes.highway) ? configuration.highwayColor : configuration.streetColor;
+	glm::vec4 color2 = (newEnd != end) ? configuration.snapColor : (road.roadAttributes.highway) ? configuration.highwayColor : configuration.streetColor;
+
+	quadtree.insert(Line(newStart, newEnd, road.roadAttributes.width, color1, color2));
 
 	int delays[3];
 	RoadAttributes roadAttributes[3];
@@ -122,10 +125,11 @@ float InstantiateRoad::findHighwayAngle(const glm::vec3& startingPoint, float st
 glm::vec3 InstantiateRoad::snap(const glm::vec3& point, const Configuration &configuration, QuadTree &quadtree) const
 {
 	std::vector<Line> neighbours;
+
 	quadtree.query(Circle(point, (float)configuration.quadtreeQueryRadius), neighbours);
 
 	// FIXME:
-	float minDistance = 1000.0f;
+	float minDistance = 100000.0f;
 	glm::vec3 closestPoint = point;
 	for (unsigned int i = 0; i < neighbours.size(); i++)
 	{

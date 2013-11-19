@@ -65,5 +65,9 @@ void EvaluateRoad::checkLocalContraints(const Configuration& configuration)
 	if (angleIncrement > configuration.maxDeviation)
 	{
 		road.state = FAILED;
+	} 
+	else 
+	{
+		road.roadAttributes.angle += angleIncrement;
 	}
 }

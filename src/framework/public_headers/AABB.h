@@ -1,6 +1,8 @@
 #ifndef AABB_H
 #define AABB_H
 
+#include <Line.h>
+
 #include <glm/glm.hpp>
 
 struct AABB
@@ -69,6 +71,15 @@ struct AABB
 		 return size.x * size.y;
 	}
 
+	bool intersects(const Circle& circle) const
+	{
+		glm::vec3 a(min.x, max.y, 0.0f);
+		glm::vec3 b(max.x, max.y, 0.0f);
+		glm::vec3 c(max.x, min.y, 0.0f);
+		glm::vec3 d(min.x, min.y, 0.0f);
+
+		return contains(circle.center) || Line(a, b).intersects(circle) || Line(b, c).intersects(circle) || Line(c, d).intersects(circle) || Line(d, a).intersects(circle);
+	}
 
 };
 

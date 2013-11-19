@@ -13,6 +13,10 @@
 
 #include <glm/glm.hpp>
 
+#ifdef _DEBUG
+#include <iostream>
+#endif
+
 class RoadNetworkGenerator
 {
 public:
@@ -22,7 +26,7 @@ public:
 	void execute(const Configuration& configuration, RoadNetworkGeometry& geometry)
 	{
 		AABB worldBounds(0, 0, (float)configuration.worldWidth, (float)configuration.worldHeight);
-		quadtree = new QuadTree(worldBounds, (float)configuration.quadtreeCellSize);
+		quadtree = new QuadTree(worldBounds, (float)configuration.quadtreeCellArea);
 
 		WorkQueuesManager<Procedure>* frontBuffer = &buffer1;
 		WorkQueuesManager<Procedure>* backBuffer = &buffer2;
@@ -55,7 +59,16 @@ public:
 
 		std::vector<Line> lines;
 		quadtree->query(worldBounds, lines);
+
+#ifdef _DEBUG
+		std::cout << "no. lines: " << lines.size() << std::endl;
+#endif
+
+#ifdef _DRAW_QUADTREE
+		geometry.build(configuration, lines, *quadtree);
+#else
 		geometry.build(configuration, lines);
+#endif
 
 		delete quadtree;
 	}

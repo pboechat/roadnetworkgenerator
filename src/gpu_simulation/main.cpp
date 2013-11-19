@@ -1,7 +1,7 @@
 #include <Application.h>
 #include <Camera.h>
 #include <RoadNetworkInputController.h>
-#include <RoadNetworkRenderer.h>
+#include <SceneRenderer.h>
 #include <RoadNetworkGeometry.h>
 
 #include <cuda_runtime_api.h>
@@ -55,7 +55,7 @@ int main(int argc, char** argv)
 		RoadNetworkGeometry geometry;
 		Camera camera(DEFAULT_SCREEN_WIDTH, DEFAULT_SCREEN_HEIGHT, FOVY_DEG, ZNEAR, ZFAR);
 		RoadNetworkInputController inputController(camera);
-		RoadNetworkRenderer renderer(camera, geometry);
+		SceneRenderer renderer(camera, geometry);
 		application.setCamera(camera);
 		application.setRenderer(renderer);
 		application.setInputController(inputController);

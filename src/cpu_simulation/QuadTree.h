@@ -89,46 +89,86 @@ public:
 
 	void query(const AABB& area, std::vector<Line>& result) const
 	{
-		for (unsigned int i = 0; i < lines.size(); i++)
+		if (isLeaf())
 		{
-			if (area.contains(lines[i].start) || area.contains(lines[i].end))
+			for (unsigned int i = 0; i < lines.size(); i++)
 			{
-				result.push_back(lines[i]);
+				if (area.contains(lines[i].start) || area.contains(lines[i].end))
+				{
+					result.push_back(lines[i]);
+				}
 			}
 		}
-
-		if (northWest == 0)
+		else
 		{
-			return;
+			northWest->query(area, result);
+			northEast->query(area, result);
+			southWest->query(area, result);
+			southEast->query(area, result);
 		}
-
-		northWest->query(area, result);
-		northEast->query(area, result);
-		southWest->query(area, result);
-		southEast->query(area, result);
 	}
 
 	void query(const Circle& circle, std::vector<Line>& result) const
 	{
-		for (unsigned int i = 0; i < lines.size(); i++)
-		{
-			const Line& line = lines[i];
-
-			if (circle.intersect(line))
-			{
-				result.push_back(line);
-			}
-		}
-
-		if (northWest == 0)
+		if (!bounds.intersects(circle))
 		{
 			return;
 		}
 
-		northWest->query(circle, result);
-		northEast->query(circle, result);
-		southWest->query(circle, result);
-		southEast->query(circle, result);
+		if (isLeaf())
+		{
+			for (unsigned int i = 0; i < lines.size(); i++)
+			{
+				const Line& line = lines[i];
+
+				if (line.intersects(circle))
+				{
+					result.push_back(line);
+				}
+			}
+		}
+		else
+		{
+			northWest->query(circle, result);
+			northEast->query(circle, result);
+			southWest->query(circle, result);
+			southEast->query(circle, result);
+		}
+	}
+
+	inline bool isLeaf() const
+	{
+		return northEast == 0;
+	}
+
+	inline bool hasLines() const
+	{
+		return lines.size() > 0;
+	}
+
+	inline const QuadTree* getNorthWest() const
+	{
+		return northWest;
+	}
+
+	inline const QuadTree* getNorthEast() const
+	{
+		return northEast;
+	}
+
+	inline const QuadTree* getSouthWest() const
+	{
+		return southWest;
+	}
+
+	inline const QuadTree* getSouthEast() const
+	{
+		return southEast;
+	}
+
+	inline const AABB& getBounds() const
+	{
+		return bounds;
 	}
 
 private:
