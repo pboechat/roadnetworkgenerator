@@ -15,7 +15,7 @@ unsigned int EvaluateRoad::getCode()
 	return 2;
 }
 
-void EvaluateRoad::execute(WorkQueuesManager<Procedure>& workQueuesManager, std::vector<Segment>& segments, const Configuration& configuration)
+void EvaluateRoad::execute(WorkQueuesManager<Procedure>& workQueuesManager, QuadTree& quadtree, const Configuration& configuration)
 {
 	// p1, p3 and p6
 	if (road.delay < 0 || road.state == FAILED)

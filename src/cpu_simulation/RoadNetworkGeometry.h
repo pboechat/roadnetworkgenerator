@@ -3,7 +3,7 @@
 
 #include <Geometry.h>
 #include <Configuration.h>
-#include <Segment.h>
+#include <Line.h>
 #include <AABB.h>
 
 #include <GL3/gl3w.h>
@@ -28,17 +28,17 @@ public:
 	}
 
 	////////////////////////////////////////////////////////////////////////////////////////////////////
-	void build(const Configuration& configuration, const std::vector<Segment>& segments)
+	void build(const Configuration& configuration, const std::vector<Line>& lines)
 	{
-		elementsCount = segments.size() * 2;
+		elementsCount = lines.size() * 2;
 		glm::vec4* vertices = new glm::vec4[elementsCount];
 		unsigned int* indices = new unsigned int[elementsCount];
 		bounds.min = glm::vec3(10000, 10000, 10000);
 		bounds.max = glm::vec3(-10000, -10000, -10000);
 
-		for (unsigned int i = 0, j = 0; i < segments.size(); i++, j += 2)
+		for (unsigned int i = 0, j = 0; i < lines.size(); i++, j += 2)
 		{
-			const Segment& segment = segments[i];
+			const Line& segment = lines[i];
 			glm::vec3 v1(segment.start.x, segment.start.y, segment.start.z);
 			glm::vec3 v2(segment.end.x, segment.end.y, segment.end.z);
 			vertices[j] = glm::vec4(v1.x, v1.y, v1.z, 1.0f);

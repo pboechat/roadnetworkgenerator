@@ -18,14 +18,18 @@ public:
 	int worldHeight;
 	int highwayLength;
 	int streetLength;
+	int highwayWidth;
+	int streetWidth;
 	int maxDerivations;
-	int deviationStep;
-	int maxDeviation;
-	int samplingArc;
+	int deviationStep; // degrees
+	int maxDeviation; // degrees
+	int samplingArc; // degrees
+	int quadtreeCellSize;
+	int quadtreeQueryRadius;
 	ImageMap populationDensityMap;
 	ImageMap waterBodiesMap;
 
-	Configuration() : worldWidth(-1), worldHeight(-1) {}
+	Configuration() {}
 	~Configuration() {}
 
 	void loadFromFile(const std::string& filePath)
@@ -39,7 +43,7 @@ public:
 
 		std::vector<std::string> lines;
 		StringUtils::tokenize(fileContent, "\n", lines);
-		std::map<std::string, std::string> keyValuePairs;
+		std::map<std::string, std::string> properties;
 
 		for (unsigned int i = 0; i < lines.size(); i++)
 		{
@@ -62,37 +66,46 @@ public:
 			StringUtils::trim(key);
 			std::string value = parts[1];
 			StringUtils::trim(value);
-			keyValuePairs.insert(std::make_pair(key, value));
+			properties.insert(std::make_pair(key, value));
 		}
 
-		worldWidth = atoi(find(keyValuePairs, "world_width").c_str());
-		worldHeight = atoi(find(keyValuePairs, "world_height").c_str());
-		highwayLength = atoi(find(keyValuePairs, "highway_length").c_str());
-		streetLength = atoi(find(keyValuePairs, "street_length").c_str());
-		maxDerivations = atoi(find(keyValuePairs, "max_derivations").c_str());
-		deviationStep = atoi(find(keyValuePairs, "deviation_step").c_str());
-		maxDeviation = atoi(find(keyValuePairs, "max_deviation").c_str());
-		samplingArc = atoi(find(keyValuePairs, "sampling_arc").c_str());
+		worldWidth = getPropertyAsInt(properties, "world_width");
+		worldHeight = getPropertyAsInt(properties, "world_height");
+		highwayLength = getPropertyAsInt(properties, "highway_length");
+		streetLength = getPropertyAsInt(properties, "street_length");
+		highwayWidth = getPropertyAsInt(properties, "highway_width");
+		streetWidth = getPropertyAsInt(properties, "street_width");
+		maxDerivations = getPropertyAsInt(properties, "max_derivations");
+		deviationStep = getPropertyAsInt(properties, "deviation_step");
+		maxDeviation = getPropertyAsInt(properties, "max_deviation");
+		samplingArc = getPropertyAsInt(properties, "sampling_arc");
+		quadtreeCellSize = getPropertyAsInt(properties, "quadtree_cell_size");
+		quadtreeQueryRadius = getPropertyAsInt(properties, "quadtree_query_radius");
 
-		std::string populationDensityMapFile = find(keyValuePairs, "population_density_map");
-		std::string waterBodiesMapFile = find(keyValuePairs, "water_bodies_map");
+		std::string populationDensityMapFile = getProperty(properties, "population_density_map");
+		std::string waterBodiesMapFile = getProperty(properties, "water_bodies_map");
 
 		populationDensityMap.import(populationDensityMapFile, worldWidth, worldHeight);
 		waterBodiesMap.import(waterBodiesMapFile, worldWidth, worldHeight);
 	}
 
 private:
-	static const std::string& find(const std::map<std::string, std::string>& keyValuePairs, const std::string& key)
+	static const std::string& getProperty(const std::map<std::string, std::string>& properties, const std::string& propertyName)
 	{
 		std::map<std::string, std::string>::const_iterator i;
 
-		if ((i = keyValuePairs.find(key)) == keyValuePairs.end())
+		if ((i = properties.find(propertyName)) == properties.end())
 		{
-			std::string errorMessage = "config: '" + key + "' not found";
+			std::string errorMessage = "config: '" + propertyName + "' not found";
 			throw std::exception(errorMessage.c_str());
 		}
 
 		return i->second;
+	}
+
+	static int getPropertyAsInt(const std::map<std::string, std::string>& properties, const std::string& propertyName)
+	{
+		return atoi(getProperty(properties, propertyName).c_str());
 	}
 
 };

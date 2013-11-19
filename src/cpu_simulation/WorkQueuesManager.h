@@ -1,8 +1,6 @@
 #ifndef WORKQUEUESMANAGER_H
 #define WORKQUEUESMANAGER_H
 
-#include <Segment.h>
-
 #include <map>
 #include <deque>
 

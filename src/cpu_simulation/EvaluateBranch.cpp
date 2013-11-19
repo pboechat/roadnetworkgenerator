@@ -11,7 +11,7 @@ unsigned int EvaluateBranch::getCode()
 	return 1;
 }
 
-void EvaluateBranch::execute(WorkQueuesManager<Procedure>& workQueuesManager, std::vector<Segment>& segments, const Configuration& configuration)
+void EvaluateBranch::execute(WorkQueuesManager<Procedure>& workQueuesManager, QuadTree& quadtree, const Configuration& configuration)
 {
 	// p4
 	if (branch.delay > 0)

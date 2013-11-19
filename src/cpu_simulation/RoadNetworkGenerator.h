@@ -9,10 +9,9 @@
 #include <RoadAttributes.h>
 #include <RuleAttributes.h>
 #include <Road.h>
+#include <QuadTree.h>
 
 #include <glm/glm.hpp>
-
-#include <vector>
 
 class RoadNetworkGenerator
 {
@@ -22,11 +21,12 @@ public:
 
 	void execute(const Configuration& configuration, RoadNetworkGeometry& geometry)
 	{
-		segments.clear();
+		AABB worldBounds(0, 0, (float)configuration.worldWidth, (float)configuration.worldHeight);
+		quadtree = new QuadTree(worldBounds, (float)configuration.quadtreeCellSize);
 
 		WorkQueuesManager<Procedure>* frontBuffer = &buffer1;
 		WorkQueuesManager<Procedure>* backBuffer = &buffer2;
-		RoadAttributes initialRoadAttributes(glm::vec3(configuration.worldWidth / 2.0f, configuration.worldWidth / 2.0f, 0), configuration.highwayLength, 0, true);
+		RoadAttributes initialRoadAttributes(glm::vec3(configuration.worldWidth / 2.0f, configuration.worldWidth / 2.0f, 0), configuration.highwayLength, configuration.highwayWidth, 0, true);
 		RuleAttributes initialRuleAttributes;
 		frontBuffer->addWorkItem(new EvaluateRoad(Road(0, initialRoadAttributes, initialRuleAttributes, UNASSIGNED)));
 		int derivation = 0;
@@ -41,7 +41,7 @@ public:
 
 				while ((procedure = frontBuffer->popWorkItem()) != 0)
 				{
-					procedure->execute(*backBuffer, segments, configuration);
+					procedure->execute(*backBuffer, *quadtree, configuration);
 					delete procedure;
 				}
 			}
@@ -53,13 +53,17 @@ public:
 		frontBuffer->clear();
 		backBuffer->clear();
 
-		geometry.build(configuration, segments);
+		std::vector<Line> lines;
+		quadtree->query(worldBounds, lines);
+		geometry.build(configuration, lines);
+
+		delete quadtree;
 	}
 
 private:
 	WorkQueuesManager<Procedure> buffer1;
 	WorkQueuesManager<Procedure> buffer2;
-	std::vector<Segment> segments;
+	QuadTree* quadtree;
 
 };
 
