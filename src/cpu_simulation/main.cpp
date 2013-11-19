@@ -20,7 +20,7 @@
 #define DEFAULT_SCREEN_WIDTH 1024
 #define DEFAULT_SCREEN_HEIGHT 768
 #define ZNEAR 0.3f
-#define ZFAR 1000.0f
+#define ZFAR 4000.0f
 #define FOVY_DEG 60.0f
 #define HALF_PI 1.570796325f
 
@@ -31,13 +31,19 @@ void printUsage()
 }
 
 //////////////////////////////////////////////////////////////////////////
-void centerGeometryOnScreen(RoadNetworkGeometry& geometry, Camera& camera)
+void centerWorldOnScreen(const Configuration& configuration, Camera& camera)
 {
-	float width = geometry.bounds.extents().x;
-	float height = geometry.bounds.extents().y;
-	float screenDiagonal = glm::sqrt(glm::pow(width, 2.0f) + glm::pow(height, 2.0f) + 1.0f);
+	float screenDiagonal = glm::sqrt(glm::pow((float)configuration.worldWidth, 2.0f) + glm::pow((float)configuration.worldHeight, 2.0f) + 1.0f);
 	float distance = glm::min((screenDiagonal / 2.0f) / glm::tan(glm::radians(camera.getFovY() / 2.0f)), camera.getFar());
-	camera.localTransform.position = glm::vec3(geometry.bounds.min.x + width / 2.0f, geometry.bounds.min.y + height / 2.0f, distance);
+	camera.localTransform.position = glm::vec3(configuration.worldWidth / 2.0f, configuration.worldHeight / 2.0f, distance);
+}
+
+//////////////////////////////////////////////////////////////////////////
+void centerGeometryOnScreen(const RoadNetworkGeometry& geometry, Camera& camera)
+{
+	float screenDiagonal = glm::sqrt(glm::pow(geometry.bounds.extents().x, 2.0f) + glm::pow(geometry.bounds.extents().y, 2.0f) + 1.0f);
+	float distance = glm::min((screenDiagonal / 2.0f) / glm::tan(glm::radians(camera.getFovY() / 2.0f)), camera.getFar());
+	camera.localTransform.position = glm::vec3(geometry.bounds.min.x + geometry.bounds.extents().x / 2.0f, geometry.bounds.min.y + geometry.bounds.extents().y / 2.0f, distance);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -78,6 +84,7 @@ int main(int argc, char** argv)
 		// ---
 		RoadNetworkGenerator roadNetworkGenerator;
 		roadNetworkGenerator.execute(configuration, geometry);
+		//centerWorldOnScreen(configuration, camera);
 		centerGeometryOnScreen(geometry, camera);
 		// ---
 		return application.run();

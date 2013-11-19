@@ -51,9 +51,7 @@ void EvaluateRoad::checkLocalContraints(const Configuration& configuration)
 	int angleIncrement = 0;
 
 	do {
-		glm::vec3 direction(0.0f, 1.0f, 0.0f);
-		direction = glm::rotate(glm::quat(glm::vec3(0, 0, road.roadAttributes.angle + (float)angleIncrement)), direction);
-		direction = glm::normalize(direction);
+		glm::vec3 direction = glm::normalize(glm::rotate(glm::quat(glm::vec3(0, 0, glm::radians(road.roadAttributes.angle + (float)angleIncrement))), glm::vec3(0.0f, 1.0f, 0.0f)));
 
 		if (configuration.waterBodiesMap.castRay(road.roadAttributes.start, direction, road.roadAttributes.length, 0))
 		{
@@ -61,10 +59,10 @@ void EvaluateRoad::checkLocalContraints(const Configuration& configuration)
 			break;
 		}
 
-		angleIncrement += configuration.angleIncrement;
-	} while (angleIncrement <= configuration.maxAngleIncrement);
+		angleIncrement += configuration.deviationStep;
+	} while (angleIncrement <= configuration.maxDeviation);
 
-	if (angleIncrement > configuration.maxAngleIncrement)
+	if (angleIncrement > configuration.maxDeviation)
 	{
 		road.state = FAILED;
 	}

@@ -19,9 +19,9 @@ public:
 	int highwayLength;
 	int streetLength;
 	int maxDerivations;
-	int angleIncrement;
-	int maxAngleIncrement;
-	int angleArc;
+	int deviationStep;
+	int maxDeviation;
+	int samplingArc;
 	ImageMap populationDensityMap;
 	ImageMap waterBodiesMap;
 
@@ -70,9 +70,9 @@ public:
 		highwayLength = atoi(find(keyValuePairs, "highway_length").c_str());
 		streetLength = atoi(find(keyValuePairs, "street_length").c_str());
 		maxDerivations = atoi(find(keyValuePairs, "max_derivations").c_str());
-		angleIncrement = atoi(find(keyValuePairs, "angle_increment").c_str());
-		maxAngleIncrement = atoi(find(keyValuePairs, "max_angle_increment").c_str());
-		angleArc = atoi(find(keyValuePairs, "angle_arc").c_str());
+		deviationStep = atoi(find(keyValuePairs, "deviation_step").c_str());
+		maxDeviation = atoi(find(keyValuePairs, "max_deviation").c_str());
+		samplingArc = atoi(find(keyValuePairs, "sampling_arc").c_str());
 
 		std::string populationDensityMapFile = find(keyValuePairs, "population_density_map");
 		std::string waterBodiesMapFile = find(keyValuePairs, "water_bodies_map");

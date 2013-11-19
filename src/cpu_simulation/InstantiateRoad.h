@@ -18,6 +18,7 @@ private:
 	Road road;
 
 	void evaluateGlobalGoals(const Configuration& configuration, const glm::vec3& roadEnd, int* delays, RoadAttributes* roadAttributes, RuleAttributes* ruleAttributes);
+	float findHighwayAngle(const glm::vec3& startingPoint, float startingAngle, int length, const Configuration& configuration) const;
 
 };
 
