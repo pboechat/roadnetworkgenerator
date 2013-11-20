@@ -29,8 +29,10 @@ public:
 		quadtree = new QuadTree(worldBounds, (float)configuration.quadtreeCellArea);
 		WorkQueuesManager<Procedure>* frontBuffer = &buffer1;
 		WorkQueuesManager<Procedure>* backBuffer = &buffer2;
+		// starting at the center of the world
 		RoadAttributes initialRoadAttributes(glm::vec3(configuration.worldWidth / 2.0f, configuration.worldWidth / 2.0f, 0), configuration.highwayLength, configuration.highwayWidth, 0, true);
 		RuleAttributes initialRuleAttributes;
+		initialRuleAttributes.highwayBranchingDistance = configuration.minHighwayBranchingDistance;
 		frontBuffer->addWorkItem(new EvaluateRoad(Road(0, initialRoadAttributes, initialRuleAttributes, UNASSIGNED)));
 		int derivation = 0;
 

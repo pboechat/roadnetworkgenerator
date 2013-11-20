@@ -75,6 +75,7 @@ public:
 
 	void scan(const glm::vec3& origin, const glm::vec3& direction, int length, int minStep, unsigned char& greaterSample, int& step) const
 	{
+		step = length;
 		greaterSample = 0;
 		for (int i = minStep; i <= length; i++)
 		{
@@ -94,8 +95,8 @@ public:
 		glm::vec3 position;
 
 		// clamp
-		position.x = glm::min(point.x, (float)width);
-		position.y = glm::min(point.y, (float)height);
+		position.x = glm::max(0.0f, glm::min(point.x, (float)width));
+		position.y = glm::max(0.0f, glm::min(point.y, (float)height));
 
 		int i = ((int)position.y * width) + (int)position.x;
 

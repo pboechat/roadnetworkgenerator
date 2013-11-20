@@ -20,6 +20,11 @@ public:
 	int highwayLength;
 	int minHighwayLength;
 	int streetLength;
+	int maxStreetBranchDepth;
+	int highwayBranchingDelay;
+	int minHighwayBranchingDistance;
+	int minPureHighwayBranchingDistance;
+	int streetBranchingDelay;
 	int highwayWidth;
 	int streetWidth;
 	int maxDerivations;
@@ -80,6 +85,11 @@ public:
 		highwayLength = getPropertyAsInt(properties, "highway_length");
 		minHighwayLength = getPropertyAsInt(properties, "min_highway_length");
 		streetLength = getPropertyAsInt(properties, "street_length");
+		maxStreetBranchDepth = getPropertyAsInt(properties, "max_street_branch_depth");
+		highwayBranchingDelay = getPropertyAsInt(properties, "highway_branching_delay");
+		minHighwayBranchingDistance = getPropertyAsInt(properties, "min_highway_branching_distance");
+		minPureHighwayBranchingDistance = getPropertyAsInt(properties, "min_pure_highway_branching_distance");
+		streetBranchingDelay = getPropertyAsInt(properties, "street_branching_delay");
 		highwayWidth = getPropertyAsInt(properties, "highway_width");
 		streetWidth = getPropertyAsInt(properties, "street_width");
 		maxDerivations = getPropertyAsInt(properties, "max_derivations");

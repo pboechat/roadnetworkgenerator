@@ -13,8 +13,14 @@ unsigned int EvaluateBranch::getCode()
 
 void EvaluateBranch::execute(WorkQueuesManager<Procedure>& workQueuesManager, QuadTree& quadtree, const Configuration& configuration)
 {
+	// p6
+	if (branch.delay < 0)
+	{
+		return;
+	}
+
 	// p4
-	if (branch.delay > 0)
+	else if (branch.delay > 0)
 	{
 		branch.delay--;
 		workQueuesManager.addWorkItem(new EvaluateBranch(branch));
@@ -24,11 +30,5 @@ void EvaluateBranch::execute(WorkQueuesManager<Procedure>& workQueuesManager, Qu
 	else if (branch.delay == 0)
 	{
 		workQueuesManager.addWorkItem(new EvaluateRoad(Road(0, branch.roadAttributes, branch.ruleAttributes, UNASSIGNED)));
-	}
-
-	// p6
-	else
-	{
-		// don't do nothing
 	}
 }

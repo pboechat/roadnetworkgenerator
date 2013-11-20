@@ -48,6 +48,21 @@ void EvaluateRoad::execute(WorkQueuesManager<Procedure>& workQueuesManager, Quad
 
 void EvaluateRoad::checkLocalContraints(const Configuration& configuration)
 {
+	// remove streets that have exceeded max street branch depth
+	if (!road.roadAttributes.highway && road.ruleAttributes.streetBranchDepth > configuration.maxStreetBranchDepth)
+	{
+		road.state = FAILED;
+		return;
+	}
+
+	// remove roads that cross world boundaries
+	if (road.roadAttributes.start.x < 0 || road.roadAttributes.start.x > (float)configuration.worldWidth ||
+		road.roadAttributes.start.y < 0 || road.roadAttributes.start.y > (float)configuration.worldHeight)
+	{
+		road.state = FAILED;
+		return;
+	}
+
 	int angleIncrement = 0;
 
 	do

@@ -91,6 +91,12 @@ struct Line
 
 	bool intersects(const Circle& circle) const
 	{
+		// FIXME:
+		if (circle.radius == 0)
+		{
+			return false;
+		}
+
 		glm::vec3 d = end - start;
 		glm::vec3 f = start - circle.center;
 

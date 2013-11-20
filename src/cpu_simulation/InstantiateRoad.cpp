@@ -47,75 +47,100 @@ void InstantiateRoad::evaluateGlobalGoals(const Configuration& configuration, co
 {
 	if (road.roadAttributes.highway)
 	{
-		delays[0] = 5;
-		delays[1] = 5;
-		delays[2] = 1;
+		bool doPureHighwayBranch = (road.ruleAttributes.pureHighwayBranchingDistance == configuration.minPureHighwayBranchingDistance);
+		bool doRegularBranch = (road.ruleAttributes.highwayBranchingDistance == configuration.minHighwayBranchingDistance);
+
+		delays[0] = (doPureHighwayBranch) ? 0 : (doRegularBranch) ? configuration.highwayBranchingDelay : -1;
+		delays[1] = (doPureHighwayBranch) ? 0 : (doRegularBranch) ? configuration.highwayBranchingDelay : -1;
+		delays[2] = 0;
+
+		// street/highway branch left
 		roadAttributes[0].start = roadEnd;
-		roadAttributes[0].length = configuration.streetLength;
-		roadAttributes[0].width = configuration.streetWidth;
+		roadAttributes[0].length = (doPureHighwayBranch) ? configuration.highwayLength : configuration.streetLength;
+		roadAttributes[0].width = (doPureHighwayBranch) ? configuration.highwayWidth : configuration.streetWidth;
 		roadAttributes[0].angle = road.roadAttributes.angle - 90.0f;
-		roadAttributes[0].highway = false;
+		roadAttributes[0].highway = doPureHighwayBranch;
+		// street/highway branch right
 		roadAttributes[1].start = roadEnd;
-		roadAttributes[1].length = configuration.streetLength;
-		roadAttributes[1].width = configuration.streetWidth;
+		roadAttributes[1].length = (doPureHighwayBranch) ? configuration.highwayLength : configuration.streetLength;
+		roadAttributes[1].width = (doPureHighwayBranch) ? configuration.highwayWidth : configuration.streetWidth;
 		roadAttributes[1].angle = road.roadAttributes.angle + 90.0f;
-		roadAttributes[1].highway = false;
+		roadAttributes[1].highway = doPureHighwayBranch;
+		// highway
 		roadAttributes[2].start = roadEnd;
 		roadAttributes[2].length = configuration.highwayLength;
 		roadAttributes[2].width = configuration.highwayWidth;
 		roadAttributes[2].angle = road.roadAttributes.angle;
 		roadAttributes[2].highway = true;
+		ruleAttributes[2].highwayBranchingDistance = (doRegularBranch) ? 0 : road.ruleAttributes.highwayBranchingDistance + 1;
+		ruleAttributes[2].pureHighwayBranchingDistance = (doPureHighwayBranch) ? 0 : road.ruleAttributes.pureHighwayBranchingDistance + 1;
+		if (doPureHighwayBranch)
+		{
+			adjustHighwayAttributes(roadAttributes[0], configuration);
+			adjustHighwayAttributes(roadAttributes[1], configuration);
+		}
 		adjustHighwayAttributes(roadAttributes[2], configuration);
 	}
 
 	else
 	{
-		delays[0] = 5;
-		delays[1] = 5;
-		delays[2] = 5;
+		delays[0] = configuration.streetBranchingDelay;
+		delays[1] = configuration.streetBranchingDelay;
+		delays[2] = 0;
+		int newDepth = road.ruleAttributes.streetBranchDepth + 1;
+		// street branch left
 		roadAttributes[0].start = roadEnd;
 		roadAttributes[0].length = configuration.streetLength;
 		roadAttributes[0].width = configuration.streetWidth;
 		roadAttributes[0].angle = road.roadAttributes.angle - 90.0f;
 		roadAttributes[0].highway = false;
+		ruleAttributes[0].streetBranchDepth = newDepth;
+		// street branch right
 		roadAttributes[1].start = roadEnd;
 		roadAttributes[1].length = configuration.streetLength;
 		roadAttributes[1].width = configuration.streetWidth;
 		roadAttributes[1].angle = road.roadAttributes.angle + 90.0f;
 		roadAttributes[1].highway = false;
+		ruleAttributes[1].streetBranchDepth = newDepth;
+		// street
 		roadAttributes[2].start = roadEnd;
 		roadAttributes[2].length = configuration.streetLength;
 		roadAttributes[2].width = configuration.streetWidth;
 		roadAttributes[2].angle = road.roadAttributes.angle;
 		roadAttributes[2].highway = false;
+		ruleAttributes[2].streetBranchDepth = newDepth;
 	}
 }
 
 void InstantiateRoad::adjustHighwayAttributes(RoadAttributes& highwayAttributes, const Configuration& configuration) const
 {
-	unsigned char highestDensity = 0;
-	int currentAngleStep = -(configuration.samplingArc + 1) / 2;
-	int angleIncrement = 0;
-	int newLength = highwayAttributes.length;
-
+	int halfSamplingArc = -(configuration.samplingArc + 1) / 2;
+	int currentAngleStep = halfSamplingArc;
+	unsigned char* densities = new unsigned char[configuration.samplingArc];
+	int* lengths = new int[configuration.samplingArc];
 	for (int i = 0; i < configuration.samplingArc; i++, currentAngleStep++)
 	{
 		glm::vec3 direction = glm::normalize(glm::rotate(glm::quat(glm::vec3(0.0f, 0.0f, glm::radians(highwayAttributes.angle + (float)currentAngleStep))), glm::vec3(0.0f, 1.0f, 0.0f)));
-		glm::vec3 hit;
-		unsigned char highestDensity_ray;
-		int lengthStep;
-		configuration.populationDensityMap.scan(highwayAttributes.start, direction, highwayAttributes.length, configuration.minHighwayLength, highestDensity_ray, lengthStep);
+		configuration.populationDensityMap.scan(highwayAttributes.start, direction, highwayAttributes.length, configuration.minHighwayLength, densities[i], lengths[i]);
+	}
 
-		if (highestDensity_ray > highestDensity)
+	int highestScore = 0;
+	int j = 0;
+	for (int i = 0; i < configuration.samplingArc; i++)
+	{
+		int score = densities[i] * lengths[i];
+		if (score > highestScore)
 		{
-			angleIncrement = currentAngleStep;
-			newLength = lengthStep;
-			highestDensity = highestDensity_ray;
+			highestScore = score;
+			j = i;
 		}
 	}
 
-	highwayAttributes.angle += (float)angleIncrement;
-	highwayAttributes.length = newLength;
+	highwayAttributes.angle += (halfSamplingArc + j);
+	highwayAttributes.length = lengths[j];
+
+	delete[] densities;
+	delete[] lengths;
 }
 
 glm::vec3 InstantiateRoad::snap(const glm::vec3& point, const Configuration& configuration, QuadTree& quadtree) const

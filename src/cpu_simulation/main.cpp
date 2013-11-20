@@ -32,7 +32,7 @@ void printUsage()
 void centerWorldOnScreen(const Configuration& configuration, Camera& camera)
 {
 	float screenDiagonal = glm::sqrt(glm::pow((float)configuration.worldWidth, 2.0f) + glm::pow((float)configuration.worldHeight, 2.0f));
-	float distance = glm::min((screenDiagonal / 2.0f) / glm::tan(glm::radians(camera.getFovY() / 2.0f)), camera.getFar());
+	float distance = (screenDiagonal / 2.0f) / glm::tan(glm::radians(camera.getFovY() / 2.0f));
 	camera.localTransform.position = glm::vec3(configuration.worldWidth / 2.0f, configuration.worldHeight / 2.0f, distance);
 }
 
@@ -40,7 +40,7 @@ void centerWorldOnScreen(const Configuration& configuration, Camera& camera)
 void centerGeometryOnScreen(const RoadNetworkGeometry& geometry, Camera& camera)
 {
 	float screenDiagonal = glm::sqrt(glm::pow(geometry.bounds.getExtents().x, 2.0f) + glm::pow(geometry.bounds.getExtents().y, 2.0f));
-	float distance = glm::min((screenDiagonal / 2.0f) / glm::tan(glm::radians(camera.getFovY() / 2.0f)), camera.getFar());
+	float distance = (screenDiagonal / 2.0f) / glm::tan(glm::radians(camera.getFovY() / 2.0f));
 	camera.localTransform.position = glm::vec3(geometry.bounds.min.x + geometry.bounds.getExtents().x / 2.0f, geometry.bounds.min.y + geometry.bounds.getExtents().y / 2.0f, distance);
 }
 
