@@ -52,6 +52,10 @@ public:
 			while (frontBuffer->nextWorkQueue());
 
 			std::swap(frontBuffer, backBuffer);
+
+#ifdef _DEBUG
+			std::cout << "derivation " << derivation << std::endl;
+#endif	
 		}
 
 		frontBuffer->clear();

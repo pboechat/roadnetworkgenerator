@@ -18,6 +18,7 @@ public:
 	int worldWidth;
 	int worldHeight;
 	int highwayLength;
+	int minHighwayLength;
 	int streetLength;
 	int highwayWidth;
 	int streetWidth;
@@ -77,6 +78,7 @@ public:
 		worldWidth = getPropertyAsInt(properties, "world_width");
 		worldHeight = getPropertyAsInt(properties, "world_height");
 		highwayLength = getPropertyAsInt(properties, "highway_length");
+		minHighwayLength = getPropertyAsInt(properties, "min_highway_length");
 		streetLength = getPropertyAsInt(properties, "street_length");
 		highwayWidth = getPropertyAsInt(properties, "highway_width");
 		streetWidth = getPropertyAsInt(properties, "street_width");

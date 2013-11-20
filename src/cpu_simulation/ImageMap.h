@@ -39,19 +39,19 @@ public:
 		width = desiredWidth;
 		height = desiredHeight;
 		int size = width * height;
-		data = new char[size];
-		char* bgra = (char*)FreeImage_GetBits(image);
+		data = new unsigned char[size];
+		unsigned char* bgra = (unsigned char*)FreeImage_GetBits(image);
 
 		for (int i = 0, j = 0; i < size; i++, j += 4)
 		{
 			// grayscale = (0.21 R + 0.71 G + 0.07 B)
-			data[i] = (char)(0.21 * bgra[j + 2] + 0.71 * bgra[j + 1] + 0.07 * bgra[j]);
+			data[i] = (unsigned char)(0.21f * bgra[j + 2] + 0.71f * bgra[j + 1] + 0.07f * bgra[j]);
 		}
 
 		FreeImage_Unload(image);
 	}
 
-	bool castRay(const glm::vec3& origin, const glm::vec3& direction, int length, char threshold) const
+	bool castRay(const glm::vec3& origin, const glm::vec3& direction, int length, unsigned char threshold, glm::vec3& hit) const
 	{
 		for (int i = 0; i <= length; i++)
 		{
@@ -59,6 +59,7 @@ public:
 
 			if (sample(point) > threshold) 
 			{
+				hit = point;
 				return false;
 			}
 		}
@@ -66,9 +67,38 @@ public:
 		return true;
 	}
 
-	char sample(const glm::vec3& point) const
+	bool castRay(const glm::vec3& origin, const glm::vec3& direction, int length, unsigned char threshold) const
 	{
-		int i = ((int)point.y * width) + (int)point.x;
+		glm::vec3 hit;
+		return castRay(origin, direction, length, threshold, hit);
+	}
+
+	void scan(const glm::vec3& origin, const glm::vec3& direction, int length, int minStep, unsigned char& greaterSample, int& step) const
+	{
+		greaterSample = 0;
+		for (int i = minStep; i <= length; i++)
+		{
+			glm::vec3 point = origin + (direction * (float)i);
+
+			unsigned char currentSample = sample(point);
+			if (currentSample > greaterSample) 
+			{
+				step = i;
+				greaterSample = currentSample;
+			}
+		}
+	}
+
+	unsigned char sample(const glm::vec3& point) const
+	{
+		glm::vec3 position;
+
+		// clamp
+		position.x = glm::min(point.x, (float)width);
+		position.y = glm::min(point.y, (float)height);
+
+		int i = ((int)position.y * width) + (int)position.x;
+
 		return data[i];
 	}
 
@@ -82,12 +112,12 @@ public:
 		return height;
 	}
 
-	inline const char* getData() const
+	inline const unsigned char* getData() const
 	{
 		return data;
 	}
 
-	inline char* getData()
+	inline unsigned char* getData()
 	{
 		return data;
 	}
@@ -95,7 +125,7 @@ public:
 private:
 	int width;
 	int height;
-	char* data;
+	unsigned char* data;
 
 };
 
