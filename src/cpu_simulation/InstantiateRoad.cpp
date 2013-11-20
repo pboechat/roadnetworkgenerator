@@ -151,12 +151,22 @@ glm::vec3 InstantiateRoad::snap(const glm::vec3& point, const Configuration& con
 	float minDistance = 100000.0f;
 	glm::vec3 closestPoint = point;
 
+	// FIXME: horrible code!!!
 	for (unsigned int i = 0; i < neighbours.size(); i++)
 	{
-		glm::vec3 snapPoint = neighbours[i].snap(point);
+		glm::vec3 snapPoint = neighbours[i].start;
 		float distance = glm::distance(snapPoint, point);
 
-		if (distance < minDistance)
+		if (distance < configuration.quadtreeQueryRadius && distance < minDistance)
+		{
+			minDistance = distance;
+			closestPoint = snapPoint;
+		}
+
+		snapPoint = neighbours[i].end;
+		distance = glm::distance(snapPoint, point);
+
+		if (distance < configuration.quadtreeQueryRadius && distance < minDistance)
 		{
 			minDistance = distance;
 			closestPoint = snapPoint;

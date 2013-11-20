@@ -45,7 +45,7 @@ struct Line
 		}
 	}
 
-	inline glm::vec3 snap(const glm::vec3& point) const
+	/*inline glm::vec3 snap(const glm::vec3& point) const
 	{
 		glm::vec3 a = point - start;
 		glm::vec3 n = end - start;
@@ -60,7 +60,7 @@ struct Line
 		}
 
 		return start + glm::proj(a, n);
-	}
+	}*/
 
 	bool intersects(const Line& line, glm::vec3& intersection) const
 	{

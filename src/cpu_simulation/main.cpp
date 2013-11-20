@@ -32,7 +32,7 @@ void printUsage()
 void centerWorldOnScreen(const Configuration& configuration, Camera& camera)
 {
 	float screenDiagonal = glm::sqrt(glm::pow((float)configuration.worldWidth, 2.0f) + glm::pow((float)configuration.worldHeight, 2.0f));
-	float distance = (screenDiagonal / 2.0f) / glm::tan(glm::radians(camera.getFovY() / 2.0f));
+	float distance = (configuration.worldWidth / 2.0f) / glm::tan(glm::radians(camera.getFovY() / 2.0f));
 	camera.localTransform.position = glm::vec3(configuration.worldWidth / 2.0f, configuration.worldHeight / 2.0f, distance);
 }
 
