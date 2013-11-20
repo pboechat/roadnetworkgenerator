@@ -18,12 +18,14 @@ void EvaluateBranch::execute(WorkQueuesManager<Procedure>& workQueuesManager, Qu
 	{
 		branch.delay--;
 		workQueuesManager.addWorkItem(new EvaluateBranch(branch));
-	} 
+	}
+
 	// p5
 	else if (branch.delay == 0)
 	{
 		workQueuesManager.addWorkItem(new EvaluateRoad(Road(0, branch.roadAttributes, branch.ruleAttributes, UNASSIGNED)));
 	}
+
 	// p6
 	else
 	{

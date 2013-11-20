@@ -31,7 +31,6 @@ public:
 	}
 
 #ifdef _DRAW_QUADTREE
-	////////////////////////////////////////////////////////////////////////////////////////////////////
 	void addLeafQuadrantsBounds(const QuadTree& quadtree, std::vector<AABB>& quadrantsBounds) 
 	{
 		if (quadtree.isLeaf())
@@ -50,7 +49,6 @@ public:
 		}
 	}
 
-	////////////////////////////////////////////////////////////////////////////////////////////////////
 	void build(const Configuration& configuration, const std::vector<Line>& lines, const QuadTree& quadtree)
 	{
 		std::vector<AABB> quadrantsBounds;
@@ -142,7 +140,6 @@ public:
 		glBindVertexArray(0);
 	}
 #else
-	////////////////////////////////////////////////////////////////////////////////////////////////////
 	void build(const Configuration& configuration, const std::vector<Line>& lines)
 	{
 		elementsCount = lines.size() * 2;
@@ -198,7 +195,6 @@ public:
 	}
 #endif
 
-	////////////////////////////////////////////////////////////////////////////////////////////////////
 	virtual void draw()
 	{
 		if (elementsCount == 0)

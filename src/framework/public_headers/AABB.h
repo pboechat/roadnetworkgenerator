@@ -20,12 +20,12 @@ struct AABB
 
 	~AABB() {}
 
-	inline glm::vec3 extents() const
+	inline glm::vec3 getExtents() const
 	{
 		return max - min;
 	}
 
-	inline glm::vec3 center() const
+	inline glm::vec3 getCenter() const
 	{
 		return min + ((max - min) / 2.0f);
 	}
@@ -65,9 +65,9 @@ struct AABB
 		return *this;
 	}
 
-	inline float area() const
+	inline float getArea() const
 	{
-		 glm::vec3 size = extents();
+		 glm::vec3 size = getExtents();
 		 return size.x * size.y;
 	}
 

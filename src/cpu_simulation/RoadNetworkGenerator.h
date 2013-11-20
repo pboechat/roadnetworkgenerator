@@ -27,7 +27,6 @@ public:
 	{
 		AABB worldBounds(0, 0, (float)configuration.worldWidth, (float)configuration.worldHeight);
 		quadtree = new QuadTree(worldBounds, (float)configuration.quadtreeCellArea);
-
 		WorkQueuesManager<Procedure>* frontBuffer = &buffer1;
 		WorkQueuesManager<Procedure>* backBuffer = &buffer2;
 		RoadAttributes initialRoadAttributes(glm::vec3(configuration.worldWidth / 2.0f, configuration.worldWidth / 2.0f, 0), configuration.highwayLength, configuration.highwayWidth, 0, true);
@@ -52,28 +51,23 @@ public:
 			while (frontBuffer->nextWorkQueue());
 
 			std::swap(frontBuffer, backBuffer);
-
 #ifdef _DEBUG
 			std::cout << "derivation " << derivation << std::endl;
-#endif	
+#endif
 		}
 
 		frontBuffer->clear();
 		backBuffer->clear();
-
 		std::vector<Line> lines;
 		quadtree->query(worldBounds, lines);
-
 #ifdef _DEBUG
 		std::cout << "no. lines: " << lines.size() << std::endl;
 #endif
-
 #ifdef _DRAW_QUADTREE
 		geometry.build(configuration, lines, *quadtree);
 #else
 		geometry.build(configuration, lines);
 #endif
-
 		delete quadtree;
 	}
 

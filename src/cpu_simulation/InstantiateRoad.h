@@ -19,7 +19,7 @@ private:
 
 	void evaluateGlobalGoals(const Configuration& configuration, const glm::vec3& roadEnd, int* delays, RoadAttributes* roadAttributes, RuleAttributes* ruleAttributes);
 	void adjustHighwayAttributes(RoadAttributes& roadAttributes, const Configuration& configuration) const;
-	glm::vec3 snap(const glm::vec3& point, const Configuration &configuration, QuadTree &quadtree) const;
+	glm::vec3 snap(const glm::vec3& point, const Configuration& configuration, QuadTree& quadtree) const;
 
 };
 

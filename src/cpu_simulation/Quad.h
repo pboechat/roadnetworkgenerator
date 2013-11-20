@@ -1,44 +1,23 @@
-#ifndef IMAGEMAPQUAD_H
-#define IMAGEMAPQUAD_H
+#ifndef QUAD_H
+#define QUAD_H
 
 #include <Geometry.h>
-#include <Texture.h>
-#include <ImageMap.h>
 
 #include <glm/glm.hpp>
 
-class ImageMapQuad : public Geometry
+class Quad : public Geometry
 {
 public:
-	ImageMapQuad() : texture(0) 
+	Quad(const glm::vec3& position, float width, float height) : position(position), width(width), height(height)
 	{
 		glGenBuffers(3, buffers);
 		glGenVertexArrays(1, &vao);
-	}
-
-	~ImageMapQuad() 
-	{ 
-		if (texture != 0) 
-		{
-			delete texture; 
-		}
-
-		glDeleteBuffers(3, buffers);
-		glDeleteVertexArrays(1, &vao);
-	}
-
-	void build(ImageMap& imageMap)
-	{
-		int width = imageMap.getWidth();
-		int height = imageMap.getHeight();
-
-		texture = new Texture(width, height, GL_RED, GL_R8, GL_UNSIGNED_BYTE, GL_NEAREST, GL_CLAMP_TO_EDGE, (void*)imageMap.getData());
 
 		glm::vec4 vertices[4];
-		vertices[0] = glm::vec4((float)width, (float)height, 0.0f, 1.0f);
-		vertices[1] = glm::vec4(0.0f, (float)height, 0.0f, 1.0f);
-		vertices[2] = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
-		vertices[3] = glm::vec4((float)width, 0.0f, 0.0f, 1.0f);
+		vertices[0] = glm::vec4(position.x + width, position.y + height, position.z, 1.0f);
+		vertices[1] = glm::vec4(position.x, position.y + height, position.z, 1.0f);
+		vertices[2] = glm::vec4(position.x, position.y, position.z, 1.0f);
+		vertices[3] = glm::vec4(position.x + width, position.y, position.z, 1.0f);
 
 		glm::vec2 uvs[4];
 		uvs[0] = glm::vec2(1.0f, 1.0f);
@@ -78,13 +57,14 @@ public:
 		glBindVertexArray(0);
 	}
 
+	~Quad() 
+	{ 
+		glDeleteBuffers(3, buffers);
+		glDeleteVertexArrays(1, &vao);
+	}
+
 	virtual void draw() 
 	{
-		if (texture == 0)
-		{
-			return;
-		}
-
 		glBindVertexArray(vao);
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, buffers[2]);
 		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
@@ -92,15 +72,12 @@ public:
 		glBindVertexArray(0);
 	}
 
-	inline Texture* getTexture()
-	{
-		return texture;
-	}
-
 private:
+	glm::vec3 position;
+	float width;
+	float height;
 	unsigned int buffers[3];
 	unsigned int vao;
-	Texture* texture;
 
 };
 

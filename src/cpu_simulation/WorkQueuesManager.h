@@ -111,16 +111,19 @@ void WorkQueuesManager<WorkItem>::clear()
 	}
 
 	typename std::map<unsigned int, WorkQueue>::iterator i1 = workQueues.begin();
+
 	while (i1 != workQueues.end())
 	{
 		WorkQueue& workQueue = i1->second;
 		WorkQueue::iterator i2 = workQueue.begin();
+
 		while (i2 != workQueue.end())
 		{
 			WorkItem* workItem = *i2;
 			delete workItem;
 			i2++;
 		}
+
 		i1++;
 	}
 }

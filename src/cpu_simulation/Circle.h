@@ -19,7 +19,6 @@ struct Circle
 		return *this;
 	}
 
-
 };
 
 #endif

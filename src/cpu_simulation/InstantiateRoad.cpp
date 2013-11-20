@@ -29,15 +29,11 @@ void InstantiateRoad::execute(WorkQueuesManager<Procedure>& workQueuesManager, Q
 	glm::vec3 start = road.roadAttributes.start;
 	glm::vec3 direction = glm::normalize(glm::rotate(glm::quat(glm::vec3(0, 0, glm::radians(road.roadAttributes.angle))), glm::vec3(0.0f, 1.0f, 0.0f)));
 	glm::vec3 end = start + (direction * (float)road.roadAttributes.length);
-
 	glm::vec3 newStart = snap(start, configuration, quadtree);
 	glm::vec3 newEnd = snap(end, configuration, quadtree);
-
 	glm::vec4 color1 = (newStart != start) ? configuration.snapColor : (road.roadAttributes.highway) ? configuration.highwayColor : configuration.streetColor;
 	glm::vec4 color2 = (newEnd != end) ? configuration.snapColor : (road.roadAttributes.highway) ? configuration.highwayColor : configuration.streetColor;
-
 	quadtree.insert(Line(newStart, newEnd, road.roadAttributes.width, color1, color2));
-
 	int delays[3];
 	RoadAttributes roadAttributes[3];
 	RuleAttributes ruleAttributes[3];
@@ -54,25 +50,21 @@ void InstantiateRoad::evaluateGlobalGoals(const Configuration& configuration, co
 		delays[0] = 5;
 		delays[1] = 5;
 		delays[2] = 1;
-
 		roadAttributes[0].start = roadEnd;
 		roadAttributes[0].length = configuration.streetLength;
 		roadAttributes[0].width = configuration.streetWidth;
 		roadAttributes[0].angle = road.roadAttributes.angle - 90.0f;
 		roadAttributes[0].highway = false;
-
 		roadAttributes[1].start = roadEnd;
 		roadAttributes[1].length = configuration.streetLength;
 		roadAttributes[1].width = configuration.streetWidth;
 		roadAttributes[1].angle = road.roadAttributes.angle + 90.0f;
 		roadAttributes[1].highway = false;
-
 		roadAttributes[2].start = roadEnd;
 		roadAttributes[2].length = configuration.highwayLength;
 		roadAttributes[2].width = configuration.highwayWidth;
 		roadAttributes[2].angle = road.roadAttributes.angle;
 		roadAttributes[2].highway = true;
-
 		adjustHighwayAttributes(roadAttributes[2], configuration);
 	}
 
@@ -81,19 +73,16 @@ void InstantiateRoad::evaluateGlobalGoals(const Configuration& configuration, co
 		delays[0] = 5;
 		delays[1] = 5;
 		delays[2] = 5;
-
 		roadAttributes[0].start = roadEnd;
 		roadAttributes[0].length = configuration.streetLength;
 		roadAttributes[0].width = configuration.streetWidth;
 		roadAttributes[0].angle = road.roadAttributes.angle - 90.0f;
 		roadAttributes[0].highway = false;
-
 		roadAttributes[1].start = roadEnd;
 		roadAttributes[1].length = configuration.streetLength;
 		roadAttributes[1].width = configuration.streetWidth;
 		roadAttributes[1].angle = road.roadAttributes.angle + 90.0f;
 		roadAttributes[1].highway = false;
-
 		roadAttributes[2].start = roadEnd;
 		roadAttributes[2].length = configuration.streetLength;
 		roadAttributes[2].width = configuration.streetWidth;
@@ -112,7 +101,6 @@ void InstantiateRoad::adjustHighwayAttributes(RoadAttributes& highwayAttributes,
 	for (int i = 0; i < configuration.samplingArc; i++, currentAngleStep++)
 	{
 		glm::vec3 direction = glm::normalize(glm::rotate(glm::quat(glm::vec3(0.0f, 0.0f, glm::radians(highwayAttributes.angle + (float)currentAngleStep))), glm::vec3(0.0f, 1.0f, 0.0f)));
-
 		glm::vec3 hit;
 		unsigned char highestDensity_ray;
 		int lengthStep;
@@ -126,23 +114,23 @@ void InstantiateRoad::adjustHighwayAttributes(RoadAttributes& highwayAttributes,
 		}
 	}
 
-	 highwayAttributes.angle += (float)angleIncrement;
-	 highwayAttributes.length = newLength;
+	highwayAttributes.angle += (float)angleIncrement;
+	highwayAttributes.length = newLength;
 }
 
-glm::vec3 InstantiateRoad::snap(const glm::vec3& point, const Configuration &configuration, QuadTree &quadtree) const
+glm::vec3 InstantiateRoad::snap(const glm::vec3& point, const Configuration& configuration, QuadTree& quadtree) const
 {
 	std::vector<Line> neighbours;
-
 	quadtree.query(Circle(point, (float)configuration.quadtreeQueryRadius), neighbours);
-
 	// FIXME:
 	float minDistance = 100000.0f;
 	glm::vec3 closestPoint = point;
+
 	for (unsigned int i = 0; i < neighbours.size(); i++)
 	{
 		glm::vec3 snapPoint = neighbours[i].snap(point);
 		float distance = glm::distance(snapPoint, point);
+
 		if (distance < minDistance)
 		{
 			minDistance = distance;

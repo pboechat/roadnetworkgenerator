@@ -42,7 +42,7 @@ public:
 			return false;
 		}
 
-		if (bounds.area() <= smallestArea)
+		if (bounds.getArea() <= smallestArea)
 		{
 			lines.push_back(line);
 			return true;
@@ -79,8 +79,8 @@ public:
 
 	void subdivide()
 	{
-		float halfWidth = bounds.extents().x / 2.0f;
-		float halfHeight = bounds.extents().y / 2.0f;
+		float halfWidth = bounds.getExtents().x / 2.0f;
+		float halfHeight = bounds.getExtents().y / 2.0f;
 		northWest = new QuadTree(AABB(bounds.min.x, bounds.min.y + halfHeight, halfWidth, halfHeight), smallestArea);
 		northEast = new QuadTree(AABB(bounds.min.x + halfWidth, bounds.min.y + halfHeight, halfWidth, halfHeight), smallestArea);
 		southWest = new QuadTree(AABB(bounds.min.x, bounds.min.y, halfWidth, halfHeight), smallestArea);
@@ -99,6 +99,7 @@ public:
 				}
 			}
 		}
+
 		else
 		{
 			northWest->query(area, result);
@@ -127,6 +128,7 @@ public:
 				}
 			}
 		}
+
 		else
 		{
 			northWest->query(circle, result);
