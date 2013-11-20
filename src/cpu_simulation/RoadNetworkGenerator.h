@@ -34,7 +34,7 @@ public:
 		RuleAttributes initialRuleAttributes;
 		initialRuleAttributes.highwayBranchingDistance = configuration.minHighwayBranchingDistance;
 		frontBuffer->addWorkItem(new EvaluateRoad(Road(0, initialRoadAttributes, initialRuleAttributes, UNASSIGNED)));
-		int derivation = 0;
+		unsigned int derivation = 0;
 
 		while (frontBuffer->notEmpty() && derivation++ < configuration.maxDerivations)
 		{

@@ -15,24 +15,24 @@
 class Configuration
 {
 public:
-	int worldWidth;
-	int worldHeight;
-	int highwayLength;
-	int minHighwayLength;
-	int streetLength;
-	int maxStreetBranchDepth;
-	int highwayBranchingDelay;
-	int minHighwayBranchingDistance;
-	int minPureHighwayBranchingDistance;
-	int streetBranchingDelay;
-	int highwayWidth;
-	int streetWidth;
-	int maxDerivations;
-	int deviationStep; // degrees
-	int maxDeviation; // degrees
-	int samplingArc; // degrees
-	int quadtreeCellArea;
-	int quadtreeQueryRadius;
+	unsigned int worldWidth;
+	unsigned int worldHeight;
+	unsigned int highwayLength;
+	unsigned int minSamplingRayLength;
+	unsigned int maxSamplingRayLength;
+	unsigned int streetLength;
+	unsigned int maxStreetBranchDepth;
+	unsigned int highwayBranchingDelay;
+	unsigned int minHighwayBranchingDistance;
+	unsigned int minPureHighwayBranchingDistance;
+	unsigned int streetBranchingDelay;
+	unsigned int highwayWidth;
+	unsigned int streetWidth;
+	unsigned int maxDerivations;
+	unsigned int maxObstacleDeviationAngle; // degrees
+	unsigned int samplingArc; // degrees
+	unsigned int quadtreeCellArea;
+	unsigned int quadtreeQueryRadius;
 	ImageMap populationDensityMap;
 	ImageMap waterBodiesMap;
 	glm::vec4 highwayColor;
@@ -80,24 +80,24 @@ public:
 			properties.insert(std::make_pair(key, value));
 		}
 
-		worldWidth = getPropertyAsInt(properties, "world_width");
-		worldHeight = getPropertyAsInt(properties, "world_height");
-		highwayLength = getPropertyAsInt(properties, "highway_length");
-		minHighwayLength = getPropertyAsInt(properties, "min_highway_length");
-		streetLength = getPropertyAsInt(properties, "street_length");
-		maxStreetBranchDepth = getPropertyAsInt(properties, "max_street_branch_depth");
-		highwayBranchingDelay = getPropertyAsInt(properties, "highway_branching_delay");
-		minHighwayBranchingDistance = getPropertyAsInt(properties, "min_highway_branching_distance");
-		minPureHighwayBranchingDistance = getPropertyAsInt(properties, "min_pure_highway_branching_distance");
-		streetBranchingDelay = getPropertyAsInt(properties, "street_branching_delay");
-		highwayWidth = getPropertyAsInt(properties, "highway_width");
-		streetWidth = getPropertyAsInt(properties, "street_width");
-		maxDerivations = getPropertyAsInt(properties, "max_derivations");
-		deviationStep = getPropertyAsInt(properties, "deviation_step");
-		maxDeviation = getPropertyAsInt(properties, "max_deviation");
-		samplingArc = getPropertyAsInt(properties, "sampling_arc");
-		quadtreeCellArea = getPropertyAsInt(properties, "quadtree_cell_area");
-		quadtreeQueryRadius = getPropertyAsInt(properties, "quadtree_query_radius");
+		worldWidth = getPropertyAsUInt(properties, "world_width");
+		worldHeight = getPropertyAsUInt(properties, "world_height");
+		highwayLength = getPropertyAsUInt(properties, "highway_length");
+		minSamplingRayLength = getPropertyAsUInt(properties, "max_sampling_ray_length");
+		maxSamplingRayLength = getPropertyAsUInt(properties, "max_sampling_ray_length");
+		streetLength = getPropertyAsUInt(properties, "street_length");
+		maxStreetBranchDepth = getPropertyAsUInt(properties, "max_street_branch_depth");
+		highwayBranchingDelay = getPropertyAsUInt(properties, "highway_branching_delay");
+		minHighwayBranchingDistance = getPropertyAsUInt(properties, "min_highway_branching_distance");
+		minPureHighwayBranchingDistance = getPropertyAsUInt(properties, "min_pure_highway_branching_distance");
+		streetBranchingDelay = getPropertyAsUInt(properties, "street_branching_delay");
+		highwayWidth = getPropertyAsUInt(properties, "highway_width");
+		streetWidth = getPropertyAsUInt(properties, "street_width");
+		maxDerivations = getPropertyAsUInt(properties, "max_derivations");
+		maxObstacleDeviationAngle = getPropertyAsUInt(properties, "max_obstacle_deviation_angle");
+		samplingArc = getPropertyAsUInt(properties, "sampling_arc");
+		quadtreeCellArea = getPropertyAsUInt(properties, "quadtree_cell_area");
+		quadtreeQueryRadius = getPropertyAsUInt(properties, "quadtree_query_radius");
 		highwayColor = getPropertyAsColor(properties, "highway_color");
 		streetColor = getPropertyAsColor(properties, "street_color");
 		snapColor = getPropertyAsColor(properties, "snap_color");
@@ -122,9 +122,9 @@ private:
 		return i->second;
 	}
 
-	static int getPropertyAsInt(const std::map<std::string, std::string>& properties, const std::string& propertyName)
+	static unsigned int getPropertyAsUInt(const std::map<std::string, std::string>& properties, const std::string& propertyName)
 	{
-		return atoi(getProperty(properties, propertyName).c_str());
+		return (unsigned int)atoi(getProperty(properties, propertyName).c_str());
 	}
 
 	glm::vec4 getPropertyAsColor(const std::map<std::string, std::string>& properties, const std::string& propertyName)

@@ -73,18 +73,18 @@ public:
 		return castRay(origin, direction, length, threshold, hit);
 	}
 
-	void scan(const glm::vec3& origin, const glm::vec3& direction, int length, int minStep, unsigned char& greaterSample, int& step) const
+	void scan(const glm::vec3& origin, const glm::vec3& direction, int minDistance, int maxDistance, unsigned char& greaterSample, int& distance) const
 	{
-		step = length;
+		distance = maxDistance;
 		greaterSample = 0;
-		for (int i = minStep; i <= length; i++)
+		for (int i = minDistance; i <= maxDistance; i++)
 		{
 			glm::vec3 point = origin + (direction * (float)i);
 
 			unsigned char currentSample = sample(point);
 			if (currentSample > greaterSample) 
 			{
-				step = i;
+				distance = i;
 				greaterSample = currentSample;
 			}
 		}

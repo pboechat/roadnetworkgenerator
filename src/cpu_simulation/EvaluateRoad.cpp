@@ -63,7 +63,7 @@ void EvaluateRoad::checkLocalContraints(const Configuration& configuration)
 		return;
 	}
 
-	int angleIncrement = 0;
+	unsigned int angleIncrement = 0;
 
 	do
 	{
@@ -75,11 +75,11 @@ void EvaluateRoad::checkLocalContraints(const Configuration& configuration)
 			break;
 		}
 
-		angleIncrement += configuration.deviationStep;
+		angleIncrement++;;
 	}
-	while (angleIncrement <= configuration.maxDeviation);
+	while (angleIncrement <= configuration.maxObstacleDeviationAngle);
 
-	if (angleIncrement > configuration.maxDeviation)
+	if (angleIncrement > configuration.maxObstacleDeviationAngle)
 	{
 		road.state = FAILED;
 	}

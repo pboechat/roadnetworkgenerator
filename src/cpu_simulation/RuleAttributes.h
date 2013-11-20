@@ -3,11 +3,12 @@
 
 struct RuleAttributes
 {
-	int streetBranchDepth;
-	int highwayBranchingDistance;
-	int pureHighwayBranchingDistance;
+	unsigned int streetBranchDepth;
+	unsigned int highwayBranchingDistance;
+	unsigned int pureHighwayBranchingDistance;
+	unsigned int highwayGoalDistance;
 
-	RuleAttributes() : streetBranchDepth(0), highwayBranchingDistance(0), pureHighwayBranchingDistance(0) {}
+	RuleAttributes() : streetBranchDepth(0), highwayBranchingDistance(0), pureHighwayBranchingDistance(0), highwayGoalDistance(0) {}
 	~RuleAttributes() {}
 
 	RuleAttributes& operator =(const RuleAttributes& other)
