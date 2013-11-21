@@ -19,6 +19,12 @@ struct Circle
 		return *this;
 	}
 
+	bool contains(const glm::vec3& point) const
+	{
+		return glm::distance(center, point) <= radius;
+	}
+
+
 };
 
 #endif

@@ -8,7 +8,7 @@
 #include <RoadNetworkGeometry.h>
 #include <Configuration.h>
 #include <RoadNetworkGenerator.h>
-#include <ImageMap.h>
+#include <RoadNetwork.h>
 
 #include <glm/glm.hpp>
 
@@ -16,6 +16,7 @@
 #include <iostream>
 #include <io.h>
 #include <iomanip>
+#include <random>
 
 #define ZNEAR 10.0f
 #define ZFAR 10000.0f
@@ -65,6 +66,19 @@ int main(int argc, char** argv)
 
 		Configuration configuration;
 		configuration.loadFromFile(configurationFile);
+
+		unsigned int seed;
+		if (configuration.seed >= 0)
+		{
+			seed = configuration.seed;
+		}
+		else
+		{
+			seed = (unsigned int)time(0);
+			std::cout << "seed: " << seed << std::endl;
+		}
+		srand(seed);
+
 		Application application("Road Network Generator (CPU)", configuration.worldWidth, configuration.worldHeight);
 
 		if (gl3wInit())
@@ -76,13 +90,21 @@ int main(int argc, char** argv)
 		RoadNetworkInputController inputController(camera);
 		RoadNetworkGeometry roadNetworkGeometry;
 		SceneRenderer renderer(configuration, camera, roadNetworkGeometry);
+
 		application.setCamera(camera);
 		application.setRenderer(renderer);
 		application.setInputController(inputController);
+
+		RoadNetwork::Graph roadNetwork(configuration);
+
 		RoadNetworkGenerator roadNetworkGenerator;
-		roadNetworkGenerator.execute(configuration, roadNetworkGeometry);
+		roadNetworkGenerator.execute(configuration, roadNetwork);
+
+		roadNetworkGeometry.build(configuration, roadNetwork);
+
 		centerWorldOnScreen(configuration, camera);
 		//centerGeometryOnScreen(geometry, camera);
+
 		return application.run();
 	}
 

@@ -15,7 +15,7 @@ unsigned int EvaluateRoad::getCode()
 	return 2;
 }
 
-void EvaluateRoad::execute(WorkQueuesManager<Procedure>& workQueuesManager, QuadTree& quadtree, const Configuration& configuration)
+void EvaluateRoad::execute(WorkQueuesManager<Procedure>& workQueuesManager, RoadNetwork::Graph& roadNetworkGraph, const Configuration& configuration)
 {
 	// p1, p3 and p6
 	if (road.delay < 0 || road.state == FAILED)
@@ -26,7 +26,7 @@ void EvaluateRoad::execute(WorkQueuesManager<Procedure>& workQueuesManager, Quad
 	// p8
 	if (road.state == UNASSIGNED)
 	{
-		checkLocalContraints(configuration);
+		enforceLocalContraints(configuration, roadNetworkGraph);
 
 		// FIXME: checking invariants
 		if (road.state == UNASSIGNED)
@@ -46,7 +46,7 @@ void EvaluateRoad::execute(WorkQueuesManager<Procedure>& workQueuesManager, Quad
 	}
 }
 
-void EvaluateRoad::checkLocalContraints(const Configuration& configuration)
+void EvaluateRoad::enforceLocalContraints(const Configuration& configuration, const RoadNetwork::Graph& roadNetworkGraph)
 {
 	// remove streets that have exceeded max street branch depth
 	if (!road.roadAttributes.highway && road.ruleAttributes.streetBranchDepth > configuration.maxStreetBranchDepth)
@@ -55,9 +55,11 @@ void EvaluateRoad::checkLocalContraints(const Configuration& configuration)
 		return;
 	}
 
+	glm::vec3 position = roadNetworkGraph.getPosition(road.roadAttributes.source);
+
 	// remove roads that cross world boundaries
-	if (road.roadAttributes.start.x < 0 || road.roadAttributes.start.x > (float)configuration.worldWidth ||
-		road.roadAttributes.start.y < 0 || road.roadAttributes.start.y > (float)configuration.worldHeight)
+	if (position.x < 0 || position.x > (float)configuration.worldWidth ||
+		position.y < 0 || position.y > (float)configuration.worldHeight)
 	{
 		road.state = FAILED;
 		return;
@@ -69,7 +71,7 @@ void EvaluateRoad::checkLocalContraints(const Configuration& configuration)
 	{
 		glm::vec3 direction = glm::normalize(glm::rotate(glm::quat(glm::vec3(0, 0, glm::radians(road.roadAttributes.angle + (float)angleIncrement))), glm::vec3(0.0f, 1.0f, 0.0f)));
 
-		if (configuration.waterBodiesMap.castRay(road.roadAttributes.start, direction, road.roadAttributes.length, 0))
+		if (configuration.waterBodiesMap.castRay(position, direction, road.roadAttributes.length, 0))
 		{
 			road.state = SUCCEED;
 			break;

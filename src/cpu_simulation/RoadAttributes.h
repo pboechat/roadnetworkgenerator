@@ -1,23 +1,23 @@
 #ifndef ROADATTRIBUTES_H
 #define ROADATTRIBUTES_H
 
+#include <RoadNetwork.h>
+
 struct RoadAttributes
 {
-	glm::vec3 start;
+	RoadNetwork::VertexIndex source;
 	int length;
-	int width;
 	float angle;
 	bool highway;
 
 	RoadAttributes() {}
-	RoadAttributes(const glm::vec3& start, int length, int width, float angle, bool highway) : start(start), length(length), width(width), angle(angle), highway(highway) {}
+	RoadAttributes(RoadNetwork::VertexIndex source, int length, float angle, bool highway) : source(source), length(length), angle(angle), highway(highway) {}
 	~RoadAttributes() {}
 
 	RoadAttributes& operator =(const RoadAttributes& other)
 	{
-		start = other.start;
+		source = other.source;
 		length = other.length;
-		width = other.width;
 		angle = other.angle;
 		highway = other.highway;
 		return *this;

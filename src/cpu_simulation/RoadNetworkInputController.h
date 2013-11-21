@@ -8,7 +8,7 @@ class RoadNetworkInputController : public InputController
 {
 public:
 	////////////////////////////////////////////////////////////////////////////////////////////////////
-	RoadNetworkInputController(Camera& camera) : InputController(camera, 1.0f, 10.0f)
+	RoadNetworkInputController(Camera& camera) : InputController(camera, 10.0f, 10.0f)
 	{
 	}
 

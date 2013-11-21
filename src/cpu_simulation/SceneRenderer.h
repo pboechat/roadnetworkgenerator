@@ -25,6 +25,8 @@ public:
 		screenSizedQuad(glm::vec3(0.0f, 0.0f, 0.0f), (float)configuration.worldWidth, (float)configuration.worldHeight)
 	{
 		glClearColor(0, 0, 0, 1);
+		glEnable(GL_PROGRAM_POINT_SIZE);
+		glPointSize(3.0f);
 		glEnable(GL_CULL_FACE);
 		glCullFace(GL_BACK);
 		createTextureForImageMap(configuration.populationDensityMap);

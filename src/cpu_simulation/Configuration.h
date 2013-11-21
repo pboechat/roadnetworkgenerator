@@ -15,6 +15,7 @@
 class Configuration
 {
 public:
+	int seed;
 	unsigned int worldWidth;
 	unsigned int worldHeight;
 	unsigned int highwayLength;
@@ -26,9 +27,8 @@ public:
 	unsigned int minHighwayBranchingDistance;
 	unsigned int minPureHighwayBranchingDistance;
 	unsigned int streetBranchingDelay;
-	unsigned int highwayWidth;
-	unsigned int streetWidth;
 	unsigned int maxDerivations;
+	unsigned int maxHighwayGoalDeviation; // degrees
 	unsigned int maxObstacleDeviationAngle; // degrees
 	unsigned int samplingArc; // degrees
 	unsigned int quadtreeCellArea;
@@ -80,6 +80,7 @@ public:
 			properties.insert(std::make_pair(key, value));
 		}
 
+		seed = getPropertyAsInt(properties, "seed");
 		worldWidth = getPropertyAsUInt(properties, "world_width");
 		worldHeight = getPropertyAsUInt(properties, "world_height");
 		highwayLength = getPropertyAsUInt(properties, "highway_length");
@@ -91,9 +92,8 @@ public:
 		minHighwayBranchingDistance = getPropertyAsUInt(properties, "min_highway_branching_distance");
 		minPureHighwayBranchingDistance = getPropertyAsUInt(properties, "min_pure_highway_branching_distance");
 		streetBranchingDelay = getPropertyAsUInt(properties, "street_branching_delay");
-		highwayWidth = getPropertyAsUInt(properties, "highway_width");
-		streetWidth = getPropertyAsUInt(properties, "street_width");
 		maxDerivations = getPropertyAsUInt(properties, "max_derivations");
+		maxHighwayGoalDeviation = getPropertyAsUInt(properties, "max_highway_goal_deviation");
 		maxObstacleDeviationAngle = getPropertyAsUInt(properties, "max_obstacle_deviation_angle");
 		samplingArc = getPropertyAsUInt(properties, "sampling_arc");
 		quadtreeCellArea = getPropertyAsUInt(properties, "quadtree_cell_area");
@@ -125,6 +125,11 @@ private:
 	static unsigned int getPropertyAsUInt(const std::map<std::string, std::string>& properties, const std::string& propertyName)
 	{
 		return (unsigned int)atoi(getProperty(properties, propertyName).c_str());
+	}
+
+	static long getPropertyAsInt(const std::map<std::string, std::string>& properties, const std::string& propertyName)
+	{
+		return atoi(getProperty(properties, propertyName).c_str());
 	}
 
 	glm::vec4 getPropertyAsColor(const std::map<std::string, std::string>& properties, const std::string& propertyName)
