@@ -10,13 +10,14 @@ namespace RoadNetworkGraph
 
 struct Vertex
 {
+	bool removed;
 	VertexIndex index;
 	VertexIndex source;
 	glm::vec3 position;
 	EdgeIndex connections[MAX_VERTEX_CONNECTIONS];
 	unsigned int lastConnectionIndex;
 
-	Vertex() : lastConnectionIndex(0) {}
+	Vertex() : removed(false), lastConnectionIndex(0) {}
 
 };
 

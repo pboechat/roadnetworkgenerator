@@ -1,14 +1,10 @@
 #ifndef LINE_H
 #define LINE_H
 
-#define EPSILON 0.0001f
-
 #include <Circle.h>
 
 #include <glm/glm.hpp>
 #include <glm/gtx/projection.hpp>
-
-//struct AABB;
 
 struct Line
 {
@@ -17,8 +13,6 @@ struct Line
 
 	Line(const glm::vec3& start, const glm::vec3& end) : start(start), end(end) {}
 	~Line() {}
-
-	//AABB getBounds() const;
 
 	Line& operator = (const Line& other)
 	{
@@ -67,17 +61,12 @@ struct Line
 		return true;
 	}
 
-	//bool intersects (const AABB& aabb) const;
-
 	unsigned int intersects(const Circle& circle, glm::vec3& intersection1, glm::vec3& intersection2) const
 	{
-		unsigned int intersections = 0;
-
 		// FIXME: circle == point case
 		if (circle.radius == 0)
 		{
-			//return false;
-			return intersections;
+			return 0;
 		}
 
 		glm::vec3 direction = glm::normalize(end - start);
@@ -91,12 +80,13 @@ struct Line
 
 		if (discriminant < 0)
 		{
-			//return false;
-			return intersections;
+			return 0;
 		}
 
 		else
 		{
+			unsigned int mask = 0;
+
 			discriminant = glm::sqrt(discriminant);
 
 			float t1 = (-b - discriminant) / (2.0f * a);
@@ -104,19 +94,17 @@ struct Line
 
 			if (t1 >= 0 && t1 <= 1)
 			{
-				//return true;
 				intersection1 = start + direction * t1;
-				intersections++;
+				mask += 1;
 			}
 
 			if (t2 >= 0 && t2 <= 1)
 			{
-				//return true;
-				intersection1 = start + direction * t2;
-				intersections++;
+				intersection2 = start + direction * t2;
+				mask += 2;
 			}
 
-			return intersections;
+			return mask;
 		}
 	}
 
@@ -125,36 +113,6 @@ struct Line
 		glm::vec3 i1, i2;
 		return intersects(circle, i1, i2) > 0;
 	}
-
-	/*bool contains(const glm::vec3& point) const
-	{
-		// get the normalized line segment vector
-		glm::vec3 v = glm::normalize(end - start);
-		// determine the point on the line segment nearest to the point p
-		float distanceAlongLine = glm::dot(point, v) - glm::dot(start, v);
-		glm::vec3 nearestPoint;
-
-		if (distanceAlongLine < 0)
-		{
-			// closest point is A
-			nearestPoint = start;
-		}
-
-		else if (distanceAlongLine > glm::distance(start, end))
-		{
-			// closest point is B
-			nearestPoint = end;
-		}
-
-		else
-		{
-			// closest point is between A and B... A + d  * ( ||B-A|| )
-			nearestPoint = start + distanceAlongLine * v;
-		}
-
-		// calculate the distance between the two points
-		return (glm::distance(nearestPoint, point) <= EPSILON);
-	}*/
 
 };
 

@@ -19,7 +19,7 @@ struct GraphTraversal;
 class Graph
 {
 public:
-	Graph(const AABB& worldBounds, float quadtreeCellArea, float quadtreeQueryRadius);
+	Graph(const AABB& worldBounds, float quadtreeCellArea, float snapRadius);
 	~Graph();
 
 	inline glm::vec3 getPosition(VertexIndex vertexIndex) const
@@ -34,6 +34,7 @@ public:
 	}
 
 	bool addRoad(VertexIndex source, const glm::vec3& direction, VertexIndex& newVertexIndex, glm::vec3& end, bool highway);
+	void removeDeadEndRoads();
 	void traverse(GraphTraversal& traversal) const;
 
 private:
@@ -42,7 +43,7 @@ private:
 	Edge edges[MAX_EDGES];
 	VertexIndex lastVertexIndex;
 	EdgeIndex lastEdgeIndex;
-	float queryRadius;
+	float snapRadius;
 	EdgeReference queryResult[MAX_EDGE_REFERENCIES_PER_QUERY];
 
 	void addConnection(VertexIndex source, VertexIndex destination, bool highway);

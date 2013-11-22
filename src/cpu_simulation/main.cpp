@@ -24,13 +24,11 @@
 #define FOVY_DEG 60.0f
 #define HALF_PI 1.570796325f
 
-//////////////////////////////////////////////////////////////////////////
 void printUsage()
 {
 	std::cerr << "Command line options: <configuration file>";
 }
 
-//////////////////////////////////////////////////////////////////////////
 void centerWorldOnScreen(const Configuration& configuration, Camera& camera)
 {
 	float screenDiagonal = glm::sqrt(glm::pow((float)configuration.worldWidth, 2.0f) + glm::pow((float)configuration.worldHeight, 2.0f));
@@ -38,7 +36,6 @@ void centerWorldOnScreen(const Configuration& configuration, Camera& camera)
 	camera.localTransform.position = glm::vec3(configuration.worldWidth / 2.0f, configuration.worldHeight / 2.0f, distance);
 }
 
-//////////////////////////////////////////////////////////////////////////
 void centerGeometryOnScreen(const RoadNetworkGeometry& geometry, Camera& camera)
 {
 	float screenDiagonal = glm::sqrt(glm::pow(geometry.bounds.getExtents().x, 2.0f) + glm::pow(geometry.bounds.getExtents().y, 2.0f));
@@ -46,7 +43,6 @@ void centerGeometryOnScreen(const RoadNetworkGeometry& geometry, Camera& camera)
 	camera.localTransform.position = glm::vec3(geometry.bounds.min.x + geometry.bounds.getExtents().x / 2.0f, geometry.bounds.min.y + geometry.bounds.getExtents().y / 2.0f, distance);
 }
 
-//////////////////////////////////////////////////////////////////////////
 int main(int argc, char** argv)
 {
 	try

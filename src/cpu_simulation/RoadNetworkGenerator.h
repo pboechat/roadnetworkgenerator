@@ -53,6 +53,8 @@ public:
 			std::swap(frontBuffer, backBuffer);
 		}
 
+		roadNetwork.removeDeadEndRoads();
+
 		// TODO: improve design
 		InstantiateRoad::dispose();
 
