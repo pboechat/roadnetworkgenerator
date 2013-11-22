@@ -10,7 +10,7 @@ public:
 	EvaluateBranch(const Branch& branch);
 
 	virtual unsigned int getCode();
-	virtual void execute(WorkQueuesManager<Procedure>& workQueuesManager, RoadNetwork::Graph& roadNetworkGraph, const Configuration& configuration);
+	virtual void execute(WorkQueuesManager<Procedure>& workQueuesManager, RoadNetworkGraph::Graph& roadNetworkGraph, const Configuration& configuration);
 
 private:
 	Branch branch;

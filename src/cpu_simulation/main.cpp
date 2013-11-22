@@ -8,7 +8,8 @@
 #include <RoadNetworkGeometry.h>
 #include <Configuration.h>
 #include <RoadNetworkGenerator.h>
-#include <RoadNetwork.h>
+#include <AABB.h>
+#include <Graph.h>
 
 #include <glm/glm.hpp>
 
@@ -95,7 +96,8 @@ int main(int argc, char** argv)
 		application.setRenderer(renderer);
 		application.setInputController(inputController);
 
-		RoadNetwork::Graph roadNetwork(configuration);
+		AABB worldBounds(0.0f, 0.0f, configuration.worldWidth / 2.0f, configuration.worldHeight / 2.0f);
+		RoadNetworkGraph::Graph roadNetwork(worldBounds, (float)configuration.quadtreeCellArea, (float)configuration.quadtreeQueryRadius);
 
 		RoadNetworkGenerator roadNetworkGenerator;
 		roadNetworkGenerator.execute(configuration, roadNetwork);

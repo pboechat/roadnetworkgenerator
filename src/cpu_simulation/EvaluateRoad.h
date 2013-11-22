@@ -10,12 +10,12 @@ public:
 	EvaluateRoad(const Road& road);
 
 	virtual unsigned int getCode();
-	virtual void execute(WorkQueuesManager<Procedure>& workQueuesManager, RoadNetwork::Graph& roadNetworkGraph, const Configuration& configuration);
+	virtual void execute(WorkQueuesManager<Procedure>& workQueuesManager, RoadNetworkGraph::Graph& roadNetworkGraph, const Configuration& configuration);
 
 private:
 	Road road;
 
-	void enforceLocalContraints(const Configuration& configuration, const RoadNetwork::Graph& roadNetworkGraph);
+	void evaluateLocalContraints(const Configuration& configuration, const RoadNetworkGraph::Graph& roadNetworkGraph);
 
 };
 

@@ -15,7 +15,7 @@ unsigned int EvaluateRoad::getCode()
 	return 2;
 }
 
-void EvaluateRoad::execute(WorkQueuesManager<Procedure>& workQueuesManager, RoadNetwork::Graph& roadNetworkGraph, const Configuration& configuration)
+void EvaluateRoad::execute(WorkQueuesManager<Procedure>& workQueuesManager, RoadNetworkGraph::Graph& roadNetworkGraph, const Configuration& configuration)
 {
 	// p1, p3 and p6
 	if (road.delay < 0 || road.state == FAILED)
@@ -26,7 +26,7 @@ void EvaluateRoad::execute(WorkQueuesManager<Procedure>& workQueuesManager, Road
 	// p8
 	if (road.state == UNASSIGNED)
 	{
-		enforceLocalContraints(configuration, roadNetworkGraph);
+		evaluateLocalContraints(configuration, roadNetworkGraph);
 
 		// FIXME: checking invariants
 		if (road.state == UNASSIGNED)
@@ -46,7 +46,7 @@ void EvaluateRoad::execute(WorkQueuesManager<Procedure>& workQueuesManager, Road
 	}
 }
 
-void EvaluateRoad::enforceLocalContraints(const Configuration& configuration, const RoadNetwork::Graph& roadNetworkGraph)
+void EvaluateRoad::evaluateLocalContraints(const Configuration& configuration, const RoadNetworkGraph::Graph& roadNetworkGraph)
 {
 	// remove streets that have exceeded max street branch depth
 	if (!road.roadAttributes.highway && road.ruleAttributes.streetBranchDepth > configuration.maxStreetBranchDepth)

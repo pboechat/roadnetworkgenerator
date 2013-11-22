@@ -4,12 +4,13 @@
 #include <Configuration.h>
 #include <RoadNetworkGeometry.h>
 #include <Procedure.h>
+#include <InstantiateRoad.h>
 #include <WorkQueuesManager.h>
 #include <EvaluateRoad.h>
 #include <RoadAttributes.h>
 #include <RuleAttributes.h>
 #include <Road.h>
-#include <RoadNetwork.h>
+#include <Graph.h>
 
 #include <glm/glm.hpp>
 
@@ -19,7 +20,7 @@ public:
 	RoadNetworkGenerator() {}
 	~RoadNetworkGenerator() {}
 
-	void execute(const Configuration& configuration, RoadNetwork::Graph& roadNetwork)
+	void execute(const Configuration& configuration, RoadNetworkGraph::Graph& roadNetwork)
 	{
 		WorkQueuesManager<Procedure>* frontBuffer = &buffer1;
 		WorkQueuesManager<Procedure>* backBuffer = &buffer2;
@@ -28,6 +29,9 @@ public:
 		RuleAttributes initialRuleAttributes;
 		initialRuleAttributes.highwayBranchingDistance = configuration.minHighwayBranchingDistance;
 		frontBuffer->addWorkItem(new EvaluateRoad(Road(0, initialRoadAttributes, initialRuleAttributes, UNASSIGNED)));
+
+		// TODO: improve design
+		InstantiateRoad::initialize(configuration);
 
 		unsigned int derivation = 0;
 		while (frontBuffer->notEmpty() && derivation++ < configuration.maxDerivations)
@@ -48,6 +52,9 @@ public:
 
 			std::swap(frontBuffer, backBuffer);
 		}
+
+		// TODO: improve design
+		InstantiateRoad::dispose();
 
 		frontBuffer->clear();
 		backBuffer->clear();

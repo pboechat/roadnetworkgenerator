@@ -3,13 +3,13 @@
 
 #include <Geometry.h>
 #include <Configuration.h>
-#include <RoadNetwork.h>
+#include <GraphTraversal.h>
 
 #include <GL3/gl3w.h>
 
 #include <vector>
 
-struct GeometryCreationTraversal : public RoadNetwork::Traversal
+struct GeometryCreationTraversal : public RoadNetworkGraph::GraphTraversal
 {
 	std::vector<glm::vec4>& vertices;
 	std::vector<glm::vec4>& colors;
@@ -18,7 +18,7 @@ struct GeometryCreationTraversal : public RoadNetwork::Traversal
 	GeometryCreationTraversal(std::vector<glm::vec4>& vertices, std::vector<glm::vec4>& colors, std::vector<unsigned int>& indices) : vertices(vertices), colors(colors), indices(indices) {}
 	~GeometryCreationTraversal() {}
 
-	virtual bool operator () (const RoadNetwork::Graph& graph, RoadNetwork::VertexIndex source, RoadNetwork::VertexIndex destination, bool highway)
+	virtual bool operator () (const RoadNetworkGraph::Graph& graph, RoadNetworkGraph::VertexIndex source, RoadNetworkGraph::VertexIndex destination, bool highway)
 	{
 		glm::vec3 start = graph.getPosition(source);
 		glm::vec3 end = graph.getPosition(destination);
@@ -58,13 +58,13 @@ public:
 		glDeleteVertexArrays(1, &vao);
 	}
 
-	void build(const Configuration& configuration, const RoadNetwork::Graph& roadNetwork)
+	void build(const Configuration& configuration, const RoadNetworkGraph::Graph& roadNetworkGraph)
 	{
 		std::vector<glm::vec4> vertices;
 		std::vector<glm::vec4> colors;
 		std::vector<unsigned int> indices;
 
-		roadNetwork.traverse(GeometryCreationTraversal(vertices, colors, indices));
+		roadNetworkGraph.traverse(GeometryCreationTraversal(vertices, colors, indices));
 
 		glBindBuffer(GL_ARRAY_BUFFER, buffers[0]);
 		glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(glm::vec4), (void*)&vertices[0], GL_STATIC_DRAW);

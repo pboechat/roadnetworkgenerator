@@ -8,6 +8,7 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}
 					${OPENGL_INCLUDE}
 					${CMAKE_SOURCE_DIR}/dependencies/include
 					${CMAKE_SOURCE_DIR}/src/framework/public_headers
+					${CMAKE_SOURCE_DIR}/src/roadnetworkgraph/public_headers
 )
 
 source_group("Shader Files" FILES ${SHADERS})
@@ -29,6 +30,7 @@ add_custom_command(TARGET cpu_simulation POST_BUILD COMMAND ${CMAKE_COMMAND} -E 
 
 target_link_libraries(
 	cpu_simulation
+	roadnetworkgraph
 	${OPENGL_LIBRARY}
 	${OPENGL_gl_LIBRARY}
 	${OPENGL_glu_LIBRARY}

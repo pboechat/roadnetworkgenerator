@@ -8,6 +8,9 @@
 
 #include <exception>
 
+unsigned char* InstantiateRoad::populationDensities = 0;
+int* InstantiateRoad::distances = 0;
+
 InstantiateRoad::InstantiateRoad(const Road& road) : road(road)
 {
 }
@@ -17,7 +20,26 @@ unsigned int InstantiateRoad::getCode()
 	return 0;
 }
 
-void InstantiateRoad::execute(WorkQueuesManager<Procedure>& workQueuesManager, RoadNetwork::Graph& roadNetworkGraph, const Configuration& configuration)
+void InstantiateRoad::initialize(const Configuration& configuration)
+{
+	populationDensities = new unsigned char[configuration.samplingArc];
+	distances = new int[configuration.samplingArc];
+}
+
+void InstantiateRoad::dispose()
+{
+	if (populationDensities == 0)
+	{
+		delete[] populationDensities;
+	}
+
+	if (distances == 0)
+	{
+		delete[] distances;
+	}
+}
+
+void InstantiateRoad::execute(WorkQueuesManager<Procedure>& workQueuesManager, RoadNetworkGraph::Graph& roadNetworkGraph, const Configuration& configuration)
 {
 	// p2
 
@@ -29,7 +51,7 @@ void InstantiateRoad::execute(WorkQueuesManager<Procedure>& workQueuesManager, R
 
 	glm::vec3 direction = glm::rotate(glm::quat(glm::vec3(0, 0, glm::radians(road.roadAttributes.angle))), glm::vec3(0.0f, (float)road.roadAttributes.length, 0.0f));
 
-	RoadNetwork::VertexIndex newSource;
+	RoadNetworkGraph::VertexIndex newSource;
 	glm::vec3 position;
 	bool intersected = roadNetworkGraph.addRoad(road.roadAttributes.source, direction, newSource, position, road.roadAttributes.highway);
 
@@ -54,7 +76,7 @@ void InstantiateRoad::execute(WorkQueuesManager<Procedure>& workQueuesManager, R
 	workQueuesManager.addWorkItem(new EvaluateRoad(Road(delays[2], roadAttributes[2], ruleAttributes[2], UNASSIGNED)));
 }
 
-void InstantiateRoad::evaluateGlobalGoals(const Configuration& configuration, RoadNetwork::VertexIndex source, const glm::vec3& position, int* delays, RoadAttributes* roadAttributes, RuleAttributes* ruleAttributes)
+void InstantiateRoad::evaluateGlobalGoals(const Configuration& configuration, RoadNetworkGraph::VertexIndex source, const glm::vec3& position, int* delays, RoadAttributes* roadAttributes, RuleAttributes* ruleAttributes)
 {
 	if (road.roadAttributes.highway)
 	{
@@ -78,8 +100,7 @@ void InstantiateRoad::evaluateGlobalGoals(const Configuration& configuration, Ro
 		}
 		else
 		{
-			int halfMaxDeviation = configuration.maxHighwayGoalDeviation / 2;
-			roadAttributes[2].angle += ((rand() % halfMaxDeviation) - halfMaxDeviation);
+			applyAngleDeviation(configuration, roadAttributes[2]);
 		}
 
 		if (doPureHighwayBranch)
@@ -91,12 +112,16 @@ void InstantiateRoad::evaluateGlobalGoals(const Configuration& configuration, Ro
 			roadAttributes[0].angle = roadAttributes[2].angle - 90.0f;
 			roadAttributes[0].highway = true;
 
+			applyAngleDeviation(configuration, roadAttributes[0]);
+
 			// new highway branch right
 			delays[1] = 0;
 			roadAttributes[1].source = source;
 			roadAttributes[1].length = configuration.highwayLength;
 			roadAttributes[1].angle = roadAttributes[2].angle + 90.0f;
 			roadAttributes[1].highway = true;
+
+			applyAngleDeviation(configuration, roadAttributes[1]);
 		}
 
 		else
@@ -151,8 +176,6 @@ void InstantiateRoad::followHighestPopulationDensity(const Configuration& config
 {
 	int halfSamplingArc = ((int)configuration.samplingArc + 1) / 2;
 	int currentAngleStep = -halfSamplingArc;
-	unsigned char* populationDensities = new unsigned char[configuration.samplingArc];
-	int* distances = new int[configuration.samplingArc];
 
 	for (unsigned int i = 0; i < configuration.samplingArc; i++, currentAngleStep++)
 	{
@@ -176,8 +199,10 @@ void InstantiateRoad::followHighestPopulationDensity(const Configuration& config
 
 	roadAttributes.angle = roadAttributes.angle + (j - halfSamplingArc);
 	ruleAttributes.highwayGoalDistance = distances[j];
-
-	delete[] populationDensities;
-	delete[] distances;
 }
 
+void InstantiateRoad::applyAngleDeviation(const Configuration& configuration, RoadAttributes& roadAttributes) const
+{
+	int halfMaxDeviation = configuration.maxHighwayGoalDeviation / 2;
+	roadAttributes.angle += ((rand() % halfMaxDeviation) - halfMaxDeviation);
+}

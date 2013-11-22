@@ -11,7 +11,7 @@ unsigned int EvaluateBranch::getCode()
 	return 1;
 }
 
-void EvaluateBranch::execute(WorkQueuesManager<Procedure>& workQueuesManager, RoadNetwork::Graph& roadNetworkGraph, const Configuration& configuration)
+void EvaluateBranch::execute(WorkQueuesManager<Procedure>& workQueuesManager, RoadNetworkGraph::Graph& roadNetworkGraph, const Configuration& configuration)
 {
 	// p6
 	if (branch.delay < 0)
