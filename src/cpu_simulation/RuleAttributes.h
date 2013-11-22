@@ -6,9 +6,10 @@ struct RuleAttributes
 	unsigned int streetBranchDepth;
 	unsigned int highwayBranchingDistance;
 	unsigned int pureHighwayBranchingDistance;
-	int highwayGoalDistance;
+	bool hasGoal;
+	float goalDistance;
 
-	RuleAttributes() : streetBranchDepth(0), highwayBranchingDistance(0), pureHighwayBranchingDistance(0), highwayGoalDistance(0) {}
+	RuleAttributes() : streetBranchDepth(0), highwayBranchingDistance(0), pureHighwayBranchingDistance(0), hasGoal(false), goalDistance(0) {}
 	~RuleAttributes() {}
 
 	RuleAttributes& operator =(const RuleAttributes& other)
@@ -16,7 +17,8 @@ struct RuleAttributes
 		streetBranchDepth = other.streetBranchDepth;
 		highwayBranchingDistance = other.highwayBranchingDistance;
 		pureHighwayBranchingDistance = other.pureHighwayBranchingDistance;
-		highwayGoalDistance = other.highwayGoalDistance;
+		hasGoal = other.hasGoal;
+		goalDistance = other.goalDistance;
 		return *this;
 	}
 

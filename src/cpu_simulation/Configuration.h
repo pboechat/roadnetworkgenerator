@@ -38,7 +38,6 @@ public:
 	ImageMap waterBodiesMap;
 	glm::vec4 highwayColor;
 	glm::vec4 streetColor;
-	glm::vec4 snapColor;
 	glm::vec4 quadtreeColor;
 
 	Configuration() {}
@@ -102,7 +101,6 @@ public:
 		quadtreeQueryRadius = getPropertyAsUInt(properties, "quadtree_query_radius");
 		highwayColor = getPropertyAsColor(properties, "highway_color");
 		streetColor = getPropertyAsColor(properties, "street_color");
-		snapColor = getPropertyAsColor(properties, "snap_color");
 		quadtreeColor = getPropertyAsColor(properties, "quadtree_color");
 		std::string populationDensityMapFile = getProperty(properties, "population_density_map");
 		std::string waterBodiesMapFile = getProperty(properties, "water_bodies_map");

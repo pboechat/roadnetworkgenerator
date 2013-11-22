@@ -56,11 +56,11 @@ bool Graph::addRoad(VertexIndex source, const glm::vec3& direction, VertexIndex&
 
 			if (distance < closestIntersectionDistance)
 			{
-				if (glm::distance(sourceVertex.position, intersection) <= 0.5f) 
+				if (glm::distance(sourceVertex.position, intersection) <= snapRadius) 
 				{
 					intersectionType = SOURCE;
 				}
-				else if (glm::distance(destinationVertex.position, intersection) <= 0.5f)
+				else if (glm::distance(destinationVertex.position, intersection) <= snapRadius)
 				{
 					intersectionType = DESTINATION;
 				}
@@ -107,6 +107,7 @@ bool Graph::addRoad(VertexIndex source, const glm::vec3& direction, VertexIndex&
 
 		addConnection(source, newVertexIndex, highway);
 
+		//return (!highway || (highway && intersectedEdge.highway));
 		return true;
 	}
 	else
@@ -193,6 +194,7 @@ bool Graph::addRoad(VertexIndex source, const glm::vec3& direction, VertexIndex&
 			addConnection(newVertexIndex, oldDestination, snappedEdge.highway);
 			addConnection(source, newVertexIndex, highway);
 
+			//return (!highway || (highway && snappedEdge.highway));
 			return true;
 		}
 

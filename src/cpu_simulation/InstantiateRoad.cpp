@@ -54,13 +54,13 @@ void InstantiateRoad::execute(WorkQueuesManager<Procedure>& workQueuesManager, R
 	RoadNetworkGraph::VertexIndex newSource;
 	glm::vec3 position;
 	float length;
-	bool intersected = roadNetworkGraph.addRoad(road.roadAttributes.source, direction, newSource, position, length, road.roadAttributes.highway);
+	bool interrupted = roadNetworkGraph.addRoad(road.roadAttributes.source, direction, newSource, position, length, road.roadAttributes.highway);
 
 	int delays[3];
 	RoadAttributes roadAttributes[3];
 	RuleAttributes ruleAttributes[3];
 
-	if (intersected)
+	if (interrupted)
 	{
 		delays[0] = -1;
 		delays[1] = -1;
@@ -90,18 +90,27 @@ void InstantiateRoad::evaluateGlobalGoals(const Configuration& configuration, Ro
 		roadAttributes[2].length = configuration.highwayLength;
 		roadAttributes[2].angle = road.roadAttributes.angle;
 		roadAttributes[2].highway = true;
+		ruleAttributes[2].hasGoal = road.ruleAttributes.hasGoal;
 
 		ruleAttributes[2].highwayBranchingDistance = (doRegularBranch) ? 0 : road.ruleAttributes.highwayBranchingDistance + 1;
 		ruleAttributes[2].pureHighwayBranchingDistance = (doPureHighwayBranch) ? 0 : road.ruleAttributes.pureHighwayBranchingDistance + 1;
-		ruleAttributes[2].highwayGoalDistance = road.ruleAttributes.highwayGoalDistance - road.roadAttributes.length;
 
-		if (ruleAttributes[2].highwayGoalDistance <= 0)
+		if (!ruleAttributes[2].hasGoal)
 		{
 			followHighestPopulationDensity(configuration, position, roadAttributes[2], ruleAttributes[2]);
 		}
 		else
 		{
-			applyAngleDeviation(configuration, roadAttributes[2]);
+			ruleAttributes[2].goalDistance = road.ruleAttributes.goalDistance - length;
+			if (ruleAttributes[2].goalDistance <= 0)
+			{
+				delays[2] = -1; // remove highway
+				//return;
+			}
+			else
+			{
+				applyAngleDeviation(configuration, roadAttributes[2]);
+			}
 		}
 
 		if (doPureHighwayBranch)
@@ -205,7 +214,8 @@ void InstantiateRoad::followHighestPopulationDensity(const Configuration& config
 	}
 
 	roadAttributes.angle += (angleIncrement - halfSamplingArc);
-	ruleAttributes.highwayGoalDistance = distances[j];
+	ruleAttributes.goalDistance = (float)distances[j];
+	ruleAttributes.hasGoal = true;
 }
 
 void InstantiateRoad::applyAngleDeviation(const Configuration& configuration, RoadAttributes& roadAttributes) const

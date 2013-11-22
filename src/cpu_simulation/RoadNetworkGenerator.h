@@ -51,6 +51,12 @@ public:
 			}
 			while (frontBuffer->nextWorkQueue());
 
+			// FIXME: checking invariants
+			if (frontBuffer->notEmpty())
+			{
+				throw std::exception("frontBuffer->notEmpty()");
+			}
+
 			std::swap(frontBuffer, backBuffer);
 		}
 
