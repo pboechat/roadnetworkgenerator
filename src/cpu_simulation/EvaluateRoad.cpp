@@ -67,19 +67,32 @@ void EvaluateRoad::evaluateLocalContraints(const Configuration& configuration, c
 
 	unsigned int angleIncrement = 0;
 
-	do
+	unsigned int length = road.roadAttributes.length;
+	while (length >= configuration.minRoadLength)
 	{
-		glm::vec3 direction = glm::normalize(glm::rotate(glm::quat(glm::vec3(0, 0, glm::radians(road.roadAttributes.angle + (float)angleIncrement))), glm::vec3(0.0f, 1.0f, 0.0f)));
-
-		if (configuration.waterBodiesMap.castRay(position, direction, road.roadAttributes.length, 0))
+		do
 		{
-			road.state = SUCCEED;
+			glm::vec3 direction = glm::normalize(glm::rotate(glm::quat(glm::vec3(0, 0, glm::radians(road.roadAttributes.angle + (float)angleIncrement))), glm::vec3(0.0f, 1.0f, 0.0f)));
+
+			if (configuration.waterBodiesMap.castRay(position, direction, length, 0))
+			{
+				road.state = SUCCEED;
+				break;
+			}
+
+			angleIncrement++;;
+		}
+		while (angleIncrement <= configuration.maxObstacleDeviationAngle);
+
+		if (road.state == SUCCEED)
+		{
 			break;
 		}
 
-		angleIncrement++;;
+		length--;
 	}
-	while (angleIncrement <= configuration.maxObstacleDeviationAngle);
+
+	road.roadAttributes.length = length;
 
 	if (angleIncrement > configuration.maxObstacleDeviationAngle)
 	{

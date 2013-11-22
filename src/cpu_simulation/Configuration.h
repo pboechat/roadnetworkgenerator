@@ -30,6 +30,7 @@ public:
 	unsigned int maxDerivations;
 	unsigned int maxHighwayGoalDeviation; // degrees
 	unsigned int maxObstacleDeviationAngle; // degrees
+	unsigned int minRoadLength;
 	unsigned int samplingArc; // degrees
 	unsigned int quadtreeCellArea;
 	unsigned int quadtreeQueryRadius;
@@ -95,6 +96,7 @@ public:
 		maxDerivations = getPropertyAsUInt(properties, "max_derivations");
 		maxHighwayGoalDeviation = getPropertyAsUInt(properties, "max_highway_goal_deviation");
 		maxObstacleDeviationAngle = getPropertyAsUInt(properties, "max_obstacle_deviation_angle");
+		minRoadLength = getPropertyAsUInt(properties, "min_road_length");
 		samplingArc = getPropertyAsUInt(properties, "sampling_arc");
 		quadtreeCellArea = getPropertyAsUInt(properties, "quadtree_cell_area");
 		quadtreeQueryRadius = getPropertyAsUInt(properties, "quadtree_query_radius");

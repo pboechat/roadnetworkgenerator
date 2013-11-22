@@ -9,7 +9,7 @@
 #include <exception>
 
 unsigned char* InstantiateRoad::populationDensities = 0;
-int* InstantiateRoad::distances = 0;
+unsigned int* InstantiateRoad::distances = 0;
 
 InstantiateRoad::InstantiateRoad(const Road& road) : road(road)
 {
@@ -23,7 +23,7 @@ unsigned int InstantiateRoad::getCode()
 void InstantiateRoad::initialize(const Configuration& configuration)
 {
 	populationDensities = new unsigned char[configuration.samplingArc];
-	distances = new int[configuration.samplingArc];
+	distances = new unsigned int[configuration.samplingArc];
 }
 
 void InstantiateRoad::dispose()
@@ -53,7 +53,8 @@ void InstantiateRoad::execute(WorkQueuesManager<Procedure>& workQueuesManager, R
 
 	RoadNetworkGraph::VertexIndex newSource;
 	glm::vec3 position;
-	bool intersected = roadNetworkGraph.addRoad(road.roadAttributes.source, direction, newSource, position, road.roadAttributes.highway);
+	float length;
+	bool intersected = roadNetworkGraph.addRoad(road.roadAttributes.source, direction, newSource, position, length, road.roadAttributes.highway);
 
 	int delays[3];
 	RoadAttributes roadAttributes[3];
@@ -68,7 +69,7 @@ void InstantiateRoad::execute(WorkQueuesManager<Procedure>& workQueuesManager, R
 
 	else
 	{
-		evaluateGlobalGoals(configuration, newSource, position, delays, roadAttributes, ruleAttributes);
+		evaluateGlobalGoals(configuration, newSource, position, length, delays, roadAttributes, ruleAttributes);
 	}
 
 	workQueuesManager.addWorkItem(new EvaluateBranch(Branch(delays[0], roadAttributes[0], ruleAttributes[0])));
@@ -76,7 +77,7 @@ void InstantiateRoad::execute(WorkQueuesManager<Procedure>& workQueuesManager, R
 	workQueuesManager.addWorkItem(new EvaluateRoad(Road(delays[2], roadAttributes[2], ruleAttributes[2], UNASSIGNED)));
 }
 
-void InstantiateRoad::evaluateGlobalGoals(const Configuration& configuration, RoadNetworkGraph::VertexIndex source, const glm::vec3& position, int* delays, RoadAttributes* roadAttributes, RuleAttributes* ruleAttributes)
+void InstantiateRoad::evaluateGlobalGoals(const Configuration& configuration, RoadNetworkGraph::VertexIndex source, const glm::vec3& position, float length, int* delays, RoadAttributes* roadAttributes, RuleAttributes* ruleAttributes)
 {
 	if (road.roadAttributes.highway)
 	{
@@ -174,17 +175,22 @@ void InstantiateRoad::evaluateGlobalGoals(const Configuration& configuration, Ro
 
 void InstantiateRoad::followHighestPopulationDensity(const Configuration& configuration, const glm::vec3& start, RoadAttributes& roadAttributes, RuleAttributes& ruleAttributes) const
 {
-	int halfSamplingArc = ((int)configuration.samplingArc + 1) / 2;
-	int currentAngleStep = -halfSamplingArc;
+	unsigned int halfSamplingArc = (configuration.samplingArc + 1) / 2;
+	int currentAngleStep = -(int)halfSamplingArc;
 
 	for (unsigned int i = 0; i < configuration.samplingArc; i++, currentAngleStep++)
 	{
 		glm::vec3 direction = glm::normalize(glm::rotate(glm::quat(glm::vec3(0.0f, 0.0f, glm::radians(roadAttributes.angle + (float)currentAngleStep))), glm::vec3(0.0f, 1.0f, 0.0f)));
-		configuration.populationDensityMap.scan(start, direction, configuration.minSamplingRayLength, configuration.maxSamplingRayLength, populationDensities[i], distances[i]);
+		unsigned char populationDensity;
+		int distance;
+		configuration.populationDensityMap.scan(start, direction, configuration.minSamplingRayLength, configuration.maxSamplingRayLength, populationDensity, distance);
+		populationDensities[i] = populationDensity;
+		distances[i] = distance;
 	}
 
 	unsigned int highestWeight = 0;
 	unsigned int j = 0;
+	float angleIncrement = 0.0f;
 
 	for (unsigned int i = 0; i < configuration.samplingArc; i++)
 	{
@@ -193,11 +199,12 @@ void InstantiateRoad::followHighestPopulationDensity(const Configuration& config
 		if (weight > highestWeight)
 		{
 			highestWeight = weight;
+			angleIncrement = (float)i;
 			j = i;
 		}
 	}
 
-	roadAttributes.angle = roadAttributes.angle + (j - halfSamplingArc);
+	roadAttributes.angle += (angleIncrement - halfSamplingArc);
 	ruleAttributes.highwayGoalDistance = distances[j];
 }
 

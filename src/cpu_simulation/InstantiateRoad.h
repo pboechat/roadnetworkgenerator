@@ -20,11 +20,11 @@ public:
 
 private:
 	static unsigned char* populationDensities;
-	static int* distances;
+	static unsigned int* distances;
 
 	Road road;
 
-	void evaluateGlobalGoals(const Configuration& configuration, RoadNetworkGraph::VertexIndex newOrigin, const glm::vec3& position, int* delays, RoadAttributes* roadAttributes, RuleAttributes* ruleAttributes);
+	void evaluateGlobalGoals(const Configuration& configuration, RoadNetworkGraph::VertexIndex newOrigin, const glm::vec3& position, float length, int* delays, RoadAttributes* roadAttributes, RuleAttributes* ruleAttributes);
 	void followHighestPopulationDensity(const Configuration& configuration, const glm::vec3& start, RoadAttributes& highwayRoadAttributes, RuleAttributes& highwayRuleAttributes) const;
 	void applyAngleDeviation(const Configuration& configuration, RoadAttributes& roadAttributes) const;
 

@@ -6,7 +6,7 @@ struct RuleAttributes
 	unsigned int streetBranchDepth;
 	unsigned int highwayBranchingDistance;
 	unsigned int pureHighwayBranchingDistance;
-	unsigned int highwayGoalDistance;
+	int highwayGoalDistance;
 
 	RuleAttributes() : streetBranchDepth(0), highwayBranchingDistance(0), pureHighwayBranchingDistance(0), highwayGoalDistance(0) {}
 	~RuleAttributes() {}
@@ -16,6 +16,7 @@ struct RuleAttributes
 		streetBranchDepth = other.streetBranchDepth;
 		highwayBranchingDistance = other.highwayBranchingDistance;
 		pureHighwayBranchingDistance = other.pureHighwayBranchingDistance;
+		highwayGoalDistance = other.highwayGoalDistance;
 		return *this;
 	}
 

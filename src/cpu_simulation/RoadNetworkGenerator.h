@@ -27,7 +27,8 @@ public:
 
 		RoadAttributes initialRoadAttributes(0, configuration.highwayLength, 0, true);
 		RuleAttributes initialRuleAttributes;
-		initialRuleAttributes.highwayBranchingDistance = configuration.minHighwayBranchingDistance;
+		//initialRuleAttributes.highwayBranchingDistance = configuration.minHighwayBranchingDistance;
+		initialRuleAttributes.pureHighwayBranchingDistance = configuration.minPureHighwayBranchingDistance;
 		frontBuffer->addWorkItem(new EvaluateRoad(Road(0, initialRoadAttributes, initialRuleAttributes, UNASSIGNED)));
 
 		// TODO: improve design

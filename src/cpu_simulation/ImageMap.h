@@ -51,9 +51,9 @@ public:
 		FreeImage_Unload(image);
 	}
 
-	bool castRay(const glm::vec3& origin, const glm::vec3& direction, int length, unsigned char threshold, glm::vec3& hit) const
+	bool castRay(const glm::vec3& origin, const glm::vec3& direction, unsigned int length, unsigned char threshold, glm::vec3& hit) const
 	{
-		for (int i = 0; i <= length; i++)
+		for (unsigned int i = 0; i <= length; i++)
 		{
 			glm::vec3 point = origin + (direction * (float)i);
 
@@ -67,7 +67,7 @@ public:
 		return true;
 	}
 
-	bool castRay(const glm::vec3& origin, const glm::vec3& direction, int length, unsigned char threshold) const
+	bool castRay(const glm::vec3& origin, const glm::vec3& direction, unsigned int length, unsigned char threshold) const
 	{
 		glm::vec3 hit;
 		return castRay(origin, direction, length, threshold, hit);

@@ -33,7 +33,7 @@ public:
 		return vertices[vertexIndex].position;
 	}
 
-	bool addRoad(VertexIndex source, const glm::vec3& direction, VertexIndex& newVertexIndex, glm::vec3& end, bool highway);
+	bool addRoad(VertexIndex source, const glm::vec3& direction, VertexIndex& newVertexIndex, glm::vec3& end, float& length, bool highway);
 	void removeDeadEndRoads();
 	void traverse(GraphTraversal& traversal) const;
 

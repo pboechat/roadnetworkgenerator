@@ -24,7 +24,7 @@ Graph::Graph(const AABB& worldBounds, float quadtreeCellArea, float snapRadius) 
 
 Graph::~Graph() {}
 
-bool Graph::addRoad(VertexIndex source, const glm::vec3& direction, VertexIndex& newVertexIndex, glm::vec3& end, bool highway)
+bool Graph::addRoad(VertexIndex source, const glm::vec3& direction, VertexIndex& newVertexIndex, glm::vec3& end, float& length, bool highway)
 {
 	glm::vec3 start = getPosition(source);
 	end = start + direction;
@@ -79,6 +79,7 @@ bool Graph::addRoad(VertexIndex source, const glm::vec3& direction, VertexIndex&
 	if (intersectionType != NONE)
 	{
 		end = closestIntersection;
+		length = glm::distance(start, end);
 		Edge& intersectedEdge = edges[intersectedEdgeIndex];
 
 		if (intersectionType == SOURCE)
@@ -181,6 +182,7 @@ bool Graph::addRoad(VertexIndex source, const glm::vec3& direction, VertexIndex&
 		if (snappedEdgeIndex != -1)
 		{
 			end = closestSnapping;
+			length = glm::distance(start, end);
 			Edge& snappedEdge = edges[snappedEdgeIndex];
 
 			newVertexIndex = addVertex(source, end);
@@ -194,6 +196,7 @@ bool Graph::addRoad(VertexIndex source, const glm::vec3& direction, VertexIndex&
 			return true;
 		}
 
+		length = glm::distance(start, end);
 		newVertexIndex = addVertex(source, end);
 		addConnection(source, newVertexIndex, highway);
 

@@ -92,7 +92,7 @@ int main(int argc, char** argv)
 		application.setRenderer(renderer);
 		application.setInputController(inputController);
 
-		AABB worldBounds(0.0f, 0.0f, configuration.worldWidth / 2.0f, configuration.worldHeight / 2.0f);
+		AABB worldBounds(0.0f, 0.0f, (float)configuration.worldWidth, (float)configuration.worldHeight);
 		RoadNetworkGraph::Graph roadNetwork(worldBounds, (float)configuration.quadtreeCellArea, (float)configuration.quadtreeQueryRadius);
 
 		RoadNetworkGenerator roadNetworkGenerator;
