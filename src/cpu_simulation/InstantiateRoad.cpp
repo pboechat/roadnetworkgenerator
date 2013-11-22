@@ -61,43 +61,6 @@ void InstantiateRoad::evaluateGlobalGoals(const Configuration& configuration, Ro
 		bool doPureHighwayBranch = (road.ruleAttributes.pureHighwayBranchingDistance == configuration.minPureHighwayBranchingDistance);
 		bool doRegularBranch = (road.ruleAttributes.highwayBranchingDistance == configuration.minHighwayBranchingDistance);
 
-		if (doPureHighwayBranch)
-		{
-			// new highway branch left
-			delays[0] = 0;
-			roadAttributes[0].source = source;
-			roadAttributes[0].length = configuration.highwayLength;
-			roadAttributes[0].angle = road.roadAttributes.angle - 90.0f;
-			roadAttributes[0].highway = true;
-
-			// new highway branch right
-			delays[1] = 0;
-			roadAttributes[1].source = source;
-			roadAttributes[1].length = configuration.highwayLength;
-			roadAttributes[1].angle = road.roadAttributes.angle + 90.0f;
-			roadAttributes[1].highway = true;
-
-			followHighestPopulationDensity(configuration, position, roadAttributes[0], ruleAttributes[0]);
-			followHighestPopulationDensity(configuration, position, roadAttributes[1], ruleAttributes[0]);
-		}
-
-		else
-		{
-			// new street branch left
-			delays[0] = (doRegularBranch) ? configuration.highwayBranchingDelay : -1;
-			roadAttributes[0].source = source;
-			roadAttributes[0].length = configuration.streetLength;
-			roadAttributes[0].angle = road.roadAttributes.angle - 90.0f;
-			roadAttributes[0].highway = false;
-
-			// new street branch right
-			delays[1] = (doRegularBranch) ? configuration.highwayBranchingDelay : -1;
-			roadAttributes[1].source = source;
-			roadAttributes[1].length = configuration.streetLength;
-			roadAttributes[1].angle = road.roadAttributes.angle + 90.0f;
-			roadAttributes[1].highway = false;
-		}
-
 		// highway continuation
 		delays[2] = 0;
 		roadAttributes[2].source = source;
@@ -117,6 +80,40 @@ void InstantiateRoad::evaluateGlobalGoals(const Configuration& configuration, Ro
 		{
 			int halfMaxDeviation = configuration.maxHighwayGoalDeviation / 2;
 			roadAttributes[2].angle += ((rand() % halfMaxDeviation) - halfMaxDeviation);
+		}
+
+		if (doPureHighwayBranch)
+		{
+			// new highway branch left
+			delays[0] = 0;
+			roadAttributes[0].source = source;
+			roadAttributes[0].length = configuration.highwayLength;
+			roadAttributes[0].angle = roadAttributes[2].angle - 90.0f;
+			roadAttributes[0].highway = true;
+
+			// new highway branch right
+			delays[1] = 0;
+			roadAttributes[1].source = source;
+			roadAttributes[1].length = configuration.highwayLength;
+			roadAttributes[1].angle = roadAttributes[2].angle + 90.0f;
+			roadAttributes[1].highway = true;
+		}
+
+		else
+		{
+			// new street branch left
+			delays[0] = (doRegularBranch) ? configuration.highwayBranchingDelay : -1;
+			roadAttributes[0].source = source;
+			roadAttributes[0].length = configuration.streetLength;
+			roadAttributes[0].angle = roadAttributes[2].angle - 90.0f;
+			roadAttributes[0].highway = false;
+
+			// new street branch right
+			delays[1] = (doRegularBranch) ? configuration.highwayBranchingDelay : -1;
+			roadAttributes[1].source = source;
+			roadAttributes[1].length = configuration.streetLength;
+			roadAttributes[1].angle = roadAttributes[2].angle + 90.0f;
+			roadAttributes[1].highway = false;
 		}
 	}
 

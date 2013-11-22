@@ -66,12 +66,16 @@ struct Traversal
 struct EdgeReference
 {
 	EdgeIndex index;
+	VertexIndex source;
+	VertexIndex destination;
 	glm::vec3 sourcePosition;
 	glm::vec3 destinationPosition;
 
 	EdgeReference& operator = (const EdgeReference& other)
 	{
 		index = other.index;
+		source = other.source;
+		destination = other.destination;
 		sourcePosition = other.sourcePosition;
 		destinationPosition = other.destinationPosition;
 		return *this;
@@ -106,16 +110,16 @@ public:
 		}
 	}
 
-	bool insert(EdgeIndex index, const glm::vec3& sourcePosition, const glm::vec3& destinationPosition)
+	bool insert(EdgeIndex index, VertexIndex source, VertexIndex destination, const glm::vec3& sourcePosition, const glm::vec3& destinationPosition)
 	{
-		if (!bounds.contains(sourcePosition) && !bounds.contains(destinationPosition))
+		if (!bounds.isIntersected(Line(sourcePosition, destinationPosition)))
 		{
 			return false;
 		}
 
 		if (bounds.getArea() <= cellArea)
 		{
-			addEdgeReference(index, sourcePosition, destinationPosition);
+			addEdgeReference(index, source, destination, sourcePosition, destinationPosition);
 			return true;
 		}
 
@@ -124,22 +128,22 @@ public:
 			subdivide();
 		}
 
-		if (northWest->insert(index, sourcePosition, destinationPosition))
+		if (northWest->insert(index, source, destination, sourcePosition, destinationPosition))
 		{
 			return true;
 		}
 
-		if (northEast->insert(index, sourcePosition, destinationPosition))
+		if (northEast->insert(index, source, destination, sourcePosition, destinationPosition))
 		{
 			return true;
 		}
 
-		if (southWest->insert(index, sourcePosition, destinationPosition))
+		if (southWest->insert(index, source, destination, sourcePosition, destinationPosition))
 		{
 			return true;
 		}
 
-		if (southEast->insert(index, sourcePosition, destinationPosition))
+		if (southEast->insert(index, source, destination, sourcePosition, destinationPosition))
 		{
 			return true;
 		}
@@ -158,10 +162,16 @@ public:
 		southEast = new QuadTree(AABB(bounds.min.x + halfWidth, bounds.min.y, halfWidth, halfHeight), cellArea);
 	}
 
-	void query(const Circle& circle, EdgeReference* edgeReferences, unsigned int& size) const
+	/*void query(const AABB& aabb, EdgeReference* edgeReferences, unsigned int& size, unsigned int offset = 0) const
 	{
 		size = 0;
-		query_(circle, edgeReferences, size);
+		query_(aabb, edgeReferences, size, offset);
+	}*/
+
+	void query(const Circle& circle, EdgeReference* edgeReferences, unsigned int& size, unsigned int offset = 0) const
+	{
+		size = 0;
+		query_(circle, edgeReferences, size, offset);
 	}
 
 	inline bool isLeaf() const
@@ -209,9 +219,48 @@ private:
 	EdgeReference edgeReferences[MAX_VERTICES];
 	unsigned int lastEdgeReferenceIndex;
 
-	void query_(const Circle& circle, EdgeReference* edgeReferences, unsigned int& size) const
+	/*void query_(const AABB& aabb, EdgeReference* edgeReferences, unsigned int& size, unsigned int offset) const
 	{
-		if (size == MAX_EDGE_REFERENCIES_PER_QUERY)
+		if ((offset + size) == MAX_EDGE_REFERENCIES_PER_QUERY)
+		{
+			return;
+		}
+
+		if (!bounds.intersects(aabb))
+		{
+			return;
+		}
+
+		if (isLeaf())
+		{
+			for (unsigned int i = 0; i < lastEdgeReferenceIndex; i++)
+			{
+				const EdgeReference& edgeReference = this->edgeReferences[i];
+
+				if (Line(edgeReference.sourcePosition, edgeReference.destinationPosition).intersects(aabb))
+				{
+					edgeReferences[offset + size] = edgeReference;
+					size++;
+					if ((offset + size) == MAX_EDGE_REFERENCIES_PER_QUERY)
+					{
+						return;
+					}
+				}
+			}
+		}
+
+		else
+		{
+			northWest->query_(aabb, edgeReferences, size, offset);
+			northEast->query_(aabb, edgeReferences, size, offset);
+			southWest->query_(aabb, edgeReferences, size, offset);
+			southEast->query_(aabb, edgeReferences, size, offset);
+		}
+	}*/
+
+	void query_(const Circle& circle, EdgeReference* edgeReferences, unsigned int& size, unsigned int offset) const
+	{
+		if ((offset + size) == MAX_EDGE_REFERENCIES_PER_QUERY)
 		{
 			return;
 		}
@@ -229,9 +278,9 @@ private:
 
 				if (Line(edgeReference.sourcePosition, edgeReference.destinationPosition).intersects(circle))
 				{
-					edgeReferences[size++] = edgeReference;
-
-					if (size == MAX_EDGE_REFERENCIES_PER_QUERY)
+					edgeReferences[offset + size] = edgeReference;
+					size++;
+					if ((offset + size) == MAX_EDGE_REFERENCIES_PER_QUERY)
 					{
 						return;
 					}
@@ -241,17 +290,19 @@ private:
 
 		else
 		{
-			northWest->query_(circle, edgeReferences, size);
-			northEast->query_(circle, edgeReferences, size);
-			southWest->query_(circle, edgeReferences, size);
-			southEast->query_(circle, edgeReferences, size);
+			northWest->query_(circle, edgeReferences, size, offset);
+			northEast->query_(circle, edgeReferences, size, offset);
+			southWest->query_(circle, edgeReferences, size, offset);
+			southEast->query_(circle, edgeReferences, size, offset);
 		}
 	}
 
-	void addEdgeReference(EdgeIndex edgeIndex, const glm::vec3& sourcePosition, const glm::vec3& destinationPosition) 
+	void addEdgeReference(EdgeIndex edgeIndex, VertexIndex source, VertexIndex destination, const glm::vec3& sourcePosition, const glm::vec3& destinationPosition) 
 	{
 		EdgeReference& edgeReference = edgeReferences[lastEdgeReferenceIndex++];
 		edgeReference.index = edgeIndex;
+		edgeReference.source = source;
+		edgeReference.destination = destination;
 		edgeReference.sourcePosition = sourcePosition;
 		edgeReference.destinationPosition = destinationPosition;
 	}
@@ -292,12 +343,73 @@ public:
 		return vertices[vertexIndex].position;
 	}
 
-	bool addRoad(VertexIndex source, const glm::vec3& direction, VertexIndex& newVertexIndex, glm::vec3& position, bool highway)
+	bool addRoad(VertexIndex source, const glm::vec3& direction, VertexIndex& newVertexIndex, glm::vec3& end, bool highway)
 	{
 		glm::vec3 start = getPosition(source);
-		position = start + direction;
+		end = start + direction;
 
-		unsigned int size;
+		if (end.x >= 340 && end.x < 360 && end.y >= 890 && end.y < 910)
+		{
+			int a = 0;
+		}
+
+		float shortestDistance = MAX_DISTANCE;
+		EdgeIndex intersectedEdgeIndex = -1;
+		glm::vec3 closestIntersection;
+		Line newEdgeLine(start, end);
+		for (int i = 0; i < lastEdgeIndex; i++)
+		{
+			Edge& edge = edges[i];
+
+			// avoid collision with parent or sibling
+			if (edge.destination == source || edge.source == source)
+			{
+				continue;
+			}
+
+			Vertex& sourceVertex = vertices[edge.source];
+			Vertex& destinationVertex = vertices[edge.destination];
+
+			Line edgeLine(sourceVertex.position, destinationVertex.position);
+
+			glm::vec3 intersection;
+			if (newEdgeLine.intersects(edgeLine, intersection)) 
+			{
+				float distance = glm::distance(start, intersection);
+
+				if (distance < shortestDistance)
+				{
+					shortestDistance = distance;
+					closestIntersection = intersection;
+					intersectedEdgeIndex = i;
+				}
+			}
+		}
+
+		if (intersectedEdgeIndex != -1)
+		{
+			end = closestIntersection;
+			Edge& intersectedEdge = edges[intersectedEdgeIndex];
+
+			newVertexIndex = addVertex(source, end);
+
+			VertexIndex oldDestination = intersectedEdge.destination;
+			intersectedEdge.destination = newVertexIndex;
+
+			addConnection(newVertexIndex, oldDestination, intersectedEdge.highway);
+			addConnection(source, newVertexIndex, highway);
+
+			return true;
+		}
+		else
+		{
+			newVertexIndex = addVertex(source, end);
+			addConnection(source, newVertexIndex, highway);
+			return false;
+		}
+
+		// REENABLE:
+		/*unsigned int size;
 		quadtree.query(Circle(position, queryRadius), queryResult, size);
 
 		if (size > 0)
@@ -310,6 +422,12 @@ public:
 			for (unsigned int i = 0; i < size; i++)
 			{
 				EdgeReference& edgeReference = queryResult[i];
+
+				if (edgeReference.destination == source || edgeReference.source == source)
+				{
+					continue;
+				}
+
 				Line edge(edgeReference.sourcePosition, edgeReference.destinationPosition);
 
 				IntersectionType intersectionType = NONE;
@@ -364,11 +482,6 @@ public:
 
 				else if (closestIntersectionType == EDGE)
 				{
-					if (position.x >= 900 && position.y <= 1000)
-					{
-						int a = 0;
-					}
-
 					newVertexIndex = addVertex(source, position);
 
 					VertexIndex oldDestination = intersectedEdge.destination;
@@ -388,11 +501,6 @@ public:
 			}
 		}
 
-		if (position.x >= 900 && position.y <= 1000)
-		{
-			int a = 0;
-		}
-
 		newVertexIndex = addVertex(source, position);
 		
 		if (!addConnection(source, newVertexIndex, highway))
@@ -401,7 +509,7 @@ public:
 			throw std::exception("vertex connection overflow");
 		}
 
-		return false;
+		return false;*/
 	}
 
 	void traverse(Traversal& traversal) const
@@ -425,7 +533,7 @@ private:
 	float queryRadius;
 	EdgeReference queryResult[MAX_EDGE_REFERENCIES_PER_QUERY];
 
-	bool addConnection(VertexIndex source, VertexIndex destination, bool highway)
+	void addConnection(VertexIndex source, VertexIndex destination, bool highway)
 	{
 		Edge& newEdge = edges[lastEdgeIndex];
 		newEdge.source = source;
@@ -433,17 +541,15 @@ private:
 		newEdge.highway = highway;
 		Vertex& sourceVertex = vertices[source];
 		Vertex& destinationVertex = vertices[destination];
-		if (sourceVertex.addConnection(lastEdgeIndex))
+		if (sourceVertex.lastConnectionIndex == MAX_VERTEX_CONNECTIONS)
 		{
-			quadtree.insert(lastEdgeIndex, sourceVertex.position, destinationVertex.position);
-			lastEdgeIndex++;
-			return true;
+			// FIXME: checking invariants
+			throw std::exception("vertex connection overflow");
 		}
-
-		else
-		{
-			return false;
-		}
+		sourceVertex.connections[sourceVertex.lastConnectionIndex++] = lastEdgeIndex;
+		// REENABLE:
+		//quadtree.insert(lastEdgeIndex, source, destination, sourceVertex.position, destinationVertex.position);
+		lastEdgeIndex++;
 	}
 
 	VertexIndex addVertex(VertexIndex source, const glm::vec3& position)

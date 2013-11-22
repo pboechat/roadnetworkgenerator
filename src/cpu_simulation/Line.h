@@ -8,6 +8,8 @@
 #include <glm/glm.hpp>
 #include <glm/gtx/projection.hpp>
 
+//struct AABB;
+
 struct Line
 {
 	glm::vec3 start;
@@ -15,6 +17,8 @@ struct Line
 
 	Line(const glm::vec3& start, const glm::vec3& end) : start(start), end(end) {}
 	~Line() {}
+
+	//AABB getBounds() const;
 
 	Line& operator = (const Line& other)
 	{
@@ -41,15 +45,18 @@ struct Line
 			return false;
 		}
 
-		float x = ((x1 * y2 - y1 * x2) * (x3 - x4)) - ((x1 - x2) * (x3 * y4 - y3 * x4)) / determinant;
-		float y = ((x1 * y2 - y1 * x2) * (y3 - y4)) - ((y1 - y2) * (x3 * y4 - y3 * x4)) / determinant;
+		float pre = (x1 * y2 - y1 * x2), post = (x3 * y4 - y3 * x4);
+		float x = (pre * (x3 - x4) - (x1 - x2) * post) / determinant;
+		float y = (pre * (y3 - y4) - (y1 - y2) * post) / determinant;
 
-		if (x < glm::min(x1, x2) || x > glm::max(x1, x2) || x < glm::min(x3, x4) || x > glm::max(x3, x4)) 
+		if (x < glm::min(x1, x2) || x > glm::max(x1, x2) ||
+			x < glm::min(x3, x4) || x > glm::max(x3, x4))
 		{
 			return false;
 		}
 
-		if (y < glm::min(y1, y2) || y > glm::max(y1, y2) || y < glm::min(y3, y4) || y > glm::max(y3, y4)) 
+		if (y < glm::min(y1, y2) || y > glm::max(y1, y2) ||
+			y < glm::min(y3, y4) || y > glm::max(y3, y4))
 		{
 			return false;
 		}
@@ -60,26 +67,34 @@ struct Line
 		return true;
 	}
 
-	bool intersects(const Circle& circle) const
+	//bool intersects (const AABB& aabb) const;
+
+	unsigned int intersects(const Circle& circle, glm::vec3& intersection1, glm::vec3& intersection2) const
 	{
-		// FIXME:
+		unsigned int intersections = 0;
+
+		// FIXME: circle == point case
 		if (circle.radius == 0)
 		{
-			return false;
+			//return false;
+			return intersections;
 		}
 
-		glm::vec3 d = end - start;
-		glm::vec3 f = start - circle.center;
+		glm::vec3 direction = glm::normalize(end - start);
+		glm::vec3 centerToStart = start - circle.center;
 
-		float a = glm::dot(d, d);
-		float b = 2.0f * glm::dot(f, d);
-		float c = glm::dot(f, f) - circle.radius * circle.radius;
+		float a = glm::dot(direction, direction);
+		float b = 2.0f * glm::dot(centerToStart, direction);
+		float c = glm::dot(centerToStart, centerToStart) - circle.radius * circle.radius;
 
 		float discriminant = b * b - 4 * a * c;
+
 		if (discriminant < 0)
 		{
-			return false;
+			//return false;
+			return intersections;
 		}
+
 		else
 		{
 			discriminant = glm::sqrt(discriminant);
@@ -89,46 +104,57 @@ struct Line
 
 			if (t1 >= 0 && t1 <= 1)
 			{
-				return true;
+				//return true;
+				intersection1 = start + direction * t1;
+				intersections++;
 			}
 
 			if (t2 >= 0 && t2 <= 1)
 			{
-				return true;
+				//return true;
+				intersection1 = start + direction * t2;
+				intersections++;
 			}
 
-			return false;
+			return intersections;
 		}
 	}
 
-	bool contains(const glm::vec3& point) const
+	bool intersects(const Circle& circle) const
+	{
+		glm::vec3 i1, i2;
+		return intersects(circle, i1, i2) > 0;
+	}
+
+	/*bool contains(const glm::vec3& point) const
 	{
 		// get the normalized line segment vector
 		glm::vec3 v = glm::normalize(end - start);
-
 		// determine the point on the line segment nearest to the point p
 		float distanceAlongLine = glm::dot(point, v) - glm::dot(start, v);
 		glm::vec3 nearestPoint;
+
 		if (distanceAlongLine < 0)
 		{
 			// closest point is A
 			nearestPoint = start;
 		}
+
 		else if (distanceAlongLine > glm::distance(start, end))
 		{
 			// closest point is B
 			nearestPoint = end;
 		}
+
 		else
 		{
 			// closest point is between A and B... A + d  * ( ||B-A|| )
-			nearestPoint = start + distanceAlongLine * v;  
+			nearestPoint = start + distanceAlongLine * v;
 		}
 
 		// calculate the distance between the two points
 		return (glm::distance(nearestPoint, point) <= EPSILON);
-	}
-
+	}*/
 
 };
 
