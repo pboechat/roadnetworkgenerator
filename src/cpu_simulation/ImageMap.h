@@ -9,7 +9,7 @@
 class ImageMap
 {
 public:
-	ImageMap() : width(0), height(0), data(0) {}
+	ImageMap() : width(0), height(0), data(0), color1(0.0f, 0.0f, 0.0f, 1.0f), color2(1.0f, 1.0f, 1.0f, 1.0f) {}
 	~ImageMap()
 	{
 		if (data != 0)
@@ -123,10 +123,32 @@ public:
 		return data;
 	}
 
+	inline glm::vec4 getColor1() const
+	{
+		return color1;
+	}
+
+	inline void setColor1(const glm::vec4& color)
+	{
+		color1 = color;
+	}
+
+	inline glm::vec4 getColor2() const
+	{
+		return color2;
+	}
+
+	inline void setColor2(const glm::vec4& color)
+	{
+		color2 = color;
+	}
+
 private:
 	int width;
 	int height;
 	unsigned char* data;
+	glm::vec4 color1;
+	glm::vec4 color2;
 
 };
 

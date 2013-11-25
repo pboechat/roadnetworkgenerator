@@ -11,6 +11,11 @@
 #include <vector>
 #include <map>
 #include <exception>
+#include <time.h>
+#include <random>
+#ifdef _DEBUG
+#include <iostream>
+#endif
 
 class Configuration
 {
@@ -39,7 +44,7 @@ public:
 	glm::vec4 highwayColor;
 	glm::vec4 streetColor;
 	glm::vec4 quadtreeColor;
-
+	bool removeDeadEndRoads;
 	Configuration() {}
 	~Configuration() {}
 
@@ -81,6 +86,16 @@ public:
 		}
 
 		seed = getPropertyAsInt(properties, "seed");
+
+		if (seed < 0)
+		{
+			seed = (unsigned int)time(0);
+#ifdef _DEBUG
+			std::cout << "seed: " << seed << std::endl;
+#endif
+		}
+		srand(seed);
+
 		worldWidth = getPropertyAsUInt(properties, "world_width");
 		worldHeight = getPropertyAsUInt(properties, "world_height");
 		highwayLength = getPropertyAsUInt(properties, "highway_length");
@@ -105,7 +120,16 @@ public:
 		std::string populationDensityMapFile = getProperty(properties, "population_density_map");
 		std::string waterBodiesMapFile = getProperty(properties, "water_bodies_map");
 		populationDensityMap.import(populationDensityMapFile, worldWidth, worldHeight);
+		glm::vec4 color1 = getPropertyAsColor(properties, "population_density_map_color1");
+		glm::vec4 color2 = getPropertyAsColor(properties, "population_density_map_color2");
+		populationDensityMap.setColor1(color1);
+		populationDensityMap.setColor2(color2);
 		waterBodiesMap.import(waterBodiesMapFile, worldWidth, worldHeight);
+		color1 = getPropertyAsColor(properties, "water_bodies_map_color1");
+		color2 = getPropertyAsColor(properties, "water_bodies_map_color2");
+		waterBodiesMap.setColor1(color1);
+		waterBodiesMap.setColor2(color2);
+		removeDeadEndRoads = getPropertyAsBool(properties, "remove_dead_end_roads");
 	}
 
 private:
@@ -130,6 +154,11 @@ private:
 	static long getPropertyAsInt(const std::map<std::string, std::string>& properties, const std::string& propertyName)
 	{
 		return atoi(getProperty(properties, propertyName).c_str());
+	}
+
+	static bool getPropertyAsBool(const std::map<std::string, std::string>& properties, const std::string& propertyName)
+	{
+		return getProperty(properties, propertyName) == "true";
 	}
 
 	glm::vec4 getPropertyAsColor(const std::map<std::string, std::string>& properties, const std::string& propertyName)

@@ -20,15 +20,12 @@ struct GeometryCreationTraversal : public RoadNetworkGraph::GraphTraversal
 	GeometryCreationTraversal(std::vector<glm::vec4>& vertices, std::vector<glm::vec4>& colors, std::vector<unsigned int>& indices, const glm::vec4& highwayColor, const glm::vec4& streetColor) : vertices(vertices), colors(colors), indices(indices), highwayColor(highwayColor), streetColor(streetColor) {}
 	~GeometryCreationTraversal() {}
 
-	virtual bool operator () (const RoadNetworkGraph::Graph& graph, RoadNetworkGraph::VertexIndex source, RoadNetworkGraph::VertexIndex destination, bool highway)
+	virtual bool operator () (const glm::vec3& source, const glm::vec3& destination, bool highway)
 	{
-		glm::vec3 start = graph.getPosition(source);
-		glm::vec3 end = graph.getPosition(destination);
-
 		unsigned int i = vertices.size();
 
-		vertices.push_back(glm::vec4(start.x, start.y, start.z, 1.0f));
-		vertices.push_back(glm::vec4(end.x, end.y, end.z, 1.0f));
+		vertices.push_back(glm::vec4(source.x, source.y, source.z, 1.0f));
+		vertices.push_back(glm::vec4(destination.x, destination.y, destination.z, 1.0f));
 
 		glm::vec4 color = (highway) ? highwayColor : streetColor;
 
@@ -46,27 +43,30 @@ struct GeometryCreationTraversal : public RoadNetworkGraph::GraphTraversal
 class RoadNetworkGeometry : public Geometry
 {
 public:
-	AABB bounds;
-
-	RoadNetworkGeometry() : elementsCount(0)
+	RoadNetworkGeometry() : built(false), elementsCount(0)
 	{
-		glGenBuffers(3, buffers);
-		glGenVertexArrays(1, &vao);
 	}
 
 	~RoadNetworkGeometry()
 	{
-		glDeleteBuffers(3, buffers);
-		glDeleteVertexArrays(1, &vao);
 	}
 
-	void build(const Configuration& configuration, const RoadNetworkGraph::Graph& roadNetworkGraph)
+	void build(const RoadNetworkGraph::Graph& roadNetworkGraph, const glm::vec4& highwayColor, const glm::vec4& streetColor)
 	{
+		if (built)
+		{
+			glDeleteBuffers(3, buffers);
+			glDeleteVertexArrays(1, &vao);
+		}
+
+		glGenBuffers(3, buffers);
+		glGenVertexArrays(1, &vao);
+
 		std::vector<glm::vec4> vertices;
 		std::vector<glm::vec4> colors;
 		std::vector<unsigned int> indices;
 
-		roadNetworkGraph.traverse(GeometryCreationTraversal(vertices, colors, indices, configuration.highwayColor, configuration.streetColor));
+		roadNetworkGraph.traverse(GeometryCreationTraversal(vertices, colors, indices, highwayColor, streetColor));
 
 		glBindBuffer(GL_ARRAY_BUFFER, buffers[0]);
 		glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(glm::vec4), (void*)&vertices[0], GL_STATIC_DRAW);
@@ -95,11 +95,13 @@ public:
 		glBindBuffer(GL_ARRAY_BUFFER, 0);
 
 		glBindVertexArray(0);
+
+		built = true;
 	}
 
 	virtual void draw()
 	{
-		if (elementsCount == 0)
+		if (!built)
 		{
 			return;
 		}
@@ -116,6 +118,7 @@ private:
 	unsigned int buffers[3];
 	unsigned int vao;
 	unsigned int elementsCount;
+	bool built;
 
 };
 

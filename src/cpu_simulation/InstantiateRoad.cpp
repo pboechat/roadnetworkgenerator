@@ -28,12 +28,12 @@ void InstantiateRoad::initialize(const Configuration& configuration)
 
 void InstantiateRoad::dispose()
 {
-	if (populationDensities == 0)
+	if (populationDensities != 0)
 	{
 		delete[] populationDensities;
 	}
 
-	if (distances == 0)
+	if (distances != 0)
 	{
 		delete[] distances;
 	}
@@ -55,6 +55,12 @@ void InstantiateRoad::execute(WorkQueuesManager<Procedure>& workQueuesManager, R
 	glm::vec3 position;
 	float length;
 	bool interrupted = roadNetworkGraph.addRoad(road.roadAttributes.source, direction, newSource, position, length, road.roadAttributes.highway);
+
+	// DEBUG:
+	if (aroundPoint(position, 115, 775, 10))
+	{
+		int a = 0;
+	}
 
 	int delays[3];
 	RoadAttributes roadAttributes[3];

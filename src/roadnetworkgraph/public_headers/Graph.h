@@ -33,21 +33,23 @@ public:
 		return vertices[vertexIndex].position;
 	}
 
-	bool addRoad(VertexIndex source, const glm::vec3& direction, VertexIndex& newVertexIndex, glm::vec3& end, float& length, bool highway);
+	bool addRoad(VertexIndex source, const glm::vec3& direction, VertexIndex& newVertex, glm::vec3& end, float& length, bool highway);
 	void removeDeadEndRoads();
 	void traverse(GraphTraversal& traversal) const;
 
 private:
 	QuadTree quadtree;
-	Vertex vertices[MAX_VERTICES];
-	Edge edges[MAX_EDGES];
+	Vertex* vertices;
+	Edge* edges;
 	VertexIndex lastVertexIndex;
 	EdgeIndex lastEdgeIndex;
 	float snapRadius;
-	EdgeReference queryResult[MAX_EDGE_REFERENCIES_PER_QUERY];
+	EdgeReference* queryResult;
 
-	void addConnection(VertexIndex source, VertexIndex destination, bool highway);
-	VertexIndex addVertex(VertexIndex source, const glm::vec3& position);
+	void connect(VertexIndex source, VertexIndex destination, bool highway);
+	VertexIndex createVertex(const glm::vec3& position);
+	void splitEdge(EdgeIndex edge, VertexIndex vertex);
+	unsigned int getValency(const Vertex& vertex) const;
 
 };
 

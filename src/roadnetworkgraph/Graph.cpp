@@ -13,18 +13,41 @@ enum IntersectionType
 };
 
 Graph::Graph(const AABB& worldBounds, float quadtreeCellArea, float snapRadius) : 
+		vertices(0),
+		edges(0),
+		queryResult(0),
 		quadtree(worldBounds, quadtreeCellArea), 
 		lastVertexIndex(0),
 		lastEdgeIndex(0),
 		snapRadius(snapRadius)
 {
+	vertices = new Vertex[MAX_VERTICES];
+	edges = new Edge[MAX_EDGES];
+	queryResult = new EdgeReference[MAX_EDGE_REFERENCIES_PER_QUERY];
+
 	glm::vec3 worldSize = worldBounds.getExtents();
-	addVertex(-1, glm::vec3(worldSize.x / 2.0f, worldSize.y / 2.0f, 0.0f));
+	createVertex(glm::vec3(worldSize.x / 2.0f, worldSize.y / 2.0f, 0.0f));
 }
 
-Graph::~Graph() {}
+Graph::~Graph() 
+{
+	if (vertices != 0)
+	{
+		delete [] vertices;
+	}
 
-bool Graph::addRoad(VertexIndex source, const glm::vec3& direction, VertexIndex& newVertexIndex, glm::vec3& end, float& length, bool highway)
+	if (edges != 0)
+	{
+		delete[] edges;
+	}
+
+	if (queryResult != 0)
+	{
+		delete[] queryResult;
+	}
+}
+
+bool Graph::addRoad(VertexIndex source, const glm::vec3& direction, VertexIndex& newVertex, glm::vec3& end, float& length, bool highway)
 {
 	glm::vec3 start = getPosition(source);
 	end = start + direction;
@@ -80,24 +103,19 @@ bool Graph::addRoad(VertexIndex source, const glm::vec3& direction, VertexIndex&
 	{
 		end = closestIntersection;
 		length = glm::distance(start, end);
-		Edge& intersectedEdge = edges[intersectedEdgeIndex];
 
 		if (intersectionType == SOURCE)
 		{
-			newVertexIndex = intersectedEdge.source;
+			newVertex = edges[intersectedEdgeIndex].source;
 		}
 		else if (intersectionType == DESTINATION)
 		{
-			newVertexIndex = intersectedEdge.destination;
+			newVertex = edges[intersectedEdgeIndex].destination;
 		}
 		else if (intersectionType == EDGE)
 		{
-			newVertexIndex = addVertex(source, end);
-
-			VertexIndex oldDestination = intersectedEdge.destination;
-			intersectedEdge.destination = newVertexIndex;
-
-			addConnection(newVertexIndex, oldDestination, intersectedEdge.highway);
+			newVertex = createVertex(end);
+			splitEdge(intersectedEdgeIndex, newVertex);
 		}
 		else
 		{
@@ -105,7 +123,7 @@ bool Graph::addRoad(VertexIndex source, const glm::vec3& direction, VertexIndex&
 			throw std::exception("invalid intersection type");
 		}
 
-		addConnection(source, newVertexIndex, highway);
+		connect(source, newVertex, highway);
 
 		//return (!highway || (highway && intersectedEdge.highway));
 		return true;
@@ -184,38 +202,99 @@ bool Graph::addRoad(VertexIndex source, const glm::vec3& direction, VertexIndex&
 		{
 			end = closestSnapping;
 			length = glm::distance(start, end);
-			Edge& snappedEdge = edges[snappedEdgeIndex];
 
-			newVertexIndex = addVertex(source, end);
-
-			VertexIndex oldDestination = snappedEdge.destination;
-			snappedEdge.destination = newVertexIndex;
-
-			addConnection(newVertexIndex, oldDestination, snappedEdge.highway);
-			addConnection(source, newVertexIndex, highway);
+			newVertex = createVertex(end);
+			splitEdge(snappedEdgeIndex, newVertex);
+			connect(source, newVertex, highway);
 
 			//return (!highway || (highway && snappedEdge.highway));
 			return true;
 		}
 
 		length = glm::distance(start, end);
-		newVertexIndex = addVertex(source, end);
-		addConnection(source, newVertexIndex, highway);
+		newVertex = createVertex(end);
+		connect(source, newVertex, highway);
 
 		return false;
 	}
 }
 
+unsigned int Graph::getValency(const Vertex& vertex) const
+{
+	unsigned int valency = 0;
+	for (unsigned int i = 0; i < vertex.lastInIndex; i++)
+	{
+		const Edge& edge = edges[vertex.ins[i]];
+
+		// FIXME: checking invariants
+		if (edge.destination != vertex.index)
+		{
+			throw std::exception("edge.destination != vertex.index");
+		}
+
+		const Vertex& source = vertices[edge.source];
+		if (source.removed)
+		{
+			continue;
+		}
+
+		valency++;
+	}
+
+	for (unsigned int i = 0; i < vertex.lastOutIndex; i++)
+	{
+		const Edge& edge = edges[vertex.outs[i]];
+
+		// FIXME: checking invariants
+		if (edge.source != vertex.index)
+		{
+			throw std::exception("edge.source != vertex.index");
+		}
+
+		const Vertex& destination = vertices[edge.destination];
+		if (destination.removed)
+		{
+			continue;
+		}
+
+		valency++;
+	}
+
+	return valency;
+}
+
 void Graph::removeDeadEndRoads()
 {
-	for (int i = 1; i < lastVertexIndex; i++) // skip first vertex
+	bool changed;
+
+	do
 	{
-		Vertex& vertex = vertices[i];
-		if (vertex.lastConnectionIndex == 0) 
+		changed = false;
+
+		for (int i = 1; i < lastVertexIndex; i++) // skip first vertex
 		{
-			vertex.removed = true;
+			Vertex& vertex = vertices[i];
+
+			unsigned int valency = getValency(vertex);
+
+			if (vertex.removed)
+			{
+				continue;
+			}
+
+			// FIXME: checking invariants
+			if (valency == 0) 
+			{
+				throw std::exception("valency == 0");
+			}
+
+			if (valency == 1) 
+			{
+				vertex.removed = true;
+				changed = true;
+			}
 		}
-	}
+	} while (changed);
 }
 
 void Graph::traverse(GraphTraversal& traversal) const
@@ -227,44 +306,123 @@ void Graph::traverse(GraphTraversal& traversal) const
 		const Vertex& sourceVertex = vertices[edge.source];
 		const Vertex& destinationVertex = vertices[edge.destination];
 
-		if (sourceVertex.removed || destinationVertex.removed)
+		if (destinationVertex.removed || destinationVertex.removed)
 		{
 			continue;
 		}
 
-		if (!traversal(*this, edge.source, edge.destination, edge.highway)) 
+		if (!traversal(sourceVertex.position, destinationVertex.position, edge.highway)) 
 		{
 			break;
 		}
 	}
 }
 
-void Graph::addConnection(VertexIndex source, VertexIndex destination, bool highway)
+void Graph::connect(VertexIndex source, VertexIndex destination, bool highway)
 {
+	// FIXME: checking invariants
+	if (lastEdgeIndex == MAX_EDGES)
+	{
+		throw std::exception("max edges overflow");
+	}
+
 	Edge& newEdge = edges[lastEdgeIndex];
+
 	newEdge.source = source;
 	newEdge.destination = destination;
 	newEdge.highway = highway;
+
 	Vertex& sourceVertex = vertices[source];
 	Vertex& destinationVertex = vertices[destination];
-	if (sourceVertex.lastConnectionIndex == MAX_VERTEX_CONNECTIONS)
+
+	// FIXME: checking invariants
+	if (sourceVertex.lastOutIndex == MAX_VERTEX_CONNECTIONS)
 	{
-		// FIXME: checking invariants
-		throw std::exception("vertex connection overflow");
+		throw std::exception("vertex outs connections overflow");
 	}
-	sourceVertex.connections[sourceVertex.lastConnectionIndex++] = lastEdgeIndex;
+	sourceVertex.outs[sourceVertex.lastOutIndex++] = lastEdgeIndex;
+
+	// FIXME: checking invariants
+	if (destinationVertex.lastInIndex == MAX_VERTEX_CONNECTIONS)
+	{
+		throw std::exception("vertex ins connections overflow");
+	}
+	destinationVertex.ins[destinationVertex.lastInIndex++] = lastEdgeIndex;
+
 	// REENABLE:
 	//quadtree.insert(lastEdgeIndex, source, destination, sourceVertex.position, destinationVertex.position);
+
 	lastEdgeIndex++;
 }
 
-VertexIndex Graph::addVertex(VertexIndex source, const glm::vec3& position)
+VertexIndex Graph::createVertex(const glm::vec3& position)
 {
+	// FIXME: checking invariants
+	if (lastVertexIndex == MAX_VERTICES)
+	{
+		throw std::exception("max vertices overflow");
+	}
+
 	Vertex& newVertex = vertices[lastVertexIndex];
 	newVertex.index = lastVertexIndex;
-	newVertex.source = source;
 	newVertex.position = position;
 	return lastVertexIndex++;
+}
+
+void Graph::splitEdge(EdgeIndex edge, VertexIndex split)
+{
+	Edge& splitEdge = edges[edge];
+
+	VertexIndex oldDestination = splitEdge.destination;
+	splitEdge.destination = split;
+	Vertex& sourceVertex = vertices[split];
+
+	// FIXME: checking invariants
+	if (sourceVertex.lastInIndex == MAX_VERTEX_CONNECTIONS)
+	{
+		throw std::exception("vertex ins connections overflow");
+	}
+	sourceVertex.ins[sourceVertex.lastInIndex++] = edge;
+	
+	// FIXME: checking invariants
+	if (lastEdgeIndex == MAX_EDGES)
+	{
+		throw std::exception("max edges overflow");
+	}
+
+	Edge& newEdge = edges[lastEdgeIndex];
+
+	newEdge.source = split;
+	newEdge.destination = oldDestination;
+	newEdge.highway = splitEdge.highway;
+	
+	Vertex& destinationVertex = vertices[oldDestination];
+
+	// FIXME: checking invariants
+	if (sourceVertex.lastOutIndex == MAX_VERTEX_CONNECTIONS)
+	{
+		throw std::exception("vertex outs connections overflow");
+	}
+	sourceVertex.outs[sourceVertex.lastOutIndex++] = lastEdgeIndex;
+
+	bool found = false;
+	for (unsigned int i = 0; i < destinationVertex.lastInIndex; i++)
+	{
+		if (destinationVertex.ins[i] == edge)
+		{
+			destinationVertex.ins[i] = lastEdgeIndex;
+			found = true;
+			break;
+		}
+	}
+
+	// FIXME: checking invariants
+	if (!found)
+	{
+		throw std::exception("!found");
+	}
+	
+	lastEdgeIndex++;
 }
 
 }

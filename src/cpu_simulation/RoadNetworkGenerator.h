@@ -25,11 +25,10 @@ public:
 		WorkQueuesManager<Procedure>* frontBuffer = &buffer1;
 		WorkQueuesManager<Procedure>* backBuffer = &buffer2;
 
-		RoadAttributes initialRoadAttributes(0, configuration.highwayLength, 0, true);
-		RuleAttributes initialRuleAttributes;
-		//initialRuleAttributes.highwayBranchingDistance = configuration.minHighwayBranchingDistance;
-		initialRuleAttributes.pureHighwayBranchingDistance = configuration.minPureHighwayBranchingDistance;
-		frontBuffer->addWorkItem(new EvaluateRoad(Road(0, initialRoadAttributes, initialRuleAttributes, UNASSIGNED)));
+		frontBuffer->addWorkItem(new EvaluateRoad(Road(0, RoadAttributes(0, configuration.highwayLength, 0, true), RuleAttributes(), UNASSIGNED)));
+		frontBuffer->addWorkItem(new EvaluateRoad(Road(0, RoadAttributes(0, configuration.highwayLength, -90, true), RuleAttributes(), UNASSIGNED)));
+		frontBuffer->addWorkItem(new EvaluateRoad(Road(0, RoadAttributes(0, configuration.highwayLength, 90, true), RuleAttributes(), UNASSIGNED)));
+		frontBuffer->addWorkItem(new EvaluateRoad(Road(0, RoadAttributes(0, configuration.highwayLength, 180, true), RuleAttributes(), UNASSIGNED)));
 
 		// TODO: improve design
 		InstantiateRoad::initialize(configuration);
@@ -60,7 +59,10 @@ public:
 			std::swap(frontBuffer, backBuffer);
 		}
 
-		roadNetwork.removeDeadEndRoads();
+		if (configuration.removeDeadEndRoads)
+		{
+			roadNetwork.removeDeadEndRoads();
+		}
 
 		// TODO: improve design
 		InstantiateRoad::dispose();

@@ -9,7 +9,7 @@ namespace RoadNetworkGraph
 
 struct GraphTraversal
 {
-	virtual bool operator () (const Graph& graph, VertexIndex source, VertexIndex destination, bool highway) = 0;
+	virtual bool operator () (const glm::vec3& source, const glm::vec3& destination, bool highway) = 0;
 
 };
 

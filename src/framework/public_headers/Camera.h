@@ -2,6 +2,7 @@
 #define CAMERA_H
 
 #include <Transform.h>
+#include <AABB.h>
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -62,6 +63,15 @@ public:
 	inline const glm::mat4 getViewMatrix() const
 	{
 		return glm::lookAt(worldTransform.position, worldTransform.position + worldTransform.forward(), worldTransform.up());
+	}
+
+	////////////////////////////////////////////////////////////////////////////////////////////////////
+	void centerOnTarget(const AABB& target)
+	{
+		glm::vec3 size = target.getExtents();
+		float diagonal = glm::sqrt(glm::pow(size.x, 2.0f) + glm::pow(size.y, 2.0f));
+		float distance = (diagonal / 2.0f) / glm::tan(glm::radians(fovY / 2.0f));
+		localTransform.position = glm::vec3(target.min.x + size.x / 2.0f, target.min.y + size.y / 2.0f, distance);
 	}
 
 	////////////////////////////////////////////////////////////////////////////////////////////////////

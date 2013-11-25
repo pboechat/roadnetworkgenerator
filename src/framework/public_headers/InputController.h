@@ -21,6 +21,12 @@ public:
 	}
 
 	////////////////////////////////////////////////////////////////////////////////////////////////////
+	void afterUpdate()
+	{
+		leftMouseButtonUp = leftMouseButtonDown = rightMouseButtonUp = rightMouseButtonDown = false;
+	}
+
+	////////////////////////////////////////////////////////////////////////////////////////////////////
 	void keyDown(unsigned int virtualKey)
 	{
 		front.keys[virtualKey] = true;
@@ -38,11 +44,13 @@ public:
 		if (button == MK_RBUTTON)
 		{
 			front.rightMouseButton = true;
+			rightMouseButtonDown = true;
 		}
 
 		else if (button == MK_LBUTTON)
 		{
 			front.leftMouseButton = true;
+			leftMouseButtonDown = true;
 		}
 	}
 
@@ -52,11 +60,13 @@ public:
 		if (button == MK_RBUTTON)
 		{
 			front.rightMouseButton = false;
+			rightMouseButtonUp = true;
 		}
 
 		else if (button == MK_LBUTTON)
 		{
 			front.leftMouseButton = false;
+			leftMouseButtonUp = true;
 		}
 	}
 
@@ -70,7 +80,7 @@ protected:
 	Camera& camera;
 
 	////////////////////////////////////////////////////////////////////////////////////////////////////
-	InputController(Camera& camera, float moveSpeed, float rotationSpeed) : camera(camera), moveSpeed(moveSpeed), rotationSpeed(rotationSpeed), cameraYaw(0), cameraPitch(0), cameraRoll(0)
+	InputController(Camera& camera, float moveSpeed, float rotationSpeed) : camera(camera), moveSpeed(moveSpeed), rotationSpeed(rotationSpeed), rightMouseButtonUp(false), rightMouseButtonDown(false), leftMouseButtonUp(false), leftMouseButtonDown(false), cameraYaw(0), cameraPitch(0), cameraRoll(0)
 	{
 	}
 
@@ -87,7 +97,7 @@ protected:
 			moveCameraRight((float)deltaTime);
 		}
 
-		else if (getKey(VK_UP) || getKey(87))
+		if (getKey(VK_UP) || getKey(87))
 		{
 			moveCameraForward((float)deltaTime);
 		}
@@ -97,7 +107,7 @@ protected:
 			moveCameraBackward((float)deltaTime);
 		}
 
-		else if (getKey(81) || getKey(33))
+		if (getKey(81) || getKey(33))
 		{
 			moveCameraUp((float)deltaTime);
 		}
@@ -157,15 +167,110 @@ protected:
 	}
 
 	////////////////////////////////////////////////////////////////////////////////////////////////////
-	inline bool getLefttMouseButton() const
+	inline bool getRightMouseButtonUp() const
+	{
+		return rightMouseButtonUp;
+	}
+
+	////////////////////////////////////////////////////////////////////////////////////////////////////
+	inline bool getRightMouseButtonDown() const
+	{
+		return rightMouseButtonDown;
+	}
+
+	////////////////////////////////////////////////////////////////////////////////////////////////////
+	inline bool getLeftMouseButton() const
 	{
 		return back.leftMouseButton;
+	}
+
+	////////////////////////////////////////////////////////////////////////////////////////////////////
+	inline bool getLeftMouseButtonUp() const
+	{
+		return leftMouseButtonUp;
+	}
+
+	////////////////////////////////////////////////////////////////////////////////////////////////////
+	inline bool getLeftMouseButtonDown() const
+	{
+		return leftMouseButtonDown;
 	}
 
 	////////////////////////////////////////////////////////////////////////////////////////////////////
 	inline glm::vec2 getMousePosition() const
 	{
 		return back.mousePosition;
+	}
+
+	////////////////////////////////////////////////////////////////////////////////////////////////////
+	inline void moveCameraLeft(float deltaTime)
+	{
+		camera.localTransform.position -= camera.localTransform.right() * moveSpeed * deltaTime;
+	}
+
+	////////////////////////////////////////////////////////////////////////////////////////////////////
+	inline void moveCameraRight(float deltaTime)
+	{
+		camera.localTransform.position += camera.localTransform.right() * moveSpeed * deltaTime;
+	}
+
+	////////////////////////////////////////////////////////////////////////////////////////////////////
+	inline void moveCameraForward(float deltaTime)
+	{
+		camera.localTransform.position += camera.localTransform.forward() * moveSpeed * deltaTime;
+	}
+
+	////////////////////////////////////////////////////////////////////////////////////////////////////
+	inline void moveCameraBackward(float deltaTime)
+	{
+		camera.localTransform.position -= camera.localTransform.forward() * moveSpeed * deltaTime;
+	}
+
+	////////////////////////////////////////////////////////////////////////////////////////////////////
+	inline void moveCameraUp(float deltaTime)
+	{
+		camera.localTransform.position += glm::vec3(0, 1, 0) * moveSpeed * deltaTime;
+	}
+
+	////////////////////////////////////////////////////////////////////////////////////////////////////
+	inline void moveCameraDown(float deltaTime)
+	{
+		camera.localTransform.position -= glm::vec3(0, 1, 0) * moveSpeed * deltaTime;
+	}
+
+	////////////////////////////////////////////////////////////////////////////////////////////////////
+	inline void turnCameraUp(float deltaTime)
+	{
+		cameraPitch = glm::clamp(cameraPitch - rotationSpeed * deltaTime, -CAMERA_PITCH_LIMIT, CAMERA_PITCH_LIMIT);
+		updateCameraRotation();
+	}
+
+	////////////////////////////////////////////////////////////////////////////////////////////////////
+	inline void turnCameraDown(float deltaTime)
+	{
+		cameraPitch = glm::clamp(cameraPitch + rotationSpeed * deltaTime, -CAMERA_PITCH_LIMIT, CAMERA_PITCH_LIMIT);
+		updateCameraRotation();
+	}
+
+	////////////////////////////////////////////////////////////////////////////////////////////////////
+	inline void turnCameraLeft(float deltaTime)
+	{
+		cameraYaw += rotationSpeed * deltaTime;
+		updateCameraRotation();
+	}
+
+	////////////////////////////////////////////////////////////////////////////////////////////////////
+	void turnCameraRight(float deltaTime)
+	{
+		cameraYaw -= rotationSpeed * deltaTime;
+		updateCameraRotation();
+	}
+
+	////////////////////////////////////////////////////////////////////////////////////////////////////
+	inline void updateCameraRotation()
+	{
+		glm::vec3 forward = glm::angleAxis(cameraPitch, glm::vec3(1, 0, 0)) * glm::angleAxis(cameraYaw, glm::vec3(0, 1, 0)) * glm::vec3(0, 0, -1);
+		camera.localTransform.lookAt(camera.localTransform.position + forward);
 	}
 
 private:
@@ -196,81 +301,14 @@ private:
 	InputBuffer back;
 	float moveSpeed;
 	float rotationSpeed;
+	bool rightMouseButtonUp;
+	bool rightMouseButtonDown;
+	bool leftMouseButtonUp;
+	bool leftMouseButtonDown;
 	glm::vec2 lastMousePosition;
 	float cameraYaw;
 	float cameraPitch;
 	float cameraRoll;
-
-	////////////////////////////////////////////////////////////////////////////////////////////////////
-	void moveCameraLeft(float deltaTime)
-	{
-		camera.localTransform.position -= camera.localTransform.right() * moveSpeed * deltaTime;
-	}
-
-	////////////////////////////////////////////////////////////////////////////////////////////////////
-	void moveCameraRight(float deltaTime)
-	{
-		camera.localTransform.position += camera.localTransform.right() * moveSpeed * deltaTime;
-	}
-
-	////////////////////////////////////////////////////////////////////////////////////////////////////
-	void moveCameraForward(float deltaTime)
-	{
-		camera.localTransform.position += camera.localTransform.forward() * moveSpeed * deltaTime;
-	}
-
-	////////////////////////////////////////////////////////////////////////////////////////////////////
-	void moveCameraBackward(float deltaTime)
-	{
-		camera.localTransform.position -= camera.localTransform.forward() * moveSpeed * deltaTime;
-	}
-
-	////////////////////////////////////////////////////////////////////////////////////////////////////
-	void moveCameraUp(float deltaTime)
-	{
-		camera.localTransform.position += glm::vec3(0, 1, 0) * moveSpeed * deltaTime;
-	}
-
-	////////////////////////////////////////////////////////////////////////////////////////////////////
-	void moveCameraDown(float deltaTime)
-	{
-		camera.localTransform.position -= glm::vec3(0, 1, 0) * moveSpeed * deltaTime;
-	}
-
-	////////////////////////////////////////////////////////////////////////////////////////////////////
-	void turnCameraUp(float deltaTime)
-	{
-		cameraPitch = glm::clamp(cameraPitch - rotationSpeed * deltaTime, -CAMERA_PITCH_LIMIT, CAMERA_PITCH_LIMIT);
-		updateCameraRotation();
-	}
-
-	////////////////////////////////////////////////////////////////////////////////////////////////////
-	void turnCameraDown(float deltaTime)
-	{
-		cameraPitch = glm::clamp(cameraPitch + rotationSpeed * deltaTime, -CAMERA_PITCH_LIMIT, CAMERA_PITCH_LIMIT);
-		updateCameraRotation();
-	}
-
-	////////////////////////////////////////////////////////////////////////////////////////////////////
-	void turnCameraLeft(float deltaTime)
-	{
-		cameraYaw += rotationSpeed * deltaTime;
-		updateCameraRotation();
-	}
-
-	////////////////////////////////////////////////////////////////////////////////////////////////////
-	void turnCameraRight(float deltaTime)
-	{
-		cameraYaw -= rotationSpeed * deltaTime;
-		updateCameraRotation();
-	}
-
-	////////////////////////////////////////////////////////////////////////////////////////////////////
-	void updateCameraRotation()
-	{
-		glm::vec3 forward = glm::angleAxis(cameraPitch, glm::vec3(1, 0, 0)) * glm::angleAxis(cameraYaw, glm::vec3(0, 1, 0)) * glm::vec3(0, 0, -1);
-		camera.localTransform.lookAt(camera.localTransform.position + forward);
-	}
 
 };
 

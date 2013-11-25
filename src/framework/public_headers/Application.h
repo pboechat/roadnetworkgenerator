@@ -147,6 +147,7 @@ public:
 				deltaTime = 0.1;
 				safePointerCall(inputController, swapBuffers());
 				safePointerCall(inputController, update(deltaTime));
+				safePointerCall(inputController, afterUpdate());
 				safePointerCall(camera, update(deltaTime));
 
 				try

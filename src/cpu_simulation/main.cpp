@@ -17,7 +17,6 @@
 #include <iostream>
 #include <io.h>
 #include <iomanip>
-#include <random>
 
 #define ZNEAR 10.0f
 #define ZFAR 10000.0f
@@ -27,20 +26,6 @@
 void printUsage()
 {
 	std::cerr << "Command line options: <configuration file>";
-}
-
-void centerWorldOnScreen(const Configuration& configuration, Camera& camera)
-{
-	float screenDiagonal = glm::sqrt(glm::pow((float)configuration.worldWidth, 2.0f) + glm::pow((float)configuration.worldHeight, 2.0f));
-	float distance = (configuration.worldWidth / 2.0f) / glm::tan(glm::radians(camera.getFovY() / 2.0f));
-	camera.localTransform.position = glm::vec3(configuration.worldWidth / 2.0f, configuration.worldHeight / 2.0f, distance);
-}
-
-void centerGeometryOnScreen(const RoadNetworkGeometry& geometry, Camera& camera)
-{
-	float screenDiagonal = glm::sqrt(glm::pow(geometry.bounds.getExtents().x, 2.0f) + glm::pow(geometry.bounds.getExtents().y, 2.0f));
-	float distance = (screenDiagonal / 2.0f) / glm::tan(glm::radians(camera.getFovY() / 2.0f));
-	camera.localTransform.position = glm::vec3(geometry.bounds.min.x + geometry.bounds.getExtents().x / 2.0f, geometry.bounds.min.y + geometry.bounds.getExtents().y / 2.0f, distance);
 }
 
 int main(int argc, char** argv)
@@ -64,29 +49,22 @@ int main(int argc, char** argv)
 		Configuration configuration;
 		configuration.loadFromFile(configurationFile);
 
-		unsigned int seed;
-		if (configuration.seed >= 0)
-		{
-			seed = configuration.seed;
-		}
-		else
-		{
-			seed = (unsigned int)time(0);
-			std::cout << "seed: " << seed << std::endl;
-		}
-		srand(seed);
+		// TODO:
+		unsigned int screenWidth = configuration.worldWidth;
+		unsigned int screenHeight = configuration.worldHeight;
 
-		Application application("Road Network Generator (CPU)", configuration.worldWidth, configuration.worldHeight);
+		Application application("Road Network Generator (CPU)", screenWidth, screenHeight);
 
 		if (gl3wInit())
 		{
 			throw std::runtime_error("gl3wInit() failed");
 		}
 
-		Camera camera(configuration.worldWidth, configuration.worldHeight, FOVY_DEG, ZNEAR, ZFAR);
-		RoadNetworkInputController inputController(camera);
 		RoadNetworkGeometry roadNetworkGeometry;
-		SceneRenderer renderer(configuration, camera, roadNetworkGeometry);
+
+		Camera camera(screenWidth, screenHeight, FOVY_DEG, ZNEAR, ZFAR);
+		RoadNetworkInputController inputController(camera, configurationFile, roadNetworkGeometry);
+		SceneRenderer renderer(camera, screenWidth, screenHeight, roadNetworkGeometry, configuration.populationDensityMap, configuration.waterBodiesMap);
 
 		application.setCamera(camera);
 		application.setRenderer(renderer);
@@ -98,10 +76,9 @@ int main(int argc, char** argv)
 		RoadNetworkGenerator roadNetworkGenerator;
 		roadNetworkGenerator.execute(configuration, roadNetwork);
 
-		roadNetworkGeometry.build(configuration, roadNetwork);
+		roadNetworkGeometry.build(roadNetwork, configuration.highwayColor, configuration.streetColor);
 
-		centerWorldOnScreen(configuration, camera);
-		//centerGeometryOnScreen(geometry, camera);
+		camera.centerOnTarget(worldBounds);
 
 		return application.run();
 	}
