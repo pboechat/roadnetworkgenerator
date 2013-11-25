@@ -12,8 +12,16 @@ struct Branch
 	RoadAttributes roadAttributes;
 	RuleAttributes ruleAttributes;
 
+	Branch() {}
 	Branch(int delay, const RoadAttributes& roadAttributes, const RuleAttributes& ruleAttributes) : delay(delay), roadAttributes(roadAttributes), ruleAttributes(ruleAttributes) {}
-	~Branch() {}
+	
+	Branch& operator = (const Branch& other)
+	{
+		delay = other.delay;
+		roadAttributes = other.roadAttributes;
+		ruleAttributes = other.ruleAttributes;
+		return *this;
+	}
 
 };
 

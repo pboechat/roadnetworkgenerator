@@ -6,12 +6,9 @@
 #include <Configuration.h>
 #include <Graph.h>
 
-#include <vector>
-
-class Procedure : public WorkItem
+struct Procedure : public WorkItem
 {
-public:
-	virtual void execute(WorkQueuesManager<Procedure>& workQueuesManager, RoadNetworkGraph::Graph& roadNetworkGraph, const Configuration& configuration) = 0;
+	virtual void execute(WorkQueuesManager& manager, RoadNetworkGraph::Graph& graph, const Configuration& configuration) = 0;
 
 };
 

@@ -2,16 +2,20 @@
 #include <EvaluateRoad.h>
 #include <Road.h>
 
+EvaluateBranch::EvaluateBranch()
+{
+}
+
 EvaluateBranch::EvaluateBranch(const Branch& branch) : branch(branch)
 {
 }
 
-unsigned int EvaluateBranch::getCode()
+unsigned int EvaluateBranch::getCode() const
 {
-	return 1;
+	return EVALUATE_BRANCH_CODE;
 }
 
-void EvaluateBranch::execute(WorkQueuesManager<Procedure>& workQueuesManager, RoadNetworkGraph::Graph& roadNetworkGraph, const Configuration& configuration)
+void EvaluateBranch::execute(WorkQueuesManager& manager, RoadNetworkGraph::Graph& graph, const Configuration& configuration)
 {
 	// p6
 	if (branch.delay < 0)
@@ -23,12 +27,18 @@ void EvaluateBranch::execute(WorkQueuesManager<Procedure>& workQueuesManager, Ro
 	else if (branch.delay > 0)
 	{
 		branch.delay--;
-		workQueuesManager.addWorkItem(new EvaluateBranch(branch));
+		manager.addWorkItem(EvaluateBranch(branch));
 	}
 
 	// p5
 	else if (branch.delay == 0)
 	{
-		workQueuesManager.addWorkItem(new EvaluateRoad(Road(0, branch.roadAttributes, branch.ruleAttributes, UNASSIGNED)));
+		manager.addWorkItem(EvaluateRoad(Road(0, branch.roadAttributes, branch.ruleAttributes, UNASSIGNED)));
 	}
+}
+
+EvaluateBranch& EvaluateBranch::operator = (const EvaluateBranch& other)
+{
+	branch = other.branch;
+	return *this;
 }

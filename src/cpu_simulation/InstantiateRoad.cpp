@@ -11,35 +11,20 @@
 unsigned char* InstantiateRoad::populationDensities = 0;
 unsigned int* InstantiateRoad::distances = 0;
 
+InstantiateRoad::InstantiateRoad()
+{
+}
+
 InstantiateRoad::InstantiateRoad(const Road& road) : road(road)
 {
 }
 
-unsigned int InstantiateRoad::getCode()
+unsigned int InstantiateRoad::getCode() const
 {
-	return 0;
+	return INSTANTIATE_ROAD_CODE;
 }
 
-void InstantiateRoad::initialize(const Configuration& configuration)
-{
-	populationDensities = new unsigned char[configuration.samplingArc];
-	distances = new unsigned int[configuration.samplingArc];
-}
-
-void InstantiateRoad::dispose()
-{
-	if (populationDensities != 0)
-	{
-		delete[] populationDensities;
-	}
-
-	if (distances != 0)
-	{
-		delete[] distances;
-	}
-}
-
-void InstantiateRoad::execute(WorkQueuesManager<Procedure>& workQueuesManager, RoadNetworkGraph::Graph& roadNetworkGraph, const Configuration& configuration)
+void InstantiateRoad::execute(WorkQueuesManager& manager, RoadNetworkGraph::Graph& graph, const Configuration& configuration)
 {
 	// p2
 
@@ -54,7 +39,7 @@ void InstantiateRoad::execute(WorkQueuesManager<Procedure>& workQueuesManager, R
 	RoadNetworkGraph::VertexIndex newSource;
 	glm::vec3 position;
 	float length;
-	bool interrupted = roadNetworkGraph.addRoad(road.roadAttributes.source, direction, newSource, position, length, road.roadAttributes.highway);
+	bool interrupted = graph.addRoad(road.roadAttributes.source, direction, newSource, position, length, road.roadAttributes.highway);
 
 	int delays[3];
 	RoadAttributes roadAttributes[3];
@@ -72,9 +57,9 @@ void InstantiateRoad::execute(WorkQueuesManager<Procedure>& workQueuesManager, R
 		evaluateGlobalGoals(configuration, newSource, position, length, delays, roadAttributes, ruleAttributes);
 	}
 
-	workQueuesManager.addWorkItem(new EvaluateBranch(Branch(delays[0], roadAttributes[0], ruleAttributes[0])));
-	workQueuesManager.addWorkItem(new EvaluateBranch(Branch(delays[1], roadAttributes[1], ruleAttributes[1])));
-	workQueuesManager.addWorkItem(new EvaluateRoad(Road(delays[2], roadAttributes[2], ruleAttributes[2], UNASSIGNED)));
+	manager.addWorkItem(EvaluateBranch(Branch(delays[0], roadAttributes[0], ruleAttributes[0])));
+	manager.addWorkItem(EvaluateBranch(Branch(delays[1], roadAttributes[1], ruleAttributes[1])));
+	manager.addWorkItem(EvaluateRoad(Road(delays[2], roadAttributes[2], ruleAttributes[2], UNASSIGNED)));
 }
 
 void InstantiateRoad::evaluateGlobalGoals(const Configuration& configuration, RoadNetworkGraph::VertexIndex source, const glm::vec3& position, float length, int* delays, RoadAttributes* roadAttributes, RuleAttributes* ruleAttributes)
@@ -99,13 +84,13 @@ void InstantiateRoad::evaluateGlobalGoals(const Configuration& configuration, Ro
 		{
 			followHighestPopulationDensity(configuration, position, roadAttributes[2], ruleAttributes[2]);
 		}
+
 		else
 		{
 			ruleAttributes[2].goalDistance = road.ruleAttributes.goalDistance - length;
 			if (ruleAttributes[2].goalDistance <= 0)
 			{
 				delays[2] = -1; // remove highway
-				//return;
 			}
 			else
 			{
@@ -184,8 +169,7 @@ void InstantiateRoad::evaluateGlobalGoals(const Configuration& configuration, Ro
 
 void InstantiateRoad::followHighestPopulationDensity(const Configuration& configuration, const glm::vec3& start, RoadAttributes& roadAttributes, RuleAttributes& ruleAttributes) const
 {
-	unsigned int halfSamplingArc = (configuration.samplingArc + 1) / 2;
-	int currentAngleStep = -(int)halfSamplingArc;
+	int currentAngleStep = -configuration.halfSamplingArc;
 
 	for (unsigned int i = 0; i < configuration.samplingArc; i++, currentAngleStep++)
 	{
@@ -213,13 +197,37 @@ void InstantiateRoad::followHighestPopulationDensity(const Configuration& config
 		}
 	}
 
-	roadAttributes.angle += (angleIncrement - halfSamplingArc);
+	roadAttributes.angle += (angleIncrement - configuration.halfSamplingArc);
 	ruleAttributes.goalDistance = (float)distances[j];
 	ruleAttributes.hasGoal = true;
 }
 
 void InstantiateRoad::applyAngleDeviation(const Configuration& configuration, RoadAttributes& roadAttributes) const
 {
-	int halfMaxDeviation = configuration.maxHighwayGoalDeviation / 2;
-	roadAttributes.angle += ((rand() % halfMaxDeviation) - halfMaxDeviation);
+	roadAttributes.angle += ((rand() % configuration.halfMaxHighwayGoalDeviation) - configuration.halfMaxHighwayGoalDeviation);
+}
+
+InstantiateRoad& InstantiateRoad::operator = (const InstantiateRoad& other)
+{
+	road = other.road;
+	return *this;
+}
+
+void InstantiateRoad::initialize(const Configuration& configuration)
+{
+	populationDensities = new unsigned char[configuration.samplingArc];
+	distances = new unsigned int[configuration.samplingArc];
+}
+
+void InstantiateRoad::dispose()
+{
+	if (populationDensities != 0)
+	{
+		delete[] populationDensities;
+	}
+
+	if (distances != 0)
+	{
+		delete[] distances;
+	}
 }

@@ -122,7 +122,6 @@ bool Graph::addRoad(VertexIndex source, const glm::vec3& direction, VertexIndex&
 
 		connect(source, newVertex, highway);
 
-		//return (!highway || (highway && intersectedEdge.highway));
 		return true;
 	}
 	else
@@ -204,7 +203,6 @@ bool Graph::addRoad(VertexIndex source, const glm::vec3& direction, VertexIndex&
 			splitEdge(snappedEdgeIndex, newVertex);
 			connect(source, newVertex, highway);
 
-			//return (!highway || (highway && snappedEdge.highway));
 			return true;
 		}
 

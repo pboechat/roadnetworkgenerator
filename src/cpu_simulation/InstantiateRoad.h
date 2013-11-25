@@ -6,13 +6,16 @@
 
 #include <glm/glm.hpp>
 
-class InstantiateRoad : public Procedure
+#define INSTANTIATE_ROAD_CODE 0
+
+struct InstantiateRoad : public Procedure
 {
-public:
+	InstantiateRoad();
 	InstantiateRoad(const Road& road);
 
-	virtual unsigned int getCode();
-	virtual void execute(WorkQueuesManager<Procedure>& workQueuesManager, RoadNetworkGraph::Graph& roadNetworkGraph, const Configuration& configuration);
+	virtual unsigned int getCode() const;
+	virtual void execute(WorkQueuesManager& manager, RoadNetworkGraph::Graph& graph, const Configuration& configuration);
+	InstantiateRoad& operator = (const InstantiateRoad& other);
 
 	// TODO: improve design
 	static void initialize(const Configuration& configuration);

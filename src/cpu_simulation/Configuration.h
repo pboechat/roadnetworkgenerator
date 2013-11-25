@@ -36,9 +36,11 @@ public:
 	unsigned int streetBranchingDelay;
 	unsigned int maxDerivations;
 	unsigned int maxHighwayGoalDeviation; // degrees
+	int halfMaxHighwayGoalDeviation; // degrees
 	unsigned int maxObstacleDeviationAngle; // degrees
 	unsigned int minRoadLength;
 	unsigned int samplingArc; // degrees
+	int halfSamplingArc;
 	unsigned int quadtreeCellArea;
 	unsigned int quadtreeQueryRadius;
 	ImageMap populationDensityMap;
@@ -113,9 +115,11 @@ public:
 		streetBranchingDelay = getPropertyAsUInt(properties, "street_branching_delay");
 		maxDerivations = getPropertyAsUInt(properties, "max_derivations");
 		maxHighwayGoalDeviation = getPropertyAsUInt(properties, "max_highway_goal_deviation");
+		halfMaxHighwayGoalDeviation = (maxHighwayGoalDeviation + 1) / 2;
 		maxObstacleDeviationAngle = getPropertyAsUInt(properties, "max_obstacle_deviation_angle");
 		minRoadLength = getPropertyAsUInt(properties, "min_road_length");
 		samplingArc = getPropertyAsUInt(properties, "sampling_arc");
+		halfSamplingArc = (samplingArc + 1) / 2;
 		quadtreeCellArea = getPropertyAsUInt(properties, "quadtree_cell_area");
 		quadtreeQueryRadius = getPropertyAsUInt(properties, "quadtree_query_radius");
 		highwayColor = getPropertyAsVec4(properties, "highway_color");

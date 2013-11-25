@@ -1,10 +1,12 @@
 #ifndef WORKITEM_H
 #define WORKITEM_H
 
-class WorkItem
+struct WorkItem
 {
-public:
-	virtual unsigned int getCode() = 0;
+	virtual unsigned int getCode() const
+	{
+		return 0;
+	}
 
 };
 

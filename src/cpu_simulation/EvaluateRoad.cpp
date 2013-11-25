@@ -6,16 +6,20 @@
 
 #include <exception>
 
+EvaluateRoad::EvaluateRoad()
+{
+}
+
 EvaluateRoad::EvaluateRoad(const Road& road) : road(road)
 {
 }
 
-unsigned int EvaluateRoad::getCode()
+unsigned int EvaluateRoad::getCode() const
 {
-	return 2;
+	return EVALUATE_ROAD_CODE;
 }
 
-void EvaluateRoad::execute(WorkQueuesManager<Procedure>& workQueuesManager, RoadNetworkGraph::Graph& roadNetworkGraph, const Configuration& configuration)
+void EvaluateRoad::execute(WorkQueuesManager& manager, RoadNetworkGraph::Graph& graph, const Configuration& configuration)
 {
 	// p1, p3 and p6
 	if (road.delay < 0 || road.state == FAILED)
@@ -26,7 +30,7 @@ void EvaluateRoad::execute(WorkQueuesManager<Procedure>& workQueuesManager, Road
 	// p8
 	if (road.state == UNASSIGNED)
 	{
-		evaluateLocalContraints(configuration, roadNetworkGraph);
+		evaluateLocalContraints(configuration, graph);
 
 		// FIXME: checking invariants
 		if (road.state == UNASSIGNED)
@@ -37,16 +41,16 @@ void EvaluateRoad::execute(WorkQueuesManager<Procedure>& workQueuesManager, Road
 
 	if (road.state == FAILED)
 	{
-		workQueuesManager.addWorkItem(new EvaluateRoad(road));
+		manager.addWorkItem(EvaluateRoad(road));
 	}
 
 	else if (road.state == SUCCEED)
 	{
-		workQueuesManager.addWorkItem(new InstantiateRoad(road));
+		manager.addWorkItem(InstantiateRoad(road));
 	}
 }
 
-void EvaluateRoad::evaluateLocalContraints(const Configuration& configuration, const RoadNetworkGraph::Graph& roadNetworkGraph)
+void EvaluateRoad::evaluateLocalContraints(const Configuration& configuration, const RoadNetworkGraph::Graph& graph)
 {
 	// remove streets that have exceeded max street branch depth
 	if (!road.roadAttributes.highway && road.ruleAttributes.streetBranchDepth > configuration.maxStreetBranchDepth)
@@ -55,7 +59,7 @@ void EvaluateRoad::evaluateLocalContraints(const Configuration& configuration, c
 		return;
 	}
 
-	glm::vec3 position = roadNetworkGraph.getPosition(road.roadAttributes.source);
+	glm::vec3 position = graph.getPosition(road.roadAttributes.source);
 
 	// remove roads that cross world boundaries
 	if (position.x < 0 || position.x > (float)configuration.worldWidth ||
@@ -103,4 +107,10 @@ void EvaluateRoad::evaluateLocalContraints(const Configuration& configuration, c
 	{
 		road.roadAttributes.angle += angleIncrement;
 	}
+}
+
+EvaluateRoad& EvaluateRoad::operator = (const EvaluateRoad& other)
+{
+	road = other.road;
+	return *this;
 }

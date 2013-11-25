@@ -10,9 +10,8 @@ struct RuleAttributes
 	float goalDistance;
 
 	RuleAttributes() : streetBranchDepth(0), highwayBranchingDistance(0), pureHighwayBranchingDistance(0), hasGoal(false), goalDistance(0) {}
-	~RuleAttributes() {}
 
-	RuleAttributes& operator =(const RuleAttributes& other)
+	RuleAttributes& operator = (const RuleAttributes& other)
 	{
 		streetBranchDepth = other.streetBranchDepth;
 		highwayBranchingDistance = other.highwayBranchingDistance;

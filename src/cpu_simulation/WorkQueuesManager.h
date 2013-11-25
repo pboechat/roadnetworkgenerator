@@ -1,131 +1,48 @@
 #ifndef WORKQUEUESMANAGER_H
 #define WORKQUEUESMANAGER_H
 
-#include <map>
-#include <deque>
+#include <static_alloc_queue.h>
+#include <WorkItem.h>
+#include <Configuration.h>
+#include <Graph.h>
 
-template <class WorkItem>
 class WorkQueuesManager
 {
 public:
-	WorkQueuesManager();
+	WorkQueuesManager(unsigned int numberOfWorkQueues, unsigned int workQueueCapacity);
+	~WorkQueuesManager();
 
-	void addWorkItem(WorkItem* workItem);
-	bool notEmpty() const;
-	void resetCursors();
-	bool nextWorkQueue();
-	WorkItem* popWorkItem();
-	void clear();
+	inline bool notEmpty() const
+	{
+		return workItemsCounter > 0;
+	}
+
+	template<typename T>
+	void addWorkItem(const T& workItem)
+	{
+		workQueues[workItem.getCode()]->enqueue(workItem);
+		workItemsCounter++;
+	}
+
+	void executeAllWorkItems(WorkQueuesManager& manager, RoadNetworkGraph::Graph& graph, const Configuration& configuration);
 
 private:
-	typedef std::deque<WorkItem*> WorkQueue;
-
-	std::map<unsigned int, WorkQueue> workQueues;
+	static_alloc_queue** workQueues;
+	unsigned int workQueuesCounter;
 	unsigned int workItemsCounter;
-	typename std::map<unsigned int, WorkQueue>::iterator workQueueCursor;
 
-};
-
-template<class WorkItem>
-WorkQueuesManager<WorkItem>::WorkQueuesManager() : workItemsCounter(0)
-{
-}
-
-template<class WorkItem>
-void WorkQueuesManager<WorkItem>::addWorkItem(WorkItem* workItem)
-{
-	unsigned int code = workItem->getCode();
-	std::map<unsigned int, WorkQueue>::iterator i;
-
-	if ((i = workQueues.find(code)) == workQueues.end())
+	template<typename T>
+	bool executeWorkItem(static_alloc_queue* workQueue, WorkQueuesManager& manager, RoadNetworkGraph::Graph& graph, const Configuration& configuration)
 	{
-		WorkQueue workQueue;
-		workQueue.push_back(workItem);
-		workQueues.insert(std::make_pair(code, workQueue));
-	}
-
-	else
-	{
-		WorkQueue& workQueue = i->second;
-		workQueue.push_back(workItem);
-	}
-
-	workItemsCounter++;
-}
-
-template<class WorkItem>
-bool WorkQueuesManager<WorkItem>::notEmpty() const
-{
-	return workItemsCounter > 0;
-}
-
-template<class WorkItem>
-void WorkQueuesManager<WorkItem>::resetCursors()
-{
-	workQueueCursor = workQueues.begin();
-}
-
-template<class WorkItem>
-bool WorkQueuesManager<WorkItem>::nextWorkQueue()
-{
-	if (workQueueCursor == workQueues.end())
-	{
-		return false;
-	}
-
-	workQueueCursor++;
-
-	if (workQueueCursor == workQueues.end())
-	{
-		return false;
-	}
-
-	return true;
-}
-
-template<class WorkItem>
-WorkItem* WorkQueuesManager<WorkItem>::popWorkItem()
-{
-	if (workQueueCursor == workQueues.end())
-	{
-		return 0;
-	}
-
-	if (workQueueCursor->second.empty())
-	{
-		return 0;
-	}
-
-	WorkItem* workItem = workQueueCursor->second.front();
-	workQueueCursor->second.pop_front();
-	workItemsCounter--;
-	return workItem;
-}
-
-template<class WorkItem>
-void WorkQueuesManager<WorkItem>::clear()
-{
-	if (workItemsCounter < 1)
-	{
-		return;
-	}
-
-	typename std::map<unsigned int, WorkQueue>::iterator i1 = workQueues.begin();
-
-	while (i1 != workQueues.end())
-	{
-		WorkQueue& workQueue = i1->second;
-		WorkQueue::iterator i2 = workQueue.begin();
-
-		while (i2 != workQueue.end())
+		T workItem;
+		if (workQueue->dequeue(workItem))
 		{
-			WorkItem* workItem = *i2;
-			delete workItem;
-			i2++;
+			workItem.execute(manager, graph, configuration);
+			return true;
 		}
-
-		i1++;
+		return false;
 	}
-}
+	
+};
 
 #endif

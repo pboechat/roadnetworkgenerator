@@ -4,13 +4,16 @@
 #include <Procedure.h>
 #include <Road.h>
 
-class EvaluateRoad : public Procedure
+#define EVALUATE_ROAD_CODE 2
+
+struct EvaluateRoad : public Procedure
 {
-public:
+	EvaluateRoad();
 	EvaluateRoad(const Road& road);
 
-	virtual unsigned int getCode();
-	virtual void execute(WorkQueuesManager<Procedure>& workQueuesManager, RoadNetworkGraph::Graph& roadNetworkGraph, const Configuration& configuration);
+	virtual unsigned int getCode() const;
+	virtual void execute(WorkQueuesManager& manager, RoadNetworkGraph::Graph& graph, const Configuration& configuration);
+	EvaluateRoad& operator = (const EvaluateRoad& other);
 
 private:
 	Road road;

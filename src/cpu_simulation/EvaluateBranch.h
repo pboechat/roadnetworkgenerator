@@ -4,13 +4,16 @@
 #include <Procedure.h>
 #include <Branch.h>
 
-class EvaluateBranch : public Procedure
+#define EVALUATE_BRANCH_CODE 1
+
+struct EvaluateBranch : public Procedure
 {
-public:
+	EvaluateBranch();
 	EvaluateBranch(const Branch& branch);
 
-	virtual unsigned int getCode();
-	virtual void execute(WorkQueuesManager<Procedure>& workQueuesManager, RoadNetworkGraph::Graph& roadNetworkGraph, const Configuration& configuration);
+	virtual unsigned int getCode() const;
+	virtual void execute(WorkQueuesManager& manager, RoadNetworkGraph::Graph& graph, const Configuration& configuration);
+	EvaluateBranch& operator = (const EvaluateBranch& other);
 
 private:
 	Branch branch;
