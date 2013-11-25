@@ -2,6 +2,7 @@
 #define ROADNETWORKINPUTCONTROLLER_H
 
 #include <InputController.h>
+#include <SceneRenderer.h>
 #include <Configuration.h>
 #include <Camera.h>
 #include <Graph.h>
@@ -18,10 +19,12 @@ public:
 	////////////////////////////////////////////////////////////////////////////////////////////////////
 	RoadNetworkInputController(Camera& camera, 
 							   const std::string& configurationFile,
+							   SceneRenderer& sceneRenderer,
 							   RoadNetworkGeometry& roadNetworkGeometry) 
 		: 
 		InputController(camera, 20.0f, 10.0f),
 		configurationFile(configurationFile),
+		sceneRenderer(sceneRenderer),
 		roadNetworkGeometry(roadNetworkGeometry)
 	{
 	}
@@ -80,6 +83,8 @@ public:
 			// rebuild road network geometry
 			roadNetworkGeometry.build(roadNetwork, configuration.highwayColor, configuration.streetColor);
 
+			sceneRenderer.setWorldBounds(worldBounds);
+
 			camera.centerOnTarget(worldBounds);
 		}
 
@@ -92,6 +97,7 @@ public:
 
 private:
 	std::string configurationFile;
+	SceneRenderer& sceneRenderer;
 	RoadNetworkGeometry& roadNetworkGeometry;
 
 };

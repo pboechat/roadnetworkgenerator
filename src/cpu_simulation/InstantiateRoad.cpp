@@ -56,12 +56,6 @@ void InstantiateRoad::execute(WorkQueuesManager<Procedure>& workQueuesManager, R
 	float length;
 	bool interrupted = roadNetworkGraph.addRoad(road.roadAttributes.source, direction, newSource, position, length, road.roadAttributes.highway);
 
-	// DEBUG:
-	if (aroundPoint(position, 115, 775, 10))
-	{
-		int a = 0;
-	}
-
 	int delays[3];
 	RoadAttributes roadAttributes[3];
 	RuleAttributes ruleAttributes[3];

@@ -1,5 +1,5 @@
 // memory leak detection
-//#include <vld.h>
+#include <vld.h>
 
 #include <Application.h>
 #include <Camera.h>
@@ -25,20 +25,22 @@
 
 void printUsage()
 {
-	std::cerr << "Command line options: <configuration file>";
+	std::cerr << "Command line options: <width> <height> <configuration file>";
 }
 
 int main(int argc, char** argv)
 {
 	try
 	{
-		if (argc < 2)
+		if (argc < 4)
 		{
 			printUsage();
 			exit(EXIT_FAILURE);
 		}
 
-		std::string configurationFile = argv[1];
+		unsigned int screenWidth = (unsigned int)atoi(argv[1]);
+		unsigned int screenHeight = (unsigned int)atoi(argv[2]);
+		std::string configurationFile = argv[3];
 
 		if (configurationFile.empty())
 		{
@@ -48,10 +50,6 @@ int main(int argc, char** argv)
 
 		Configuration configuration;
 		configuration.loadFromFile(configurationFile);
-
-		// TODO:
-		unsigned int screenWidth = configuration.worldWidth;
-		unsigned int screenHeight = configuration.worldHeight;
 
 		Application application("Road Network Generator (CPU)", screenWidth, screenHeight);
 
@@ -63,20 +61,23 @@ int main(int argc, char** argv)
 		RoadNetworkGeometry roadNetworkGeometry;
 
 		Camera camera(screenWidth, screenHeight, FOVY_DEG, ZNEAR, ZFAR);
-		RoadNetworkInputController inputController(camera, configurationFile, roadNetworkGeometry);
-		SceneRenderer renderer(camera, screenWidth, screenHeight, roadNetworkGeometry, configuration.populationDensityMap, configuration.waterBodiesMap);
+		SceneRenderer renderer(camera, roadNetworkGeometry, configuration.populationDensityMap, configuration.waterBodiesMap);
+		RoadNetworkInputController inputController(camera, configurationFile, renderer, roadNetworkGeometry);
 
 		application.setCamera(camera);
 		application.setRenderer(renderer);
 		application.setInputController(inputController);
 
 		AABB worldBounds(0.0f, 0.0f, (float)configuration.worldWidth, (float)configuration.worldHeight);
+
 		RoadNetworkGraph::Graph roadNetwork(worldBounds, (float)configuration.quadtreeCellArea, (float)configuration.quadtreeQueryRadius);
 
 		RoadNetworkGenerator roadNetworkGenerator;
 		roadNetworkGenerator.execute(configuration, roadNetwork);
 
 		roadNetworkGeometry.build(roadNetwork, configuration.highwayColor, configuration.streetColor);
+
+		renderer.setWorldBounds(worldBounds);
 
 		camera.centerOnTarget(worldBounds);
 

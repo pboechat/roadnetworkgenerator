@@ -25,10 +25,17 @@ public:
 		WorkQueuesManager<Procedure>* frontBuffer = &buffer1;
 		WorkQueuesManager<Procedure>* backBuffer = &buffer2;
 
-		frontBuffer->addWorkItem(new EvaluateRoad(Road(0, RoadAttributes(0, configuration.highwayLength, 0, true), RuleAttributes(), UNASSIGNED)));
-		frontBuffer->addWorkItem(new EvaluateRoad(Road(0, RoadAttributes(0, configuration.highwayLength, -90, true), RuleAttributes(), UNASSIGNED)));
-		frontBuffer->addWorkItem(new EvaluateRoad(Road(0, RoadAttributes(0, configuration.highwayLength, 90, true), RuleAttributes(), UNASSIGNED)));
-		frontBuffer->addWorkItem(new EvaluateRoad(Road(0, RoadAttributes(0, configuration.highwayLength, 180, true), RuleAttributes(), UNASSIGNED)));
+		for (unsigned int i = 0; i < configuration.spawnPoints.size(); i++)
+		{
+			glm::vec3 spawnPoint = configuration.spawnPoints[i];
+
+			RoadNetworkGraph::VertexIndex source = roadNetwork.createVertex(spawnPoint);
+
+			frontBuffer->addWorkItem(new EvaluateRoad(Road(0, RoadAttributes(source, configuration.highwayLength, 0, true), RuleAttributes(), UNASSIGNED)));
+			frontBuffer->addWorkItem(new EvaluateRoad(Road(0, RoadAttributes(source, configuration.highwayLength, -90, true), RuleAttributes(), UNASSIGNED)));
+			frontBuffer->addWorkItem(new EvaluateRoad(Road(0, RoadAttributes(source, configuration.highwayLength, 90, true), RuleAttributes(), UNASSIGNED)));
+			frontBuffer->addWorkItem(new EvaluateRoad(Road(0, RoadAttributes(source, configuration.highwayLength, 180, true), RuleAttributes(), UNASSIGNED)));
+		}
 
 		// TODO: improve design
 		InstantiateRoad::initialize(configuration);

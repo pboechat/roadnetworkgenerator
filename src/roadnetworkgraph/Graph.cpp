@@ -24,9 +24,6 @@ Graph::Graph(const AABB& worldBounds, float quadtreeCellArea, float snapRadius) 
 	vertices = new Vertex[MAX_VERTICES];
 	edges = new Edge[MAX_EDGES];
 	queryResult = new EdgeReference[MAX_EDGE_REFERENCIES_PER_QUERY];
-
-	glm::vec3 worldSize = worldBounds.getExtents();
-	createVertex(glm::vec3(worldSize.x / 2.0f, worldSize.y / 2.0f, 0.0f));
 }
 
 Graph::~Graph() 
@@ -271,7 +268,7 @@ void Graph::removeDeadEndRoads()
 	{
 		changed = false;
 
-		for (int i = 1; i < lastVertexIndex; i++) // skip first vertex
+		for (int i = 0; i < lastVertexIndex; i++)
 		{
 			Vertex& vertex = vertices[i];
 
@@ -280,12 +277,6 @@ void Graph::removeDeadEndRoads()
 			if (vertex.removed)
 			{
 				continue;
-			}
-
-			// FIXME: checking invariants
-			if (valency == 0) 
-			{
-				throw std::exception("valency == 0");
 			}
 
 			if (valency == 1) 

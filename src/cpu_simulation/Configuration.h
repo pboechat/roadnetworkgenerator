@@ -4,6 +4,7 @@
 #include <ImageMap.h>
 #include <FileReader.h>
 #include <StringUtils.h>
+#include <ParseUtils.h>
 
 #include <glm/glm.hpp>
 
@@ -13,6 +14,7 @@
 #include <exception>
 #include <time.h>
 #include <random>
+#include <regex>
 #ifdef _DEBUG
 #include <iostream>
 #endif
@@ -45,6 +47,8 @@ public:
 	glm::vec4 streetColor;
 	glm::vec4 quadtreeColor;
 	bool removeDeadEndRoads;
+	std::vector<glm::vec3> spawnPoints;
+
 	Configuration() {}
 	~Configuration() {}
 
@@ -114,25 +118,28 @@ public:
 		samplingArc = getPropertyAsUInt(properties, "sampling_arc");
 		quadtreeCellArea = getPropertyAsUInt(properties, "quadtree_cell_area");
 		quadtreeQueryRadius = getPropertyAsUInt(properties, "quadtree_query_radius");
-		highwayColor = getPropertyAsColor(properties, "highway_color");
-		streetColor = getPropertyAsColor(properties, "street_color");
-		quadtreeColor = getPropertyAsColor(properties, "quadtree_color");
+		highwayColor = getPropertyAsVec4(properties, "highway_color");
+		streetColor = getPropertyAsVec4(properties, "street_color");
+		quadtreeColor = getPropertyAsVec4(properties, "quadtree_color");
 		std::string populationDensityMapFile = getProperty(properties, "population_density_map");
 		std::string waterBodiesMapFile = getProperty(properties, "water_bodies_map");
 		populationDensityMap.import(populationDensityMapFile, worldWidth, worldHeight);
-		glm::vec4 color1 = getPropertyAsColor(properties, "population_density_map_color1");
-		glm::vec4 color2 = getPropertyAsColor(properties, "population_density_map_color2");
+		glm::vec4 color1 = getPropertyAsVec4(properties, "population_density_map_color1");
+		glm::vec4 color2 = getPropertyAsVec4(properties, "population_density_map_color2");
 		populationDensityMap.setColor1(color1);
 		populationDensityMap.setColor2(color2);
 		waterBodiesMap.import(waterBodiesMapFile, worldWidth, worldHeight);
-		color1 = getPropertyAsColor(properties, "water_bodies_map_color1");
-		color2 = getPropertyAsColor(properties, "water_bodies_map_color2");
+		color1 = getPropertyAsVec4(properties, "water_bodies_map_color1");
+		color2 = getPropertyAsVec4(properties, "water_bodies_map_color2");
 		waterBodiesMap.setColor1(color1);
 		waterBodiesMap.setColor2(color2);
 		removeDeadEndRoads = getPropertyAsBool(properties, "remove_dead_end_roads");
+		getPropertyAsVec3Vector(properties, "spawn_points", spawnPoints);
 	}
 
 private:
+	static const std::string VEC3_VECTOR_PATTERN;
+
 	static const std::string& getProperty(const std::map<std::string, std::string>& properties, const std::string& propertyName)
 	{
 		std::map<std::string, std::string>::const_iterator i;
@@ -161,35 +168,34 @@ private:
 		return getProperty(properties, propertyName) == "true";
 	}
 
-	glm::vec4 getPropertyAsColor(const std::map<std::string, std::string>& properties, const std::string& propertyName)
+	glm::vec4 getPropertyAsVec4(const std::map<std::string, std::string>& properties, const std::string& propertyName)
 	{
-		std::string vectorStr = getProperty(properties, propertyName);
-		std::vector<std::string> vectorComponentsStrs;
-		StringUtils::tokenize(vectorStr, ",", vectorComponentsStrs);
-
-		if (vectorComponentsStrs.size() != 4)
-		{
-			std::string errorMessage = "config: invalid color property ('" + propertyName + "')";
-			throw std::exception(errorMessage.c_str());
-		}
-
-		std::string vectorComponentStr = vectorComponentsStrs[0];
-		StringUtils::replace(vectorComponentStr, "(", "");
-		StringUtils::trim(vectorComponentStr);
-		float x = (float)atof(vectorComponentStr.c_str());
-		vectorComponentStr = vectorComponentsStrs[1];
-		StringUtils::trim(vectorComponentStr);
-		float y = (float)atof(vectorComponentStr.c_str());
-		vectorComponentStr = vectorComponentsStrs[2];
-		StringUtils::trim(vectorComponentStr);
-		float z = (float)atof(vectorComponentStr.c_str());
-		vectorComponentStr = vectorComponentsStrs[3];
-		StringUtils::replace(vectorComponentStr, ")", "");
-		StringUtils::trim(vectorComponentStr);
-		float w = (float)atof(vectorComponentStr.c_str());
-		return glm::vec4(x, y, z, w);
+		return ParseUtils::parseVec4(getProperty(properties, propertyName));
 	}
 
+	void getPropertyAsVec3Vector(const std::map<std::string, std::string>& properties, const std::string& propertyName, std::vector<glm::vec3>& vec3Vector)
+	{
+		std::string propertyValue = getProperty(properties, propertyName);
+
+		std::smatch matches;
+		while (std::regex_search(propertyValue, matches, std::regex(VEC3_VECTOR_PATTERN)))
+		{
+			std::string vec3Str = matches[0].str();
+
+			int pos = vec3Str.find_last_of(')');
+
+			// FIXME: checking invariants
+			if (pos == std::string::npos)
+			{
+				throw std::exception("pos == string::npos");
+			}
+			vec3Str = vec3Str.substr(0, pos + 1);
+
+			vec3Vector.push_back(ParseUtils::parseVec3(vec3Str));
+
+			propertyValue = matches.suffix().str();
+		}
+	}
 
 };
 

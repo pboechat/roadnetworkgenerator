@@ -9,6 +9,7 @@
 #include <AABB.h>
 #include <glm/glm.hpp>
 
+#include <vector>
 #include <exception>
 
 namespace RoadNetworkGraph
@@ -33,6 +34,7 @@ public:
 		return vertices[vertexIndex].position;
 	}
 
+	VertexIndex createVertex(const glm::vec3& position);
 	bool addRoad(VertexIndex source, const glm::vec3& direction, VertexIndex& newVertex, glm::vec3& end, float& length, bool highway);
 	void removeDeadEndRoads();
 	void traverse(GraphTraversal& traversal) const;
@@ -47,7 +49,6 @@ private:
 	EdgeReference* queryResult;
 
 	void connect(VertexIndex source, VertexIndex destination, bool highway);
-	VertexIndex createVertex(const glm::vec3& position);
 	void splitEdge(EdgeIndex edge, VertexIndex vertex);
 	unsigned int getValency(const Vertex& vertex) const;
 
