@@ -70,7 +70,7 @@ int main(int argc, char** argv)
 		application.setInputController(inputController);
 
 		AABB worldBounds(0.0f, 0.0f, (float)configuration.worldWidth, (float)configuration.worldHeight);
-		RoadNetworkGraph::Graph roadNetwork(worldBounds, (float)configuration.quadtreeCellArea, (float)configuration.quadtreeQueryRadius);
+		RoadNetworkGraph::Graph roadNetwork(worldBounds, configuration.quadtreeDepth, (float)configuration.quadtreeQueryRadius);
 		RoadNetworkGenerator roadNetworkGenerator;
 #ifdef _DEBUG
 		Timer timer;

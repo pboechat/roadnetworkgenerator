@@ -7,6 +7,9 @@
 #include <QuadTree.h>
 
 #include <AABB.h>
+#include <Line.h>
+#include <Circle.h>
+
 #include <glm/glm.hpp>
 
 #include <vector>
@@ -20,7 +23,7 @@ struct GraphTraversal;
 class Graph
 {
 public:
-	Graph(const AABB& worldBounds, float quadtreeCellArea, float snapRadius);
+	Graph(const AABB& worldBounds, unsigned int quadtreeDepth, float snapRadius);
 	~Graph();
 
 	inline glm::vec3 getPosition(VertexIndex vertexIndex) const
@@ -46,7 +49,7 @@ private:
 	VertexIndex lastVertexIndex;
 	EdgeIndex lastEdgeIndex;
 	float snapRadius;
-	QuadTree::EdgeReference* queryResult;
+	EdgeIndex* queryResult;
 
 	enum IntersectionType
 	{
@@ -58,8 +61,8 @@ private:
 
 	void connect(VertexIndex source, VertexIndex destination, bool highway);
 	void splitEdge(EdgeIndex edge, VertexIndex vertex);
-	bool checkIntersection(glm::vec3 start, glm::vec3 end, VertexIndex source, EdgeIndex& edgeIndex, glm::vec3& intersection, IntersectionType& intersectionType);
-	bool checkSnapping(glm::vec3 end, VertexIndex source, glm::vec3& snapping, EdgeIndex &edgeIndex);
+	bool checkIntersection(const Line& newEdgeLine, unsigned int querySize, VertexIndex source, EdgeIndex& edgeIndex, glm::vec3& closestIntersection, IntersectionType& intersectionType) const;
+	bool checkSnapping(const Circle& snapCircle, unsigned int querySize, VertexIndex source, glm::vec3& closestSnapping, EdgeIndex& edgeIndex) const;
 	unsigned int getValency(const Vertex& vertex) const;
 
 };

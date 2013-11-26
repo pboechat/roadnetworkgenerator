@@ -2,13 +2,19 @@
 #define QUADREE_H
 
 #include <Defines.h>
-
+#include <Quadrant.h>
+#include <QuadrantEdges.h>
 #include <Line.h>
 #include <Circle.h>
 #include <AABB.h>
 #include <glm/glm.hpp>
 
+#include <cmath>
 #include <exception>
+
+#ifndef max
+#define max(a, b) (((a) > (b)) ? (a) : (b))
+#endif
 
 namespace RoadNetworkGraph
 {
@@ -16,246 +22,192 @@ namespace RoadNetworkGraph
 class QuadTree
 {
 public:
-	struct EdgeReference
+	QuadTree(const AABB& worldBounds, unsigned int maxDepth) : worldBounds(worldBounds), maxDepth(maxDepth), lastQuadrantIndex(0), quadrants(0), quadrantsEdges(0)
 	{
-		EdgeIndex index;
-		VertexIndex source;
-		VertexIndex destination;
-		glm::vec3 sourcePosition;
-		glm::vec3 destinationPosition;
-
-		EdgeReference& operator = (const EdgeReference& other)
+		unsigned int numLeafQuadrants;
+		numQuadrants = 0;
+		for (unsigned int i = 0; i < maxDepth; i++)
 		{
-			index = other.index;
-			source = other.source;
-			destination = other.destination;
-			sourcePosition = other.sourcePosition;
-			destinationPosition = other.destinationPosition;
-			return *this;
+			unsigned int numQuadrantsDepth = (unsigned int)pow(4.0f, (int)i);
+			if (i == maxDepth - 1)
+			{
+				numLeafQuadrants = numQuadrantsDepth;
+			}
+			numQuadrants += numQuadrantsDepth;
 		}
 
-	};
+		quadrants = new Quadrant[numQuadrants];
+		quadrantsEdges = new QuadrantEdges[numLeafQuadrants];
 
-	QuadTree(const AABB& bounds, float cellArea) : bounds(bounds), cellArea(cellArea), lastEdgeReferenceIndex(0), northWest(0), northEast(0), southWest(0), southEast(0) {}
-	~QuadTree()
-	{
-		if (northWest != 0)
-		{
-			delete northWest;
-		}
+		glm::vec3 quadrantSize = worldBounds.getExtents();
 
-		if (northEast != 0)
+		QuadrantIndex quadrantIndex = 0;
+		QuadrantEdgesIndex quadrantEdgesIndex = 0;
+		for (unsigned int depth = 0, side = 1; depth < maxDepth; depth++, side *= 2)
 		{
-			delete northEast;
-		}
+			bool leaf = (depth == maxDepth - 1);
+			for (unsigned int y = 0; y < side; y++)
+			{
+				float boundsY = worldBounds.min.y + ((float)y * quadrantSize.y);
+				for (unsigned int x = 0; x < side; x++, quadrantIndex++)
+				{
+					Quadrant& quadrant = quadrants[quadrantIndex];
+					quadrant.depth = depth;
+					quadrant.bounds = AABB(worldBounds.min.x + ((float)x * quadrantSize.x), boundsY, quadrantSize.x, quadrantSize.y);
 
-		if (southWest != 0)
-		{
-			delete southWest;
-		}
-
-		if (southEast != 0)
-		{
-			delete southEast;
+					if (leaf)
+					{
+						quadrant.edges = quadrantEdgesIndex++;
+					}
+				}
+			}
+			quadrantSize = quadrantSize / 2.0f;
 		}
 	}
 
-	bool insert(EdgeIndex index, VertexIndex source, VertexIndex destination, const glm::vec3& sourcePosition, const glm::vec3& destinationPosition)
+	~QuadTree() 
 	{
-		if (!bounds.isIntersected(Line(sourcePosition, destinationPosition)))
+		if (quadrants != 0)
 		{
-			return false;
+			delete[] quadrants;
 		}
 
-		if (bounds.getArea() <= cellArea)
+		if (quadrantsEdges != 0)
 		{
-			addEdgeReference(index, source, destination, sourcePosition, destinationPosition);
-			return true;
+			delete[] quadrantsEdges;
 		}
-
-		if (northWest == 0)
-		{
-			subdivide();
-		}
-
-		if (northWest->insert(index, source, destination, sourcePosition, destinationPosition))
-		{
-			return true;
-		}
-
-		if (northEast->insert(index, source, destination, sourcePosition, destinationPosition))
-		{
-			return true;
-		}
-
-		if (southWest->insert(index, source, destination, sourcePosition, destinationPosition))
-		{
-			return true;
-		}
-
-		if (southEast->insert(index, source, destination, sourcePosition, destinationPosition))
-		{
-			return true;
-		}
-
-		// FIXME: should never happen!
-		throw std::exception("couldn't insert point");
 	}
 
-	void subdivide()
+	void query(const AABB& region, EdgeIndex* queryResult, unsigned int& size, unsigned int offset = 0) const
 	{
-		float halfWidth = bounds.getExtents().x / 2.0f;
-		float halfHeight = bounds.getExtents().y / 2.0f;
-		northWest = new QuadTree(AABB(bounds.min.x, bounds.min.y + halfHeight, halfWidth, halfHeight), cellArea);
-		northEast = new QuadTree(AABB(bounds.min.x + halfWidth, bounds.min.y + halfHeight, halfWidth, halfHeight), cellArea);
-		southWest = new QuadTree(AABB(bounds.min.x, bounds.min.y, halfWidth, halfHeight), cellArea);
-		southEast = new QuadTree(AABB(bounds.min.x + halfWidth, bounds.min.y, halfWidth, halfHeight), cellArea);
-	}
-
-	void query(const AABB& aabb, EdgeReference* edgeReferences, unsigned int& size, unsigned int offset = 0) const
-	{
+		// TODO: optimize
 		size = 0;
-		query_(aabb, edgeReferences, size, offset);
+		for (unsigned int i = 0; i < numQuadrants; i++)
+		{
+			Quadrant& quadrant = quadrants[i];
+
+			if (quadrant.depth != maxDepth - 1)
+			{
+				continue;
+			}
+
+			if (region.intersects(quadrant.bounds))
+			{
+				QuadrantEdges& quadrantEdges = quadrantsEdges[quadrant.edges];
+				
+				for (unsigned int i = 0; i < quadrantEdges.lastEdgeIndex; i++)
+				{
+					queryResult[size++] = quadrantEdges.edges[i];
+
+					// FIXME: checking invariants
+					if (size >= MAX_RESULTS_PER_QUERY)
+					{
+						throw std::exception("size >= MAX_RESULTS_PER_QUERY");
+					}
+				}
+			}
+		}
 	}
 
-	void query(const Circle& circle, EdgeReference* edgeReferences, unsigned int& size, unsigned int offset = 0) const
+	void query(const Circle& circle, EdgeIndex* queryResult, unsigned int& size, unsigned int offset = 0) const
 	{
-		size = 0;
-		query_(circle, edgeReferences, size, offset);
+		// TODO: optimize
+		size = offset;
+		for (unsigned int i = 0; i < numQuadrants; i++)
+		{
+			Quadrant& quadrant = quadrants[i];
+
+			if (quadrant.depth != maxDepth - 1)
+			{
+				continue;
+			}
+
+			if (quadrant.bounds.intersects(circle))
+			{
+				QuadrantEdges& quadrantEdges = quadrantsEdges[quadrant.edges];
+
+				for (unsigned int i = 0; i < quadrantEdges.lastEdgeIndex; i++)
+				{
+					queryResult[size++] = quadrantEdges.edges[i];
+
+					// FIXME: checking invariants
+					if (size >= MAX_RESULTS_PER_QUERY)
+					{
+						throw std::exception("size >= MAX_RESULTS_PER_QUERY");
+					}
+				}
+			}
+		}
 	}
 
-	inline bool isLeaf() const
+	void insert(EdgeIndex edgeIndex, const Line& edgeLine)
 	{
-		return northEast == 0;
-	}
+		// TODO: optimize
+		for (unsigned int i = 0; i < numQuadrants; i++)
+		{
+			Quadrant& quadrant = quadrants[i];
 
-	inline bool notEmpty() const
-	{
-		return lastEdgeReferenceIndex > 0;
-	}
+			if (quadrant.depth != maxDepth - 1)
+			{
+				continue;
+			}
 
-	inline const QuadTree* getNorthWest() const
-	{
-		return northWest;
-	}
+			if (quadrant.bounds.isIntersected(edgeLine))
+			{
+				QuadrantEdges& quadrantEdges = quadrantsEdges[quadrant.edges];
+				quadrantEdges.edges[quadrantEdges.lastEdgeIndex++] = edgeIndex;
+			}
+		}
 
-	inline const QuadTree* getNorthEast() const
-	{
-		return northEast;
-	}
+		/*unsigned int collisionMask = 0xffffffff;
+		QuadrantIndex index = 0;
+		for (unsigned int depth = 0, numQuadrantsDepth = 1; depth < maxDepth; depth++, numQuadrantsDepth *= 4)
+		{
+			unsigned int newCollisionMask = 0;
 
-	inline const QuadTree* getSouthWest() const
-	{
-		return southWest;
-	}
+			unsigned int shift = max(1, 32 / numQuadrantsDepth);
+			unsigned int maskSide = max(1, numQuadrantsDepth / 32);
+			unsigned int maskArea = maskSide * maskSide;
+			unsigned int baseMask = ((unsigned long long)1 << shift) - 1;
 
-	inline const QuadTree* getSouthEast() const
-	{
-		return southEast;
-	}
+			unsigned int depthIndex = 0;
+			unsigned int maskIndex = 0;
+			while (depthIndex < numQuadrantsDepth)
+			{
+				unsigned int quadrantMask = baseMask << (shift * maskIndex++);
+				if ((collisionMask & quadrantMask) != 0)
+				{
+					for (unsigned int y = 0; y < maskSide; y++)
+					{
+						for (unsigned int x = 0; x < maskSide; x++)
+						{
+							Quadrant& quadrant = quadrants[index++];
+							if (quadrant.bounds.isIntersected(edgeLine))
+							{
+								quadrant.edges[quadrant.lastEdgeIndex++] = edgeIndex;
+								newCollisionMask |= quadrantMask;
+							}
+						}
+					}
+				}
+				else
+				{
+					index += maskArea;
+				}
+				depthIndex += maskArea;
+			}
 
-	inline const AABB& getBounds() const
-	{
-		return bounds;
+			collisionMask = newCollisionMask;
+		}*/
 	}
 
 private:
-	AABB bounds;
-	float cellArea;
-	QuadTree* northWest;
-	QuadTree* northEast;
-	QuadTree* southWest;
-	QuadTree* southEast;
-	EdgeReference edgeReferences[MAX_VERTICES];
-	unsigned int lastEdgeReferenceIndex;
-
-	void query_(const AABB& aabb, EdgeReference* edgeReferences, unsigned int& size, unsigned int offset) const
-	{
-		if ((offset + size) == MAX_EDGE_REFERENCIES_PER_QUERY)
-		{
-			return;
-		}
-
-		if (!bounds.intersects(aabb))
-		{
-			return;
-		}
-
-		if (isLeaf())
-		{
-			for (unsigned int i = 0; i < lastEdgeReferenceIndex; i++)
-			{
-				const EdgeReference& edgeReference = this->edgeReferences[i];
-				Line edgeLine(edgeReference.sourcePosition, edgeReference.destinationPosition);
-				if (aabb.isIntersected(edgeLine))
-				{
-					edgeReferences[offset + size] = edgeReference;
-					size++;
-					if ((offset + size) == MAX_EDGE_REFERENCIES_PER_QUERY)
-					{
-						return;
-					}
-				}
-			}
-		}
-
-		else
-		{
-			northWest->query_(aabb, edgeReferences, size, offset);
-			northEast->query_(aabb, edgeReferences, size, offset);
-			southWest->query_(aabb, edgeReferences, size, offset);
-			southEast->query_(aabb, edgeReferences, size, offset);
-		}
-	}
-
-	void query_(const Circle& circle, EdgeReference* edgeReferences, unsigned int& size, unsigned int offset) const
-	{
-		if ((offset + size) == MAX_EDGE_REFERENCIES_PER_QUERY)
-		{
-			return;
-		}
-
-		if (!bounds.intersects(circle))
-		{
-			return;
-		}
-
-		if (isLeaf())
-		{
-			for (unsigned int i = 0; i < lastEdgeReferenceIndex; i++)
-			{
-				const EdgeReference& edgeReference = this->edgeReferences[i];
-				Line edgeLine(edgeReference.sourcePosition, edgeReference.destinationPosition);
-				if (edgeLine.intersects(circle))
-				{
-					edgeReferences[offset + size] = edgeReference;
-					size++;
-					if ((offset + size) == MAX_EDGE_REFERENCIES_PER_QUERY)
-					{
-						return;
-					}
-				}
-			}
-		}
-
-		else
-		{
-			northWest->query_(circle, edgeReferences, size, offset);
-			northEast->query_(circle, edgeReferences, size, offset);
-			southWest->query_(circle, edgeReferences, size, offset);
-			southEast->query_(circle, edgeReferences, size, offset);
-		}
-	}
-
-	void addEdgeReference(EdgeIndex edgeIndex, VertexIndex source, VertexIndex destination, const glm::vec3& sourcePosition, const glm::vec3& destinationPosition) 
-	{
-		EdgeReference& edgeReference = edgeReferences[lastEdgeReferenceIndex++];
-		edgeReference.index = edgeIndex;
-		edgeReference.source = source;
-		edgeReference.destination = destination;
-		edgeReference.sourcePosition = sourcePosition;
-		edgeReference.destinationPosition = destinationPosition;
-	}
+	AABB worldBounds;
+	unsigned int maxDepth;
+	Quadrant* quadrants;
+	QuadrantEdges* quadrantsEdges;
+	QuadrantIndex lastQuadrantIndex;
+	unsigned int numQuadrants;
 
 };
 

@@ -17,7 +17,11 @@ struct AABB
 		min = glm::vec3(x, y, 0);
 		max = glm::vec3(x + width, y + height, 0);
 	}
-
+	AABB(const Line& line)
+	{
+		min = glm::min(line.start, line.end);
+		max = glm::max(line.start, line.end);
+	}
 	~AABB() {}
 
 	inline glm::vec3 getExtents() const

@@ -4,18 +4,18 @@
 namespace RoadNetworkGraph
 {
 
-Graph::Graph(const AABB& worldBounds, float quadtreeCellArea, float snapRadius) : 
+Graph::Graph(const AABB& worldBounds, unsigned int quadtreeDepth, float snapRadius) : 
 		vertices(0),
 		edges(0),
 		queryResult(0),
-		quadtree(worldBounds, quadtreeCellArea), 
+		quadtree(worldBounds, quadtreeDepth), 
 		lastVertexIndex(0),
 		lastEdgeIndex(0),
 		snapRadius(snapRadius)
 {
 	vertices = new Vertex[MAX_VERTICES];
 	edges = new Edge[MAX_EDGES];
-	queryResult = new QuadTree::EdgeReference[MAX_EDGE_REFERENCIES_PER_QUERY];
+	queryResult = new EdgeIndex[MAX_RESULTS_PER_QUERY];
 }
 
 Graph::~Graph() 
@@ -41,11 +41,17 @@ bool Graph::addRoad(VertexIndex source, const glm::vec3& direction, VertexIndex&
 	glm::vec3 start = getPosition(source);
 	end = start + direction;
 
+	Line newEdgeLine(start, end);
+	AABB newEdgeBounds(newEdgeLine);
+
+	unsigned int querySize;
+	quadtree.query(newEdgeBounds, queryResult, querySize);
+
 	EdgeIndex edgeIndex;
 	glm::vec3 snapping;
 	glm::vec3 intersection;
 	IntersectionType intersectionType;
-	if (checkIntersection(start, end, source, edgeIndex, intersection, intersectionType))
+	if (checkIntersection(newEdgeLine, querySize, source, edgeIndex, intersection, intersectionType))
 	{
 		end = intersection;
 		length = glm::distance(start, end);
@@ -74,38 +80,44 @@ bool Graph::addRoad(VertexIndex source, const glm::vec3& direction, VertexIndex&
 		return true;
 	}
 
-	else if (checkSnapping(end, source, snapping, edgeIndex))
+	else
 	{
-		end = snapping;
-		length = glm::distance(start, end);
+		Circle snapCircle(end, snapRadius);
+		quadtree.query(snapCircle, queryResult, querySize);
+		
+		if (checkSnapping(snapCircle, querySize, source, snapping, edgeIndex))
+		{
+			end = snapping;
+			length = glm::distance(start, end);
 
-		newVertex = createVertex(end);
-		splitEdge(edgeIndex, newVertex);
-		connect(source, newVertex, highway);
+			newVertex = createVertex(end);
+			splitEdge(edgeIndex, newVertex);
+			connect(source, newVertex, highway);
 
-		return true;
-	} 
+			return true;
+		} 
 
-	else 
-	{
-		length = glm::distance(start, end);
-		newVertex = createVertex(end);
-		connect(source, newVertex, highway);
+		else 
+		{
+			length = glm::distance(start, end);
+			newVertex = createVertex(end);
+			connect(source, newVertex, highway);
 
-		return false;
+			return false;
+		}
 	}
 }
 
-bool Graph::checkIntersection(glm::vec3 start, glm::vec3 end, VertexIndex source, EdgeIndex& edgeIndex, glm::vec3& closestIntersection, IntersectionType& intersectionType) 
+bool Graph::checkIntersection(const Line& newEdgeLine, unsigned int querySize, VertexIndex source, EdgeIndex& edgeIndex, glm::vec3& closestIntersection, IntersectionType& intersectionType) const
 {
-	// check for intersections
 	float closestIntersectionDistance = MAX_DISTANCE;
 	edgeIndex = -1;
 	intersectionType = NONE;
-	Line newEdgeLine(start, end);
-	for (int i = 0; i < lastEdgeIndex; i++)
+
+	for (unsigned int i = 0; i < querySize; i++)
 	{
-		Edge& edge = edges[i];
+		EdgeIndex queryEdgeIndex = queryResult[i];
+		Edge& edge = edges[queryEdgeIndex];
 
 		// avoid intersecting parent or sibling
 		if (edge.destination == source || edge.source == source)
@@ -120,7 +132,7 @@ bool Graph::checkIntersection(glm::vec3 start, glm::vec3 end, VertexIndex source
 		Line edgeLine(sourceVertex.position, destinationVertex.position);
 		if (newEdgeLine.intersects(edgeLine, intersection)) 
 		{
-			float distance = glm::distance(start, intersection);
+			float distance = glm::distance(newEdgeLine.start, intersection);
 
 			if (distance < closestIntersectionDistance)
 			{
@@ -139,7 +151,7 @@ bool Graph::checkIntersection(glm::vec3 start, glm::vec3 end, VertexIndex source
 
 				closestIntersectionDistance = distance;
 				closestIntersection = intersection;
-				edgeIndex = i;
+				edgeIndex = queryEdgeIndex;
 			}
 		}
 	}
@@ -147,14 +159,16 @@ bool Graph::checkIntersection(glm::vec3 start, glm::vec3 end, VertexIndex source
 	return (intersectionType != NONE);
 }
 
-bool Graph::checkSnapping(glm::vec3 end, VertexIndex source, glm::vec3& closestSnapping, EdgeIndex& edgeIndex)
+bool Graph::checkSnapping(const Circle& snapCircle, unsigned int querySize, VertexIndex source, glm::vec3& closestSnapping, EdgeIndex& edgeIndex) const
 {
+	edgeIndex = -1;
 	float closestSnappingDistance = MAX_DISTANCE;
-	Circle snapCircle(end, snapRadius);
+	
 	// check for snapping
-	for (int i = 0; i < lastEdgeIndex; i++)
+	for (unsigned int i = 0; i < querySize; i++)
 	{
-		Edge& edge = edges[i];
+		EdgeIndex queryEdgeIndex = queryResult[i];
+		Edge& edge = edges[queryEdgeIndex];
 
 		// avoid snapping parent or sibling
 		if (edge.destination == source || edge.source == source)
@@ -177,18 +191,18 @@ bool Graph::checkSnapping(glm::vec3 end, VertexIndex source, glm::vec3& closestS
 
 			if (intersectionMask == 1)
 			{
-				distance = glm::distance(end, intersection1);
+				distance = glm::distance(snapCircle.center, intersection1);
 				snapping = intersection1;
 			}
 			else if (intersectionMask == 2)
 			{
-				distance = glm::distance(end, intersection2);
+				distance = glm::distance(snapCircle.center, intersection2);
 				snapping = intersection2;
 			}
 			else if (intersectionMask == 3)
 			{
-				float distance1 = glm::distance(end, intersection1);
-				float distance2 = glm::distance(end, intersection2);
+				float distance1 = glm::distance(snapCircle.center, intersection1);
+				float distance2 = glm::distance(snapCircle.center, intersection2);
 				if (distance1 <= distance2)
 				{
 					snapping = intersection1;
@@ -210,7 +224,7 @@ bool Graph::checkSnapping(glm::vec3 end, VertexIndex source, glm::vec3& closestS
 			{
 				closestSnappingDistance = distance;
 				closestSnapping = snapping;
-				edgeIndex = i;
+				edgeIndex = queryEdgeIndex;
 			}
 		}
 	}
@@ -342,7 +356,7 @@ void Graph::connect(VertexIndex source, VertexIndex destination, bool highway)
 	}
 	destinationVertex.ins[destinationVertex.lastInIndex++] = lastEdgeIndex;
 
-	quadtree.insert(lastEdgeIndex, source, destination, sourceVertex.position, destinationVertex.position);
+	quadtree.insert(lastEdgeIndex, Line(sourceVertex.position, destinationVertex.position));
 
 	lastEdgeIndex++;
 }
@@ -383,7 +397,6 @@ void Graph::splitEdge(EdgeIndex edge, VertexIndex split)
 	}
 
 	Edge& newEdge = edges[lastEdgeIndex];
-
 	newEdge.source = split;
 	newEdge.destination = oldDestination;
 	newEdge.highway = splitEdge.highway;

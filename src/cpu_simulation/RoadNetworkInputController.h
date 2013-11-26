@@ -75,7 +75,7 @@ public:
 			Configuration configuration;
 			configuration.loadFromFile(configurationFile);
 			AABB worldBounds(0.0f, 0.0f, (float)configuration.worldWidth, (float)configuration.worldHeight);
-			RoadNetworkGraph::Graph roadNetwork(worldBounds, (float)configuration.quadtreeCellArea, (float)configuration.quadtreeQueryRadius);
+			RoadNetworkGraph::Graph roadNetwork(worldBounds, configuration.quadtreeDepth, (float)configuration.quadtreeQueryRadius);
 			// regenerate road network graph
 			RoadNetworkGenerator roadNetworkGenerator;
 #ifdef _DEBUG

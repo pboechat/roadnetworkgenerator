@@ -43,7 +43,7 @@ struct Configuration
 	unsigned int minRoadLength;
 	unsigned int samplingArc; // degrees
 	int halfSamplingArc;
-	unsigned int quadtreeCellArea;
+	unsigned int quadtreeDepth;
 	unsigned int quadtreeQueryRadius;
 	ImageMap populationDensityMap;
 	ImageMap waterBodiesMap;
@@ -122,7 +122,7 @@ struct Configuration
 		minRoadLength = getPropertyAsUInt(properties, "min_road_length");
 		samplingArc = getPropertyAsUInt(properties, "sampling_arc");
 		halfSamplingArc = (samplingArc + 1) / 2;
-		quadtreeCellArea = getPropertyAsUInt(properties, "quadtree_cell_area");
+		quadtreeDepth = getPropertyAsUInt(properties, "quadtree_depth");
 		quadtreeQueryRadius = getPropertyAsUInt(properties, "quadtree_query_radius");
 		highwayColor = getPropertyAsVec4(properties, "highway_color");
 		streetColor = getPropertyAsVec4(properties, "street_color");
