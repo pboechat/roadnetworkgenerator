@@ -4,7 +4,7 @@
 #include <Defines.h>
 #include <Vertex.h>
 #include <Edge.h>
-#include <Quadtree.h>
+#include <QuadTree.h>
 
 #include <AABB.h>
 #include <glm/glm.hpp>
@@ -46,10 +46,20 @@ private:
 	VertexIndex lastVertexIndex;
 	EdgeIndex lastEdgeIndex;
 	float snapRadius;
-	EdgeReference* queryResult;
+	QuadTree::EdgeReference* queryResult;
+
+	enum IntersectionType
+	{
+		NONE,
+		SOURCE,
+		DESTINATION,
+		EDGE
+	};
 
 	void connect(VertexIndex source, VertexIndex destination, bool highway);
 	void splitEdge(EdgeIndex edge, VertexIndex vertex);
+	bool checkIntersection(glm::vec3 start, glm::vec3 end, VertexIndex source, EdgeIndex& edgeIndex, glm::vec3& intersection, IntersectionType& intersectionType);
+	bool checkSnapping(glm::vec3 end, VertexIndex source, glm::vec3& snapping, EdgeIndex &edgeIndex);
 	unsigned int getValency(const Vertex& vertex) const;
 
 };

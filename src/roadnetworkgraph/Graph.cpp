@@ -4,14 +4,6 @@
 namespace RoadNetworkGraph
 {
 
-enum IntersectionType
-{
-	NONE,
-	SOURCE,
-	DESTINATION,
-	EDGE
-};
-
 Graph::Graph(const AABB& worldBounds, float quadtreeCellArea, float snapRadius) : 
 		vertices(0),
 		edges(0),
@@ -23,7 +15,7 @@ Graph::Graph(const AABB& worldBounds, float quadtreeCellArea, float snapRadius) 
 {
 	vertices = new Vertex[MAX_VERTICES];
 	edges = new Edge[MAX_EDGES];
-	queryResult = new EdgeReference[MAX_EDGE_REFERENCIES_PER_QUERY];
+	queryResult = new QuadTree::EdgeReference[MAX_EDGE_REFERENCIES_PER_QUERY];
 }
 
 Graph::~Graph() 
@@ -49,11 +41,67 @@ bool Graph::addRoad(VertexIndex source, const glm::vec3& direction, VertexIndex&
 	glm::vec3 start = getPosition(source);
 	end = start + direction;
 
+	EdgeIndex edgeIndex;
+	glm::vec3 snapping;
+	glm::vec3 intersection;
+	IntersectionType intersectionType;
+	if (checkIntersection(start, end, source, edgeIndex, intersection, intersectionType))
+	{
+		end = intersection;
+		length = glm::distance(start, end);
+
+		if (intersectionType == SOURCE)
+		{
+			newVertex = edges[edgeIndex].source;
+		}
+		else if (intersectionType == DESTINATION)
+		{
+			newVertex = edges[edgeIndex].destination;
+		}
+		else if (intersectionType == EDGE)
+		{
+			newVertex = createVertex(end);
+			splitEdge(edgeIndex, newVertex);
+		}
+		else
+		{
+			// FIXME: checking invariants
+			throw std::exception("unknown intersection type");
+		}
+
+		connect(source, newVertex, highway);
+
+		return true;
+	}
+
+	else if (checkSnapping(end, source, snapping, edgeIndex))
+	{
+		end = snapping;
+		length = glm::distance(start, end);
+
+		newVertex = createVertex(end);
+		splitEdge(edgeIndex, newVertex);
+		connect(source, newVertex, highway);
+
+		return true;
+	} 
+
+	else 
+	{
+		length = glm::distance(start, end);
+		newVertex = createVertex(end);
+		connect(source, newVertex, highway);
+
+		return false;
+	}
+}
+
+bool Graph::checkIntersection(glm::vec3 start, glm::vec3 end, VertexIndex source, EdgeIndex& edgeIndex, glm::vec3& closestIntersection, IntersectionType& intersectionType) 
+{
 	// check for intersections
 	float closestIntersectionDistance = MAX_DISTANCE;
-	EdgeIndex intersectedEdgeIndex = -1;
-	glm::vec3 closestIntersection;
-	IntersectionType intersectionType = NONE;
+	edgeIndex = -1;
+	intersectionType = NONE;
 	Line newEdgeLine(start, end);
 	for (int i = 0; i < lastEdgeIndex; i++)
 	{
@@ -91,127 +139,83 @@ bool Graph::addRoad(VertexIndex source, const glm::vec3& direction, VertexIndex&
 
 				closestIntersectionDistance = distance;
 				closestIntersection = intersection;
-				intersectedEdgeIndex = i;
+				edgeIndex = i;
 			}
 		}
 	}
 
-	if (intersectionType != NONE)
+	return (intersectionType != NONE);
+}
+
+bool Graph::checkSnapping(glm::vec3 end, VertexIndex source, glm::vec3& closestSnapping, EdgeIndex& edgeIndex)
+{
+	float closestSnappingDistance = MAX_DISTANCE;
+	Circle snapCircle(end, snapRadius);
+	// check for snapping
+	for (int i = 0; i < lastEdgeIndex; i++)
 	{
-		end = closestIntersection;
-		length = glm::distance(start, end);
+		Edge& edge = edges[i];
 
-		if (intersectionType == SOURCE)
+		// avoid snapping parent or sibling
+		if (edge.destination == source || edge.source == source)
 		{
-			newVertex = edges[intersectedEdgeIndex].source;
-		}
-		else if (intersectionType == DESTINATION)
-		{
-			newVertex = edges[intersectedEdgeIndex].destination;
-		}
-		else if (intersectionType == EDGE)
-		{
-			newVertex = createVertex(end);
-			splitEdge(intersectedEdgeIndex, newVertex);
-		}
-		else
-		{
-			// FIXME: checking invariants
-			throw std::exception("invalid intersection type");
+			continue;
 		}
 
-		connect(source, newVertex, highway);
+		Vertex& sourceVertex = vertices[edge.source];
+		Vertex& destinationVertex = vertices[edge.destination];
 
-		return true;
-	}
-	else
-	{
-		float closestSnappingDistance = MAX_DISTANCE;
-		EdgeIndex snappedEdgeIndex = -1;
-		glm::vec3 closestSnapping;
-		Circle snapCircle(end, snapRadius);
-		// check for snapping
-		for (int i = 0; i < lastEdgeIndex; i++)
+		Line edgeLine(sourceVertex.position, destinationVertex.position);
+
+		glm::vec3 intersection1;
+		glm::vec3 intersection2;
+		glm::vec3 snapping;
+		int intersectionMask = edgeLine.intersects(snapCircle, intersection1, intersection2);
+		if (intersectionMask > 0) 
 		{
-			Edge& edge = edges[i];
+			float distance;
 
-			// avoid snapping parent or sibling
-			if (edge.destination == source || edge.source == source)
+			if (intersectionMask == 1)
 			{
-				continue;
+				distance = glm::distance(end, intersection1);
+				snapping = intersection1;
 			}
-
-			Vertex& sourceVertex = vertices[edge.source];
-			Vertex& destinationVertex = vertices[edge.destination];
-
-			Line edgeLine(sourceVertex.position, destinationVertex.position);
-
-			glm::vec3 intersection1;
-			glm::vec3 intersection2;
-			glm::vec3 snapping;
-			int intersectionMask = edgeLine.intersects(snapCircle, intersection1, intersection2);
-			if (intersectionMask > 0) 
+			else if (intersectionMask == 2)
 			{
-				float distance;
-
-				if (intersectionMask == 1)
+				distance = glm::distance(end, intersection2);
+				snapping = intersection2;
+			}
+			else if (intersectionMask == 3)
+			{
+				float distance1 = glm::distance(end, intersection1);
+				float distance2 = glm::distance(end, intersection2);
+				if (distance1 <= distance2)
 				{
-					distance = glm::distance(end, intersection1);
 					snapping = intersection1;
-				}
-				else if (intersectionMask == 2)
+					distance = distance1;
+				} 
+				else 
 				{
-					distance = glm::distance(end, intersection2);
 					snapping = intersection2;
-				}
-				else if (intersectionMask == 3)
-				{
-					float distance1 = glm::distance(end, intersection1);
-					float distance2 = glm::distance(end, intersection2);
-					if (distance1 <= distance2)
-					{
-						snapping = intersection1;
-						distance = distance1;
-					} 
-					else 
-					{
-						snapping = intersection2;
-						distance = distance2;
-					}
-				}
-				else
-				{
-					// FIXME: checking invariants
-					throw std::exception("invalid intersection mask: " + intersectionMask);
-				}
-
-				if (distance < closestSnappingDistance)
-				{
-					closestSnappingDistance = distance;
-					closestSnapping = snapping;
-					snappedEdgeIndex = i;
+					distance = distance2;
 				}
 			}
+			else
+			{
+				// FIXME: checking invariants
+				throw std::exception("invalid intersection mask");
+			}
+
+			if (distance < closestSnappingDistance)
+			{
+				closestSnappingDistance = distance;
+				closestSnapping = snapping;
+				edgeIndex = i;
+			}
 		}
-
-		if (snappedEdgeIndex != -1)
-		{
-			end = closestSnapping;
-			length = glm::distance(start, end);
-
-			newVertex = createVertex(end);
-			splitEdge(snappedEdgeIndex, newVertex);
-			connect(source, newVertex, highway);
-
-			return true;
-		}
-
-		length = glm::distance(start, end);
-		newVertex = createVertex(end);
-		connect(source, newVertex, highway);
-
-		return false;
 	}
+
+	return (edgeIndex != -1);
 }
 
 unsigned int Graph::getValency(const Vertex& vertex) const
@@ -338,8 +342,7 @@ void Graph::connect(VertexIndex source, VertexIndex destination, bool highway)
 	}
 	destinationVertex.ins[destinationVertex.lastInIndex++] = lastEdgeIndex;
 
-	// REENABLE:
-	//quadtree.insert(lastEdgeIndex, source, destination, sourceVertex.position, destinationVertex.position);
+	quadtree.insert(lastEdgeIndex, source, destination, sourceVertex.position, destinationVertex.position);
 
 	lastEdgeIndex++;
 }

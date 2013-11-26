@@ -10,6 +10,7 @@
 #include <RoadNetworkGenerator.h>
 #include <AABB.h>
 #include <Graph.h>
+#include <Timer.h>
 
 #include <glm/glm.hpp>
 
@@ -69,16 +70,20 @@ int main(int argc, char** argv)
 		application.setInputController(inputController);
 
 		AABB worldBounds(0.0f, 0.0f, (float)configuration.worldWidth, (float)configuration.worldHeight);
-
 		RoadNetworkGraph::Graph roadNetwork(worldBounds, (float)configuration.quadtreeCellArea, (float)configuration.quadtreeQueryRadius);
-
 		RoadNetworkGenerator roadNetworkGenerator;
+#ifdef _DEBUG
+		Timer timer;
+		timer.start();
+#endif
 		roadNetworkGenerator.execute(configuration, roadNetwork);
+#ifdef _DEBUG
+		timer.end();
+		std::cout << "generation time: " << timer.elapsedTime() << " seconds" << std::endl;
+#endif
 
 		roadNetworkGeometry.build(roadNetwork, configuration.highwayColor, configuration.streetColor);
-
 		renderer.setWorldBounds(worldBounds);
-
 		camera.centerOnTarget(worldBounds);
 
 		return application.run();

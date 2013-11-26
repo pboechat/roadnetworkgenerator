@@ -21,6 +21,12 @@ struct Line
 		return *this;
 	}
 
+	bool intersects(const Line& line) const
+	{
+		glm::vec3 intersection;
+		return intersects(line, intersection);
+	}
+
 	bool intersects(const Line& line, glm::vec3& intersection) const
 	{
 		float x1 = start.x;

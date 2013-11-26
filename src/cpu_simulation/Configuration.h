@@ -95,14 +95,13 @@ struct Configuration
 		}
 
 		seed = getPropertyAsInt(properties, "seed");
-
 		if (seed < 0)
 		{
 			seed = (unsigned int)time(0);
-#ifdef _DEBUG
-			std::cout << "seed: " << seed << std::endl;
-#endif
 		}
+#ifdef _DEBUG
+		std::cout << "seed: " << seed << std::endl;
+#endif
 		srand(seed);
 
 		worldWidth = getPropertyAsUInt(properties, "world_width");

@@ -94,7 +94,12 @@ struct AABB
 
 	bool isIntersected(const Line& line) const
 	{
-		// TODO:
+		glm::vec3 a(min.x, max.y, 0.0f);
+		glm::vec3 b(max.x, max.y, 0.0f);
+		glm::vec3 c(max.x, min.y, 0.0f);
+		glm::vec3 d(min.x, min.y, 0.0f);
+
+		return contains(line.start) || contains(line.end) || Line(a, b).intersects(line) || Line(b, c).intersects(line) || Line(c, d).intersects(line) || Line(d, a).intersects(line);
 	}
 
 };

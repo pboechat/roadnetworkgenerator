@@ -13,29 +13,29 @@
 namespace RoadNetworkGraph
 {
 
-struct EdgeReference
-{
-	EdgeIndex index;
-	VertexIndex source;
-	VertexIndex destination;
-	glm::vec3 sourcePosition;
-	glm::vec3 destinationPosition;
-
-	EdgeReference& operator = (const EdgeReference& other)
-	{
-		index = other.index;
-		source = other.source;
-		destination = other.destination;
-		sourcePosition = other.sourcePosition;
-		destinationPosition = other.destinationPosition;
-		return *this;
-	}
-
-};
-
 class QuadTree
 {
 public:
+	struct EdgeReference
+	{
+		EdgeIndex index;
+		VertexIndex source;
+		VertexIndex destination;
+		glm::vec3 sourcePosition;
+		glm::vec3 destinationPosition;
+
+		EdgeReference& operator = (const EdgeReference& other)
+		{
+			index = other.index;
+			source = other.source;
+			destination = other.destination;
+			sourcePosition = other.sourcePosition;
+			destinationPosition = other.destinationPosition;
+			return *this;
+		}
+
+	};
+
 	QuadTree(const AABB& bounds, float cellArea) : bounds(bounds), cellArea(cellArea), lastEdgeReferenceIndex(0), northWest(0), northEast(0), southWest(0), southEast(0) {}
 	~QuadTree()
 	{
@@ -112,11 +112,11 @@ public:
 		southEast = new QuadTree(AABB(bounds.min.x + halfWidth, bounds.min.y, halfWidth, halfHeight), cellArea);
 	}
 
-	/*void query(const AABB& aabb, EdgeReference* edgeReferences, unsigned int& size, unsigned int offset = 0) const
+	void query(const AABB& aabb, EdgeReference* edgeReferences, unsigned int& size, unsigned int offset = 0) const
 	{
 		size = 0;
 		query_(aabb, edgeReferences, size, offset);
-	}*/
+	}
 
 	void query(const Circle& circle, EdgeReference* edgeReferences, unsigned int& size, unsigned int offset = 0) const
 	{
@@ -169,7 +169,7 @@ private:
 	EdgeReference edgeReferences[MAX_VERTICES];
 	unsigned int lastEdgeReferenceIndex;
 
-	/*void query_(const AABB& aabb, EdgeReference* edgeReferences, unsigned int& size, unsigned int offset) const
+	void query_(const AABB& aabb, EdgeReference* edgeReferences, unsigned int& size, unsigned int offset) const
 	{
 		if ((offset + size) == MAX_EDGE_REFERENCIES_PER_QUERY)
 		{
@@ -186,8 +186,8 @@ private:
 			for (unsigned int i = 0; i < lastEdgeReferenceIndex; i++)
 			{
 				const EdgeReference& edgeReference = this->edgeReferences[i];
-
-				if (Line(edgeReference.sourcePosition, edgeReference.destinationPosition).intersects(aabb))
+				Line edgeLine(edgeReference.sourcePosition, edgeReference.destinationPosition);
+				if (aabb.isIntersected(edgeLine))
 				{
 					edgeReferences[offset + size] = edgeReference;
 					size++;
@@ -206,7 +206,7 @@ private:
 			southWest->query_(aabb, edgeReferences, size, offset);
 			southEast->query_(aabb, edgeReferences, size, offset);
 		}
-	}*/
+	}
 
 	void query_(const Circle& circle, EdgeReference* edgeReferences, unsigned int& size, unsigned int offset) const
 	{
@@ -225,8 +225,8 @@ private:
 			for (unsigned int i = 0; i < lastEdgeReferenceIndex; i++)
 			{
 				const EdgeReference& edgeReference = this->edgeReferences[i];
-
-				if (Line(edgeReference.sourcePosition, edgeReference.destinationPosition).intersects(circle))
+				Line edgeLine(edgeReference.sourcePosition, edgeReference.destinationPosition);
+				if (edgeLine.intersects(circle))
 				{
 					edgeReferences[offset + size] = edgeReference;
 					size++;

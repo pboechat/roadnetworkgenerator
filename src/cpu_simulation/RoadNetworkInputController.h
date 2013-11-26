@@ -9,14 +9,17 @@
 #include <RoadNetworkGenerator.h>
 #include <RoadNetworkGeometry.h>
 #include <AABB.h>
+#include <Timer.h>
 
 #include <string>
+
+#ifdef _DEBUG
 #include <iostream>
+#endif
 
 class RoadNetworkInputController : public InputController
 {
 public:
-	////////////////////////////////////////////////////////////////////////////////////////////////////
 	RoadNetworkInputController(Camera& camera, 
 							   const std::string& configurationFile,
 							   SceneRenderer& sceneRenderer,
@@ -29,7 +32,6 @@ public:
 	{
 	}
 
-	////////////////////////////////////////////////////////////////////////////////////////////////////
 	virtual void update(double deltaTime)
 	{
 		if (getKey(VK_ESCAPE))
@@ -72,27 +74,32 @@ public:
 			// reload configuration
 			Configuration configuration;
 			configuration.loadFromFile(configurationFile);
-
 			AABB worldBounds(0.0f, 0.0f, (float)configuration.worldWidth, (float)configuration.worldHeight);
 			RoadNetworkGraph::Graph roadNetwork(worldBounds, (float)configuration.quadtreeCellArea, (float)configuration.quadtreeQueryRadius);
-
 			// regenerate road network graph
 			RoadNetworkGenerator roadNetworkGenerator;
+#ifdef _DEBUG
+			Timer timer;
+			timer.start();
+#endif
 			roadNetworkGenerator.execute(configuration, roadNetwork);
-
+#ifdef _DEBUG
+			timer.end();
+			std::cout << "generation time: " << timer.elapsedTime() << " seconds" << std::endl;
+#endif
 			// rebuild road network geometry
 			roadNetworkGeometry.build(roadNetwork, configuration.highwayColor, configuration.streetColor);
-
 			sceneRenderer.setWorldBounds(worldBounds);
-
 			camera.centerOnTarget(worldBounds);
 		}
 
+#ifdef _DEBUG
 		if (getLeftMouseButtonDown())
 		{
 			glm::vec2 mousePosition = getMousePosition();
 			std::cout << "(" << mousePosition.x << ", " << (camera.getScreenHeight() - mousePosition.y) << ")" << std::endl;
 		}
+#endif
 	}
 
 private:

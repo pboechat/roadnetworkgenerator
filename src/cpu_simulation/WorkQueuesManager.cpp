@@ -8,6 +8,16 @@
 #define max(a, b) (((a) > (b)) ? (a) : (b))
 #endif
 
+#define _executeWorkItem(type) \
+	if (executeWorkItem<type>(currentWorkQueue, manager, graph, configuration)) \
+	{ \
+		workItemsCounter--; \
+	} \
+	else \
+	{ \
+		break; \
+	}
+
 WorkQueuesManager::WorkQueuesManager(unsigned int numberOfWorkQueues, unsigned int workQueueCapacity) : workQueues(0), workQueuesCounter(numberOfWorkQueues), workItemsCounter(0)
 {
 	unsigned int itemSize = max(sizeof(EvaluateBranch), max(sizeof(EvaluateRoad), sizeof(InstantiateRoad)));
@@ -43,47 +53,23 @@ void WorkQueuesManager::executeAllWorkItems(WorkQueuesManager& manager, RoadNetw
 		{
 			if (currentWorkQueueIndex == INSTANTIATE_ROAD_CODE) 
 			{
-				if (executeWorkItem<InstantiateRoad>(currentWorkQueue, manager, graph, configuration))
-				{
-					workItemsCounter--;
-				}
-				
-				else
-				{
-					break;
-				}
+				_executeWorkItem(InstantiateRoad);
 			}
 
 			else if (currentWorkQueueIndex == EVALUATE_BRANCH_CODE)
 			{
-				if (executeWorkItem<EvaluateBranch>(currentWorkQueue, manager, graph, configuration))
-				{
-					workItemsCounter--;
-				}
-
-				else
-				{
-					break;
-				}
+				_executeWorkItem(EvaluateBranch);
 			}
 
 			else if (currentWorkQueueIndex == EVALUATE_ROAD_CODE)
 			{
-				if (executeWorkItem<EvaluateRoad>(currentWorkQueue, manager, graph, configuration))
-				{
-					workItemsCounter--;
-				}
-
-				else
-				{
-					break;
-				}
+				_executeWorkItem(EvaluateRoad);
 			}
 
 			else
 			{
 				// FIXME: checking invariants
-				throw std::exception("invalid current work queue");
+				throw std::exception("invalid work queue");
 			}
 		}
 		while (true);
