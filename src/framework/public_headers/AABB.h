@@ -87,12 +87,11 @@ struct AABB
 
 	bool intersects(const AABB& aabb) const
 	{
-		glm::vec3 c1 = getCenter();
-		glm::vec3 c2 = aabb.getCenter();
-		glm::vec3 e1 = getExtents();
-		glm::vec3 e2 = aabb.getExtents();
-		if (glm::abs(c1.x - c2.x) > e1.x + e2.x) return false;
-		if (glm::abs(c1.y - c2.y) > e1.y + e2.y) return false;
+		if (aabb.max.x < min.x || aabb.min.x > max.x || aabb.max.y < min.y || aabb.min.y > max.y)
+		{
+			return false;
+		}
+
 		return true;
 	}
 

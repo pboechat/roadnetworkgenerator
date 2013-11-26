@@ -22,25 +22,24 @@ namespace RoadNetworkGraph
 class QuadTree
 {
 public:
-	QuadTree(const AABB& worldBounds, unsigned int maxDepth) : worldBounds(worldBounds), maxDepth(maxDepth), lastQuadrantIndex(0), quadrants(0), quadrantsEdges(0)
+	QuadTree(const AABB& worldBounds, unsigned int maxDepth) : worldBounds(worldBounds), maxDepth(maxDepth), lastQuadrantIndex(0), quadrants(0), quadrantsEdges(0), totalNumQuadrants(0)
 	{
 		unsigned int numLeafQuadrants;
-		numQuadrants = 0;
+		totalNumQuadrants = 0;
 		for (unsigned int i = 0; i < maxDepth; i++)
 		{
-			unsigned int numQuadrantsDepth = (unsigned int)pow(4.0f, (int)i);
+			unsigned int numQuadrants = (unsigned int)pow(4.0f, (int)i);
 			if (i == maxDepth - 1)
 			{
-				numLeafQuadrants = numQuadrantsDepth;
+				numLeafQuadrants = numQuadrants;
 			}
-			numQuadrants += numQuadrantsDepth;
+			totalNumQuadrants += numQuadrants;
 		}
 
-		quadrants = new Quadrant[numQuadrants];
+		quadrants = new Quadrant[totalNumQuadrants];
 		quadrantsEdges = new QuadrantEdges[numLeafQuadrants];
 
 		glm::vec3 quadrantSize = worldBounds.getExtents();
-
 		QuadrantIndex quadrantIndex = 0;
 		QuadrantEdgesIndex quadrantEdgesIndex = 0;
 		for (unsigned int depth = 0, side = 1; depth < maxDepth; depth++, side *= 2)
@@ -57,6 +56,7 @@ public:
 
 					if (leaf)
 					{
+						// assign edge storage reference (quadrant edges) only to leaf quadrants
 						quadrant.edges = quadrantEdgesIndex++;
 					}
 				}
@@ -82,7 +82,7 @@ public:
 	{
 		// TODO: optimize
 		size = 0;
-		for (unsigned int i = 0; i < numQuadrants; i++)
+		for (unsigned int i = 0; i < totalNumQuadrants; i++)
 		{
 			Quadrant& quadrant = quadrants[i];
 
@@ -99,10 +99,10 @@ public:
 				{
 					queryResult[size++] = quadrantEdges.edges[i];
 
-					// FIXME: checking invariants
+					// FIXME: checking boundaries
 					if (size >= MAX_RESULTS_PER_QUERY)
 					{
-						throw std::exception("size >= MAX_RESULTS_PER_QUERY");
+						throw std::exception("max. results per query overflow");
 					}
 				}
 			}
@@ -113,7 +113,7 @@ public:
 	{
 		// TODO: optimize
 		size = offset;
-		for (unsigned int i = 0; i < numQuadrants; i++)
+		for (unsigned int i = 0; i < totalNumQuadrants; i++)
 		{
 			Quadrant& quadrant = quadrants[i];
 
@@ -130,12 +130,70 @@ public:
 				{
 					queryResult[size++] = quadrantEdges.edges[i];
 
-					// FIXME: checking invariants
+					// FIXME: checking boundaries
 					if (size >= MAX_RESULTS_PER_QUERY)
 					{
-						throw std::exception("size >= MAX_RESULTS_PER_QUERY");
+						throw std::exception("max. results per query overflow");
 					}
 				}
+			}
+		}
+	}
+
+	void removeEdge(QuadrantEdges* quadrantEdges, EdgeIndex edgeIndex)
+	{
+		// FIXME: checking invariants
+		if (quadrantEdges == 0)
+		{
+			throw std::exception("quadrantEdges == 0");
+		}
+
+		// FIXME: checking boundaries
+		if (quadrantEdges->lastEdgeIndex == 0)
+		{
+			throw std::exception("tried to remove edge from an empty quadrant");
+		}
+
+		unsigned int i = 0;
+		bool found = false;
+		for (unsigned int j = 0; j < quadrantEdges->lastEdgeIndex; j++)
+		{
+			if (quadrantEdges->edges[j] == edgeIndex)
+			{
+				i = j;
+				found = true;
+				break;
+			}
+		}
+
+		// FIXME: checking invariants
+		if (!found)
+		{
+			throw std::exception("!found");
+		}
+
+		for (unsigned int j = i; j < quadrantEdges->lastEdgeIndex - 1; j++)
+		{
+			quadrantEdges->edges[j] = quadrantEdges->edges[j + 1];
+		}
+		quadrantEdges->lastEdgeIndex--;
+	}
+
+	void remove(EdgeIndex edgeIndex, const Line& edgeLine)
+	{
+		// TODO: optimize
+		for (unsigned int i = 0; i < totalNumQuadrants; i++)
+		{
+			Quadrant& quadrant = quadrants[i];
+
+			if (quadrant.depth != maxDepth - 1)
+			{
+				continue;
+			}
+
+			if (quadrant.bounds.isIntersected(edgeLine))
+			{
+				removeEdge(&quadrantsEdges[quadrant.edges], edgeIndex);
 			}
 		}
 	}
@@ -143,7 +201,7 @@ public:
 	void insert(EdgeIndex edgeIndex, const Line& edgeLine)
 	{
 		// TODO: optimize
-		for (unsigned int i = 0; i < numQuadrants; i++)
+		for (unsigned int i = 0; i < totalNumQuadrants; i++)
 		{
 			Quadrant& quadrant = quadrants[i];
 
@@ -155,6 +213,13 @@ public:
 			if (quadrant.bounds.isIntersected(edgeLine))
 			{
 				QuadrantEdges& quadrantEdges = quadrantsEdges[quadrant.edges];
+
+				// FIXME: checking boundaries
+				if (quadrantEdges.lastEdgeIndex == MAX_EDGES_PER_QUADRANT)
+				{
+					throw std::exception("max. edges per quadrant overflow");
+				}
+
 				quadrantEdges.edges[quadrantEdges.lastEdgeIndex++] = edgeIndex;
 			}
 		}
@@ -207,7 +272,7 @@ private:
 	Quadrant* quadrants;
 	QuadrantEdges* quadrantsEdges;
 	QuadrantIndex lastQuadrantIndex;
-	unsigned int numQuadrants;
+	unsigned int totalNumQuadrants;
 
 };
 

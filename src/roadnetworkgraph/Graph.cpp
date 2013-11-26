@@ -327,10 +327,10 @@ void Graph::traverse(GraphTraversal& traversal) const
 
 void Graph::connect(VertexIndex source, VertexIndex destination, bool highway)
 {
-	// FIXME: checking invariants
+	// FIXME: checking boundaries
 	if (lastEdgeIndex == MAX_EDGES)
 	{
-		throw std::exception("max edges overflow");
+		throw std::exception("max. edges overflow");
 	}
 
 	Edge& newEdge = edges[lastEdgeIndex];
@@ -342,17 +342,17 @@ void Graph::connect(VertexIndex source, VertexIndex destination, bool highway)
 	Vertex& sourceVertex = vertices[source];
 	Vertex& destinationVertex = vertices[destination];
 
-	// FIXME: checking invariants
+	// FIXME: checking boundaries
 	if (sourceVertex.lastOutIndex == MAX_VERTEX_CONNECTIONS)
 	{
-		throw std::exception("vertex outs connections overflow");
+		throw std::exception("max. vertex connections (out) overflow");
 	}
 	sourceVertex.outs[sourceVertex.lastOutIndex++] = lastEdgeIndex;
 
-	// FIXME: checking invariants
+	// FIXME: checking boundaries
 	if (destinationVertex.lastInIndex == MAX_VERTEX_CONNECTIONS)
 	{
-		throw std::exception("vertex ins connections overflow");
+		throw std::exception("max. vertex connections (in) overflow");
 	}
 	destinationVertex.ins[destinationVertex.lastInIndex++] = lastEdgeIndex;
 
@@ -363,10 +363,10 @@ void Graph::connect(VertexIndex source, VertexIndex destination, bool highway)
 
 VertexIndex Graph::createVertex(const glm::vec3& position)
 {
-	// FIXME: checking invariants
+	// FIXME: checking boundaries
 	if (lastVertexIndex == MAX_VERTICES)
 	{
-		throw std::exception("max vertices overflow");
+		throw std::exception("max. vertices overflow");
 	}
 
 	Vertex& newVertex = vertices[lastVertexIndex];
@@ -375,45 +375,49 @@ VertexIndex Graph::createVertex(const glm::vec3& position)
 	return lastVertexIndex++;
 }
 
-void Graph::splitEdge(EdgeIndex edge, VertexIndex split)
+void Graph::splitEdge(EdgeIndex edgeIndex, VertexIndex split)
 {
-	Edge& splitEdge = edges[edge];
+	Edge& splitEdge = edges[edgeIndex];
 
 	VertexIndex oldDestination = splitEdge.destination;
 	splitEdge.destination = split;
-	Vertex& sourceVertex = vertices[split];
 
-	// FIXME: checking invariants
-	if (sourceVertex.lastInIndex == MAX_VERTEX_CONNECTIONS)
+	Vertex& sourceVertex = vertices[splitEdge.source];
+	Vertex& destinationVertex = vertices[oldDestination];
+	Vertex& splitVertex = vertices[split];
+
+	quadtree.remove(edgeIndex, Line(sourceVertex.position, destinationVertex.position));
+	quadtree.insert(edgeIndex, Line(sourceVertex.position, splitVertex.position));
+
+	// FIXME: checking boundaries
+	if (splitVertex.lastInIndex == MAX_VERTEX_CONNECTIONS)
 	{
-		throw std::exception("vertex ins connections overflow");
+		throw std::exception("max. vertex connections (in) overflow");
 	}
-	sourceVertex.ins[sourceVertex.lastInIndex++] = edge;
+	splitVertex.ins[splitVertex.lastInIndex++] = edgeIndex;
 	
-	// FIXME: checking invariants
+	// FIXME: checking boundaries
 	if (lastEdgeIndex == MAX_EDGES)
 	{
-		throw std::exception("max edges overflow");
+		throw std::exception("max. edges overflow");
 	}
 
 	Edge& newEdge = edges[lastEdgeIndex];
 	newEdge.source = split;
 	newEdge.destination = oldDestination;
 	newEdge.highway = splitEdge.highway;
-	
-	Vertex& destinationVertex = vertices[oldDestination];
 
-	// FIXME: checking invariants
-	if (sourceVertex.lastOutIndex == MAX_VERTEX_CONNECTIONS)
+	// FIXME: checking boundaries
+	if (splitVertex.lastOutIndex == MAX_VERTEX_CONNECTIONS)
 	{
-		throw std::exception("vertex outs connections overflow");
+		throw std::exception("max. vertex connections (out) overflow");
 	}
-	sourceVertex.outs[sourceVertex.lastOutIndex++] = lastEdgeIndex;
+	splitVertex.outs[splitVertex.lastOutIndex++] = lastEdgeIndex;
 
 	bool found = false;
 	for (unsigned int i = 0; i < destinationVertex.lastInIndex; i++)
 	{
-		if (destinationVertex.ins[i] == edge)
+		if (destinationVertex.ins[i] == edgeIndex)
 		{
 			destinationVertex.ins[i] = lastEdgeIndex;
 			found = true;
@@ -426,6 +430,8 @@ void Graph::splitEdge(EdgeIndex edge, VertexIndex split)
 	{
 		throw std::exception("!found");
 	}
+
+	quadtree.insert(lastEdgeIndex, Line(splitVertex.position, destinationVertex.position));
 	
 	lastEdgeIndex++;
 }
