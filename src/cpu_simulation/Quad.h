@@ -8,16 +8,16 @@
 class Quad : public Geometry
 {
 public:
-	Quad(const glm::vec3& position, float width, float height) : position(position), width(width), height(height)
+	Quad(float x, float y, float width, float height) : x(x), y(y), width(width), height(height)
 	{
 		glGenBuffers(3, buffers);
 		glGenVertexArrays(1, &vao);
 
 		glm::vec4 vertices[4];
-		vertices[0] = glm::vec4(position.x + width, position.y + height, position.z, 1.0f);
-		vertices[1] = glm::vec4(position.x, position.y + height, position.z, 1.0f);
-		vertices[2] = glm::vec4(position.x, position.y, position.z, 1.0f);
-		vertices[3] = glm::vec4(position.x + width, position.y, position.z, 1.0f);
+		vertices[0] = glm::vec4(x + width, y + height, 0.0f, 1.0f);
+		vertices[1] = glm::vec4(x, y + height, 0.0f, 1.0f);
+		vertices[2] = glm::vec4(x, y, 0.0f, 1.0f);
+		vertices[3] = glm::vec4(x + width, y, 0.0f, 1.0f);
 
 		glm::vec2 uvs[4];
 		uvs[0] = glm::vec2(1.0f, 1.0f);
@@ -63,6 +63,26 @@ public:
 		glDeleteVertexArrays(1, &vao);
 	}
 
+	inline float getX() const
+	{
+		return x;
+	}
+
+	inline float getY() const
+	{
+		return y;
+	}
+
+	inline float getWidth() const
+	{
+		return width;
+	}
+
+	inline float getHeight() const
+	{
+		return width;
+	}
+
 	virtual void draw() 
 	{
 		glBindVertexArray(vao);
@@ -73,7 +93,8 @@ public:
 	}
 
 private:
-	glm::vec3 position;
+	float x;
+	float y;
 	float width;
 	float height;
 	unsigned int buffers[3];

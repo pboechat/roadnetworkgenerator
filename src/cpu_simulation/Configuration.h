@@ -19,9 +19,11 @@
 #include <iostream>
 #endif
 
-class Configuration
+#define MAX_SPAWN_POINTS 10
+#define VEC3_VECTOR_PATTERN "(\\([^\\)]+\\)\\,?)"
+
+struct Configuration
 {
-public:
 	int seed;
 	unsigned int worldWidth;
 	unsigned int worldHeight;
@@ -49,7 +51,8 @@ public:
 	glm::vec4 streetColor;
 	glm::vec4 quadtreeColor;
 	bool removeDeadEndRoads;
-	std::vector<glm::vec3> spawnPoints;
+	unsigned int numSpawnPoints;
+	glm::vec3 spawnPoints[MAX_SPAWN_POINTS];
 
 	Configuration() {}
 	~Configuration() {}
@@ -138,12 +141,10 @@ public:
 		waterBodiesMap.setColor1(color1);
 		waterBodiesMap.setColor2(color2);
 		removeDeadEndRoads = getPropertyAsBool(properties, "remove_dead_end_roads");
-		getPropertyAsVec3Vector(properties, "spawn_points", spawnPoints);
+		getPropertyAsVec3Array(properties, "spawn_points", spawnPoints, numSpawnPoints, MAX_SPAWN_POINTS);
 	}
 
 private:
-	static const std::string VEC3_VECTOR_PATTERN;
-
 	static const std::string& getProperty(const std::map<std::string, std::string>& properties, const std::string& propertyName)
 	{
 		std::map<std::string, std::string>::const_iterator i;
@@ -177,13 +178,20 @@ private:
 		return ParseUtils::parseVec4(getProperty(properties, propertyName));
 	}
 
-	void getPropertyAsVec3Vector(const std::map<std::string, std::string>& properties, const std::string& propertyName, std::vector<glm::vec3>& vec3Vector)
+	void getPropertyAsVec3Array(const std::map<std::string, std::string>& properties, const std::string& propertyName, glm::vec3* vec3Array, unsigned int& size, unsigned int maxSize)
 	{
 		std::string propertyValue = getProperty(properties, propertyName);
 
 		std::smatch matches;
+		size = 0;
 		while (std::regex_search(propertyValue, matches, std::regex(VEC3_VECTOR_PATTERN)))
 		{
+			// FIXME: checking invariants
+			if (size >= maxSize)
+			{
+				throw std::exception("i >= maxArraySize");
+			}
+
 			std::string vec3Str = matches[0].str();
 
 			int pos = vec3Str.find_last_of(')');
@@ -195,7 +203,7 @@ private:
 			}
 			vec3Str = vec3Str.substr(0, pos + 1);
 
-			vec3Vector.push_back(ParseUtils::parseVec3(vec3Str));
+			vec3Array[size++] = ParseUtils::parseVec3(vec3Str);
 
 			propertyValue = matches.suffix().str();
 		}

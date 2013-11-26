@@ -108,9 +108,3 @@ void EvaluateRoad::evaluateLocalContraints(const Configuration& configuration, c
 		road.roadAttributes.angle += angleIncrement;
 	}
 }
-
-EvaluateRoad& EvaluateRoad::operator = (const EvaluateRoad& other)
-{
-	road = other.road;
-	return *this;
-}

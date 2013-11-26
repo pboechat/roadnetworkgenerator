@@ -36,9 +36,3 @@ void EvaluateBranch::execute(WorkQueuesManager& manager, RoadNetworkGraph::Graph
 		manager.addWorkItem(EvaluateRoad(Road(0, branch.roadAttributes, branch.ruleAttributes, UNASSIGNED)));
 	}
 }
-
-EvaluateBranch& EvaluateBranch::operator = (const EvaluateBranch& other)
-{
-	branch = other.branch;
-	return *this;
-}

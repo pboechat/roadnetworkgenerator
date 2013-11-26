@@ -207,12 +207,6 @@ void InstantiateRoad::applyAngleDeviation(const Configuration& configuration, Ro
 	roadAttributes.angle += ((rand() % configuration.halfMaxHighwayGoalDeviation) - configuration.halfMaxHighwayGoalDeviation);
 }
 
-InstantiateRoad& InstantiateRoad::operator = (const InstantiateRoad& other)
-{
-	road = other.road;
-	return *this;
-}
-
 void InstantiateRoad::initialize(const Configuration& configuration)
 {
 	populationDensities = new unsigned char[configuration.samplingArc];

@@ -15,7 +15,7 @@
 #include <glm/glm.hpp>
 
 #define NUM_WORK_QUEUES 3
-#define WORK_QUEUE_CAPACITY 100000
+#define WORK_QUEUE_CAPACITY 10000
 
 class RoadNetworkGenerator
 {
@@ -28,7 +28,7 @@ public:
 		WorkQueuesManager* frontBuffer = &buffer1;
 		WorkQueuesManager* backBuffer = &buffer2;
 
-		for (unsigned int i = 0; i < configuration.spawnPoints.size(); i++)
+		for (unsigned int i = 0; i < configuration.numSpawnPoints; i++)
 		{
 			glm::vec3 spawnPoint = configuration.spawnPoints[i];
 

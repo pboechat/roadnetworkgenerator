@@ -13,7 +13,6 @@ struct EvaluateRoad : public Procedure
 
 	virtual unsigned int getCode() const;
 	virtual void execute(WorkQueuesManager& manager, RoadNetworkGraph::Graph& graph, const Configuration& configuration);
-	EvaluateRoad& operator = (const EvaluateRoad& other);
 
 private:
 	Road road;

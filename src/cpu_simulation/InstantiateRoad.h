@@ -15,7 +15,6 @@ struct InstantiateRoad : public Procedure
 
 	virtual unsigned int getCode() const;
 	virtual void execute(WorkQueuesManager& manager, RoadNetworkGraph::Graph& graph, const Configuration& configuration);
-	InstantiateRoad& operator = (const InstantiateRoad& other);
 
 	// TODO: improve design
 	static void initialize(const Configuration& configuration);

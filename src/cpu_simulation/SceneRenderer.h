@@ -58,7 +58,21 @@ public:
 	void setWorldBounds(const AABB& worldBounds)
 	{
 		glm::vec3 size = worldBounds.getExtents();
-		worldSizedQuad = new Quad(worldBounds.min, size.x, size.y);
+		if (worldSizedQuad != 0)
+		{
+			
+			if (worldSizedQuad->getX() != worldBounds.min.x || worldSizedQuad->getY() != worldBounds.min.y ||
+				worldSizedQuad->getWidth() != size.x || worldSizedQuad->getHeight() != size.y)
+			{
+				delete worldSizedQuad;
+			}
+			else
+			{
+				return;
+			}
+		}
+
+		worldSizedQuad = new Quad(worldBounds.min.x, worldBounds.min.y, size.x, size.y);
 	}
 
 	virtual void render(double deltaTime)

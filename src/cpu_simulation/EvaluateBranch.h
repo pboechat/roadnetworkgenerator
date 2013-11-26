@@ -13,7 +13,6 @@ struct EvaluateBranch : public Procedure
 
 	virtual unsigned int getCode() const;
 	virtual void execute(WorkQueuesManager& manager, RoadNetworkGraph::Graph& graph, const Configuration& configuration);
-	EvaluateBranch& operator = (const EvaluateBranch& other);
 
 private:
 	Branch branch;

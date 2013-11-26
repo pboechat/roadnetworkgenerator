@@ -23,14 +23,6 @@ struct Road
 	Road() {}
 	Road(int delay, const RoadAttributes& roadAttributes, const RuleAttributes& ruleAttributes, RoadState state) : delay(delay), roadAttributes(roadAttributes), ruleAttributes(ruleAttributes), state(state) {}
 
-	Road& operator = (const Road& other)
-	{
-		delay = other.delay;
-		roadAttributes = other.roadAttributes;
-		ruleAttributes = other.ruleAttributes;
-		state = other.state;
-		return *this;
-	}
 };
 
 #endif
