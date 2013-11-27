@@ -1,8 +1,6 @@
 #ifndef ROADNETWORKGRAPH_GRAPH_H
 #define ROADNETWORKGRAPH_GRAPH_H
 
-#define USE_QUADTREE
-
 #include <Defines.h>
 #include <Vertex.h>
 #include <Edge.h>

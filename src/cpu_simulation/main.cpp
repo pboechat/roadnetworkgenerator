@@ -34,6 +34,48 @@ void printUsage()
 	std::cerr << "Command line options: <width> <height> <configuration file>";
 }
 
+void generateAndDisplay(const std::string& configurationFile, SceneRenderer& renderer, RoadNetworkGeometry& geometry, Camera& camera)
+{
+	Configuration configuration;
+	configuration.loadFromFile(configurationFile);
+
+	AABB worldBounds(0.0f, 0.0f, (float)configuration.worldWidth, (float)configuration.worldHeight);
+	renderer.setUpImageMaps(worldBounds, configuration.populationDensityMap, configuration.waterBodiesMap);
+#ifdef USE_QUADTREE
+	RoadNetworkGraph::Graph graph(worldBounds, configuration.quadtreeDepth, configuration.snapRadius, configuration.maxVertices, configuration.maxEdges, configuration.maxResultsPerQuery);
+#else
+	RoadNetworkGraph::Graph graph(worldBounds, configuration.snapRadius, configuration.maxVertices, configuration.maxEdges, configuration.maxResultsPerQuery);
+#endif
+	RoadNetworkGenerator generator;
+#ifdef _DEBUG
+	Timer timer;
+	timer.start();
+#endif
+	generator.execute(configuration, graph);
+#ifdef _DEBUG
+	timer.end();
+	std::cout << "*****************************" << std::endl;
+	std::cout << "	STATISTICS:				   " << std::endl;
+	std::cout << "*****************************" << std::endl;
+	std::cout << "generation time: " << timer.elapsedTime() << " seconds" << std::endl;
+	std::cout << "memory (allocated/in use): " << toMegabytes(graph.getAllocatedMemory()) << " MB / " << toMegabytes(graph.getMemoryInUse()) << " MB" << std::endl;
+	std::cout << "vertices (allocated/in use): " << graph.getAllocatedVertices() << " / " << graph.getVerticesInUse() << std::endl;
+	std::cout << "edges (allocated/in use): " << graph.getAllocatedEdges() << " / " << graph.getEdgesInUse() << std::endl;
+	std::cout << "vertex in connections (max./max. in use): " << graph.getMaxVertexInConnections() << " / " << graph.getMaxVertexInConnectionsInUse() << std::endl;
+	std::cout << "vertex out connections (max./max. in use): " << graph.getMaxVertexOutConnections() << " / " << graph.getMaxVertexOutConnectionsInUse() << std::endl;
+	std::cout << "avg. vertex in connections in use: " << graph.getAverageVertexInConnectionsInUse() << std::endl;
+	std::cout << "avg. vertex out connections in use: " << graph.getAverageVertexOutConnectionsInUse() << std::endl;
+#ifdef USE_QUADTREE
+	std::cout << "edges per quadrant (max./max. in use): " << graph.getMaxEdgesPerQuadrant() << " / " << graph.getMaxEdgesPerQuadrantInUse() << std::endl;
+#endif
+	std::cout << "num. collision checks: " << graph.getNumCollisionChecks() << std::endl;
+	std::cout  << std::endl << std::endl;
+#endif
+
+	geometry.build(graph, configuration.highwayColor, configuration.streetColor);
+	camera.centerOnTarget(worldBounds);
+}
+
 int main(int argc, char** argv)
 {
 	try
@@ -54,61 +96,23 @@ int main(int argc, char** argv)
 			exit(EXIT_FAILURE);
 		}
 
-		Configuration configuration;
-		configuration.loadFromFile(configurationFile);
-
-		Application application("Road Network Generator (CPU) - " + configuration.name, screenWidth, screenHeight);
+		Application application("Road Network Generator (CPU)", screenWidth, screenHeight);
 
 		if (gl3wInit())
 		{
 			throw std::runtime_error("gl3wInit() failed");
 		}
 
-		RoadNetworkGeometry geometry;
-
 		Camera camera(screenWidth, screenHeight, FOVY_DEG, ZNEAR, ZFAR);
-		SceneRenderer renderer(camera, geometry, configuration.populationDensityMap, configuration.waterBodiesMap);
-		RoadNetworkInputController inputController(camera, configurationFile, renderer, geometry);
+		RoadNetworkGeometry geometry;
+		SceneRenderer renderer(camera, geometry);
+		RoadNetworkInputController inputController(camera, configurationFile, renderer, geometry, generateAndDisplay);
 
 		application.setCamera(camera);
 		application.setRenderer(renderer);
 		application.setInputController(inputController);
 
-		AABB worldBounds(0.0f, 0.0f, (float)configuration.worldWidth, (float)configuration.worldHeight);
-#ifdef USE_QUADTREE
-		RoadNetworkGraph::Graph graph(worldBounds, configuration.quadtreeDepth, configuration.snapRadius, configuration.maxVertices, configuration.maxEdges, configuration.maxResultsPerQuery);
-#else
-		RoadNetworkGraph::Graph graph(worldBounds, configuration.snapRadius, configuration.maxVertices, configuration.maxEdges, configuration.maxResultsPerQuery);
-#endif
-		RoadNetworkGenerator generator;
-#ifdef _DEBUG
-		Timer timer;
-		timer.start();
-#endif
-		generator.execute(configuration, graph);
-#ifdef _DEBUG
-		timer.end();
-		std::cout << "*****************************" << std::endl;
-		std::cout << "	STATISTICS:				   " << std::endl;
-		std::cout << "*****************************" << std::endl;
-		std::cout << "generation time: " << timer.elapsedTime() << " seconds" << std::endl;
-		std::cout << "memory (allocated/in use): " << toMegabytes(graph.getAllocatedMemory()) << " MB / " << toMegabytes(graph.getMemoryInUse()) << " MB" << std::endl;
-		std::cout << "vertices (allocated/in use): " << graph.getAllocatedVertices() << " / " << graph.getVerticesInUse() << std::endl;
-		std::cout << "edges (allocated/in use): " << graph.getAllocatedEdges() << " / " << graph.getEdgesInUse() << std::endl;
-		std::cout << "vertex in connections (max./max. in use): " << graph.getMaxVertexInConnections() << " / " << graph.getMaxVertexInConnectionsInUse() << std::endl;
-		std::cout << "vertex out connections (max./max. in use): " << graph.getMaxVertexOutConnections() << " / " << graph.getMaxVertexOutConnectionsInUse() << std::endl;
-		std::cout << "avg. vertex in connections in use: " << graph.getAverageVertexInConnectionsInUse() << std::endl;
-		std::cout << "avg. vertex out connections in use: " << graph.getAverageVertexOutConnectionsInUse() << std::endl;
-#ifdef USE_QUADTREE
-		std::cout << "edges per quadrant (max./max. in use): " << graph.getMaxEdgesPerQuadrant() << " / " << graph.getMaxEdgesPerQuadrantInUse() << std::endl;
-#endif
-		std::cout << "num. collision checks: " << graph.getNumCollisionChecks() << std::endl;
-		std::cout  << std::endl << std::endl;
-#endif
-
-		geometry.build(graph, configuration.highwayColor, configuration.streetColor);
-		renderer.setWorldBounds(worldBounds);
-		camera.centerOnTarget(worldBounds);
+		generateAndDisplay(configurationFile, renderer, geometry, camera);
 
 		return application.run();
 	}

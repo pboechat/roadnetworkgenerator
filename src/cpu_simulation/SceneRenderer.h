@@ -25,7 +25,7 @@ struct ImageMapShadingData
 class SceneRenderer : public Renderer
 {
 public:
-	SceneRenderer(Camera& camera, RoadNetworkGeometry& roadNetworkGeometry, const ImageMap& populationDensityMap, const ImageMap& waterBodiesMap) :
+	SceneRenderer(Camera& camera, RoadNetworkGeometry& roadNetworkGeometry) :
 		Renderer(camera),
 		solidShader("../../../../../shaders/solid.vs.glsl", "../../../../../shaders/solid.fs.glsl"),
 		imageMapShader("../../../../../shaders/imageMap.vs.glsl", "../../../../../shaders/imageMap.fs.glsl"),
@@ -37,8 +37,6 @@ public:
 		glPointSize(3.0f);
 		glEnable(GL_CULL_FACE);
 		glCullFace(GL_BACK);
-		createImageMapShadingData(populationDensityMap);
-		createImageMapShadingData(waterBodiesMap);
 	}
 
 	~SceneRenderer()
@@ -48,24 +46,24 @@ public:
 			delete worldSizedQuad;
 		}
 
-		for (unsigned int i = 0; i < imageMaps.size(); i++)
-		{
-			delete imageMaps[i].texture;
-		}
-		imageMaps.clear();
+		destroyImageMaps();
 	}
 
-	void setWorldBounds(const AABB& worldBounds)
+	void setUpImageMaps(const AABB& worldBounds, const ImageMap& populationDensityMap, const ImageMap& waterBodiesMap)
 	{
+		destroyImageMaps();
+		createImageMapShadingData(populationDensityMap);
+		createImageMapShadingData(waterBodiesMap);
 		glm::vec3 size = worldBounds.getExtents();
+
 		if (worldSizedQuad != 0)
 		{
-			
 			if (worldSizedQuad->getX() != worldBounds.min.x || worldSizedQuad->getY() != worldBounds.min.y ||
-				worldSizedQuad->getWidth() != size.x || worldSizedQuad->getHeight() != size.y)
+					worldSizedQuad->getWidth() != size.x || worldSizedQuad->getHeight() != size.y)
 			{
 				delete worldSizedQuad;
 			}
+
 			else
 			{
 				return;
@@ -79,6 +77,7 @@ public:
 	{
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		glm::mat4 viewProjection = camera.getProjectionMatrix() * camera.getViewMatrix();
+
 		if (worldSizedQuad != 0)
 		{
 			// render image maps
@@ -101,6 +100,7 @@ public:
 			glDisable(GL_BLEND);
 			glDepthMask(GL_TRUE);
 		}
+
 		// render road network
 		solidShader.bind();
 		solidShader.setMat4("uViewProjection", viewProjection);
@@ -122,6 +122,16 @@ private:
 		shadingData.color1 = imageMap.getColor1();
 		shadingData.color2 = imageMap.getColor2();
 		imageMaps.push_back(shadingData);
+	}
+
+	void destroyImageMaps()
+	{
+		for (unsigned int i = 0; i < imageMaps.size(); i++)
+		{
+			delete imageMaps[i].texture;
+		}
+
+		imageMaps.clear();
 	}
 
 };

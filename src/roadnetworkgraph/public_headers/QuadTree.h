@@ -12,69 +12,45 @@
 #include <cmath>
 #include <exception>
 
-#ifndef max
-#define max(a, b) (((a) > (b)) ? (a) : (b))
-#endif
-
 namespace RoadNetworkGraph
 {
 
 class QuadTree
 {
 public:
-	QuadTree(const AABB& worldBounds, unsigned int maxDepth, unsigned int maxResultsPerQuery) : 
-		worldBounds(worldBounds), 
-		maxDepth(maxDepth), 
-		quadrants(0), 
-		quadrantsEdges(0), 
-		totalNumQuadrants(0), 
+	QuadTree(const AABB& worldBounds, unsigned int maxDepth, unsigned int maxResultsPerQuery) :
+		worldBounds(worldBounds),
+		maxDepth(maxDepth),
+		quadrants(0),
+		quadrantsEdges(0),
+		totalNumQuadrants(0),
 		numLeafQuadrants(0),
-		maxResultsPerQuery(maxResultsPerQuery)
+		maxResultsPerQuery(maxResultsPerQuery),
+		lastQuadrantEdgesIndex(0)
 #ifdef _DEBUG
-		,numCollisionChecks(0)
+		, numCollisionChecks(0)
 #endif
 	{
 		totalNumQuadrants = 0;
+
 		for (unsigned int i = 0; i < maxDepth; i++)
 		{
 			unsigned int numQuadrants = (unsigned int)pow(4.0f, (int)i);
+
 			if (i == maxDepth - 1)
 			{
 				numLeafQuadrants = numQuadrants;
 			}
+
 			totalNumQuadrants += numQuadrants;
 		}
 
 		quadrants = new Quadrant[totalNumQuadrants];
 		quadrantsEdges = new QuadrantEdges[numLeafQuadrants];
-
-		glm::vec3 quadrantSize = worldBounds.getExtents();
-		QuadrantIndex quadrantIndex = 0;
-		QuadrantEdgesIndex quadrantEdgesIndex = 0;
-		for (unsigned int depth = 0, side = 1; depth < maxDepth; depth++, side *= 2)
-		{
-			bool leaf = (depth == maxDepth - 1);
-			for (unsigned int y = 0; y < side; y++)
-			{
-				float boundsY = worldBounds.min.y + ((float)y * quadrantSize.y);
-				for (unsigned int x = 0; x < side; x++, quadrantIndex++)
-				{
-					Quadrant& quadrant = quadrants[quadrantIndex];
-					quadrant.depth = depth;
-					quadrant.bounds = AABB(worldBounds.min.x + ((float)x * quadrantSize.x), boundsY, quadrantSize.x, quadrantSize.y);
-
-					if (leaf)
-					{
-						// assign edge storage reference (quadrant edges) only to leaf quadrants
-						quadrant.edges = quadrantEdgesIndex++;
-					}
-				}
-			}
-			quadrantSize = quadrantSize / 2.0f;
-		}
+		initializeQuadrant(worldBounds);
 	}
 
-	~QuadTree() 
+	~QuadTree()
 	{
 		if (quadrants != 0)
 		{
@@ -87,55 +63,189 @@ public:
 		}
 	}
 
-	void query(const AABB& region, EdgeIndex* queryResult, unsigned int& size, unsigned int offset = 0)
+	template<typename T>
+	void query(const T& shape, EdgeIndex* queryResult, unsigned int& size, unsigned int offset = 0)
 	{
-		// TODO: optimize
-		size = 0;
-		for (unsigned int i = 0; i < totalNumQuadrants; i++)
+		size = offset;
+		query(shape, queryResult, size, 0, 0, 1);
+	}
+
+	void remove(EdgeIndex edgeIndex, const Line& edgeLine, unsigned int index = 0, unsigned int offset = 0, unsigned int levelWidth = 1)
+	{
+		Quadrant& quadrant = quadrants[offset + index];
+
+		if (quadrant.bounds.isIntersected(edgeLine))
 		{
-			Quadrant& quadrant = quadrants[i];
-
-			if (quadrant.depth != maxDepth - 1)
+			if (quadrant.depth == maxDepth - 1)
 			{
-				continue;
-			}
-
-			if (region.intersects(quadrant.bounds))
-			{
-				QuadrantEdges& quadrantEdges = quadrantsEdges[quadrant.edges];
-				
-				for (unsigned int i = 0; i < quadrantEdges.lastEdgeIndex; i++)
+				// FIXME: checking invariants
+				if (quadrant.edges == -1)
 				{
-					queryResult[size++] = quadrantEdges.edges[i];
-
-					// FIXME: checking boundaries
-					if (size >= maxResultsPerQuery)
-					{
-						throw std::exception("max. results per query overflow");
-					}
+					throw std::exception("quadrant.edges == -1");
 				}
+
+				removeEdge(&quadrantsEdges[quadrant.edges], edgeIndex);
 			}
+
+			else
+			{
+				unsigned int baseIndex = (index * 4);
+				unsigned int newOffset = offset + levelWidth;
+				unsigned int newLevelWidth = levelWidth * 4;
+				insert(edgeIndex, edgeLine, baseIndex, newOffset, newLevelWidth);
+				insert(edgeIndex, edgeLine, baseIndex + 1, newOffset, newLevelWidth);
+				insert(edgeIndex, edgeLine, baseIndex + 2, newOffset, newLevelWidth);
+				insert(edgeIndex, edgeLine, baseIndex + 3, newOffset, newLevelWidth);
+			}
+		}
+
 #ifdef _DEBUG
-			numCollisionChecks++;
+		numCollisionChecks++;
 #endif
+	}
+
+	void insert(EdgeIndex edgeIndex, const Line& edgeLine, unsigned int index = 0, unsigned int offset = 0, unsigned int levelWidth = 1)
+	{
+		Quadrant& quadrant = quadrants[offset + index];
+
+		if (quadrant.bounds.isIntersected(edgeLine))
+		{
+			if (quadrant.depth == maxDepth - 1)
+			{
+				// FIXME: checking invariants
+				if (quadrant.edges == -1)
+				{
+					throw std::exception("quadrant.edges == -1");
+				}
+
+				QuadrantEdges& quadrantEdges = quadrantsEdges[quadrant.edges];
+
+				// FIXME: checking boundaries
+				if (quadrantEdges.lastEdgeIndex == MAX_EDGES_PER_QUADRANT)
+				{
+					throw std::exception("max. edges per quadrant overflow");
+				}
+
+				quadrantEdges.edges[quadrantEdges.lastEdgeIndex++] = edgeIndex;
+			}
+
+			else
+			{
+				unsigned int baseIndex = (index * 4);
+				unsigned int newOffset = offset + levelWidth;
+				unsigned int newLevelWidth = levelWidth * 4;
+				insert(edgeIndex, edgeLine, baseIndex, newOffset, newLevelWidth);
+				insert(edgeIndex, edgeLine, baseIndex + 1, newOffset, newLevelWidth);
+				insert(edgeIndex, edgeLine, baseIndex + 2, newOffset, newLevelWidth);
+				insert(edgeIndex, edgeLine, baseIndex + 3, newOffset, newLevelWidth);
+			}
+		}
+
+#ifdef _DEBUG
+		numCollisionChecks++;
+#endif
+	}
+
+#ifdef _DEBUG
+	unsigned int getAllocatedMemory() const
+	{
+		unsigned int quadrantsBufferMemory = totalNumQuadrants * sizeof(Quadrant);
+		unsigned int quadrantsEdgesBufferMemory = numLeafQuadrants * sizeof(QuadrantEdges);
+		return (quadrantsBufferMemory + quadrantsEdgesBufferMemory);
+	}
+
+	unsigned int getMemoryInUse() const
+	{
+		unsigned int quadrantsBufferMemoryInUse = totalNumQuadrants * sizeof(Quadrant);
+		unsigned int quadrantsEdgesBufferMemoryInUse = 0;
+
+		for (unsigned int i = 0; i < numLeafQuadrants; i++)
+		{
+			QuadrantEdges& quadrantEdges = quadrantsEdges[i];
+			quadrantsEdgesBufferMemoryInUse += sizeof(EdgeIndex) * quadrantEdges.lastEdgeIndex + sizeof(unsigned int);
+		}
+
+		return (quadrantsBufferMemoryInUse + quadrantsEdgesBufferMemoryInUse);
+	}
+
+	unsigned long getNumCollisionChecks() const
+	{
+		return numCollisionChecks;
+	}
+
+	unsigned int getMaxEdgesPerQuadrantInUse() const
+	{
+		unsigned int maxEdgesPerQuadrantInUse = 0;
+
+		for (unsigned int i = 0; i < numLeafQuadrants; i++)
+		{
+			if (quadrantsEdges[i].lastEdgeIndex > maxEdgesPerQuadrantInUse)
+			{
+				maxEdgesPerQuadrantInUse = quadrantsEdges[i].lastEdgeIndex;
+			}
+		}
+
+		return maxEdgesPerQuadrantInUse;
+	}
+#endif
+
+private:
+	unsigned int maxResultsPerQuery;
+	AABB worldBounds;
+	unsigned int maxDepth;
+	Quadrant* quadrants;
+	QuadrantEdges* quadrantsEdges;
+	unsigned int totalNumQuadrants;
+	unsigned int numLeafQuadrants;
+	QuadrantEdgesIndex lastQuadrantEdgesIndex;
+#ifdef _DEBUG
+	unsigned long numCollisionChecks;
+#endif
+
+	void initializeQuadrant(const AABB& quadrantBounds, unsigned int depth = 0, unsigned int index = 0, unsigned int offset = 0, unsigned int levelWidth = 1)
+	{
+		Quadrant& quadrant = quadrants[offset + index];
+		quadrant.depth = depth;
+		quadrant.bounds = quadrantBounds;
+
+		if (depth == maxDepth - 1) // leaf
+		{
+			quadrant.edges = lastQuadrantEdgesIndex++;
+			return;
+		}
+
+		unsigned int baseIndex = (index * 4);
+		unsigned int newOffset = offset + levelWidth;
+		unsigned int newLevelWidth = levelWidth * 4;
+		unsigned int newDepth = depth + 1;
+		glm::vec3 subQuadrantSize = quadrantBounds.getExtents() / 2.0f;
+
+		for (unsigned int y = 0, i = 0; y < 2; y++)
+		{
+			float subQuadrantY = quadrantBounds.min.y + ((float)y * subQuadrantSize.y);
+
+			for (unsigned int x = 0; x < 2; x++, i++)
+			{
+				initializeQuadrant(AABB(quadrantBounds.min.x + ((float)x * subQuadrantSize.x), subQuadrantY, subQuadrantSize.x, subQuadrantSize.y), newDepth, baseIndex + i, newOffset, newLevelWidth);
+			}
 		}
 	}
 
-	void query(const Circle& circle, EdgeIndex* queryResult, unsigned int& size, unsigned int offset = 0)
+	template<typename T>
+	void query(const T& shape, EdgeIndex* queryResult, unsigned int& size, unsigned int index, unsigned int offset, unsigned int levelWidth)
 	{
-		// TODO: optimize
-		size = offset;
-		for (unsigned int i = 0; i < totalNumQuadrants; i++)
+		Quadrant& quadrant = quadrants[offset + index];
+
+		if (quadrant.bounds.intersects(shape))
 		{
-			Quadrant& quadrant = quadrants[i];
-
-			if (quadrant.depth != maxDepth - 1)
+			if (quadrant.depth == maxDepth - 1)
 			{
-				continue;
-			}
+				// FIXME: checking invariants
+				if (quadrant.edges == -1)
+				{
+					throw std::exception("quadrant.edges == -1");
+				}
 
-			if (quadrant.bounds.intersects(circle))
-			{
 				QuadrantEdges& quadrantEdges = quadrantsEdges[quadrant.edges];
 
 				for (unsigned int i = 0; i < quadrantEdges.lastEdgeIndex; i++)
@@ -149,10 +259,22 @@ public:
 					}
 				}
 			}
-#ifdef _DEBUG
-			numCollisionChecks++;
-#endif
+
+			else
+			{
+				unsigned int baseIndex = (index * 4);
+				unsigned int newOffset = offset + levelWidth;
+				unsigned int newLevelWidth = levelWidth * 4;
+				query(shape, queryResult, size, baseIndex, newOffset, newLevelWidth);
+				query(shape, queryResult, size, baseIndex + 1, newOffset, newLevelWidth);
+				query(shape, queryResult, size, baseIndex + 2, newOffset, newLevelWidth);
+				query(shape, queryResult, size, baseIndex + 3, newOffset, newLevelWidth);
+			}
 		}
+
+#ifdef _DEBUG
+		numCollisionChecks++;
+#endif
 	}
 
 	void removeEdge(QuadrantEdges* quadrantEdges, EdgeIndex edgeIndex)
@@ -171,6 +293,7 @@ public:
 
 		unsigned int i = 0;
 		bool found = false;
+
 		for (unsigned int j = 0; j < quadrantEdges->lastEdgeIndex; j++)
 		{
 			if (quadrantEdges->edges[j] == edgeIndex)
@@ -191,147 +314,9 @@ public:
 		{
 			quadrantEdges->edges[j] = quadrantEdges->edges[j + 1];
 		}
+
 		quadrantEdges->lastEdgeIndex--;
 	}
-
-	void remove(EdgeIndex edgeIndex, const Line& edgeLine)
-	{
-		// TODO: optimize
-		for (unsigned int i = 0; i < totalNumQuadrants; i++)
-		{
-			Quadrant& quadrant = quadrants[i];
-
-			if (quadrant.depth != maxDepth - 1)
-			{
-				continue;
-			}
-
-			if (quadrant.bounds.isIntersected(edgeLine))
-			{
-				removeEdge(&quadrantsEdges[quadrant.edges], edgeIndex);
-			}
-		}
-	}
-
-	void insert(EdgeIndex edgeIndex, const Line& edgeLine)
-	{
-		// TODO: optimize
-		for (unsigned int i = 0; i < totalNumQuadrants; i++)
-		{
-			Quadrant& quadrant = quadrants[i];
-
-			if (quadrant.depth != maxDepth - 1)
-			{
-				continue;
-			}
-
-			if (quadrant.bounds.isIntersected(edgeLine))
-			{
-				QuadrantEdges& quadrantEdges = quadrantsEdges[quadrant.edges];
-
-				// FIXME: checking boundaries
-				if (quadrantEdges.lastEdgeIndex == MAX_EDGES_PER_QUADRANT)
-				{
-					throw std::exception("max. edges per quadrant overflow");
-				}
-
-				quadrantEdges.edges[quadrantEdges.lastEdgeIndex++] = edgeIndex;
-			}
-		}
-
-		/*unsigned int collisionMask = 0xffffffff;
-		QuadrantIndex index = 0;
-		for (unsigned int depth = 0, numQuadrantsDepth = 1; depth < maxDepth; depth++, numQuadrantsDepth *= 4)
-		{
-			unsigned int newCollisionMask = 0;
-
-			unsigned int shift = max(1, 32 / numQuadrantsDepth);
-			unsigned int maskSide = max(1, numQuadrantsDepth / 32);
-			unsigned int maskArea = maskSide * maskSide;
-			unsigned int baseMask = ((unsigned long long)1 << shift) - 1;
-
-			unsigned int depthIndex = 0;
-			unsigned int maskIndex = 0;
-			while (depthIndex < numQuadrantsDepth)
-			{
-				unsigned int quadrantMask = baseMask << (shift * maskIndex++);
-				if ((collisionMask & quadrantMask) != 0)
-				{
-					for (unsigned int y = 0; y < maskSide; y++)
-					{
-						for (unsigned int x = 0; x < maskSide; x++)
-						{
-							Quadrant& quadrant = quadrants[index++];
-							if (quadrant.bounds.isIntersected(edgeLine))
-							{
-								quadrant.edges[quadrant.lastEdgeIndex++] = edgeIndex;
-								newCollisionMask |= quadrantMask;
-							}
-						}
-					}
-				}
-				else
-				{
-					index += maskArea;
-				}
-				depthIndex += maskArea;
-			}
-
-			collisionMask = newCollisionMask;
-		}*/
-	}
-
-#ifdef _DEBUG
-	unsigned int getAllocatedMemory() const
-	{
-		unsigned int quadrantsBufferMemory = totalNumQuadrants * sizeof(Quadrant);
-		unsigned int quadrantsEdgesBufferMemory = numLeafQuadrants * sizeof(QuadrantEdges);
-		return (quadrantsBufferMemory + quadrantsEdgesBufferMemory);
-	}
-
-	unsigned int getMemoryInUse() const
-	{
-		unsigned int quadrantsBufferMemoryInUse = totalNumQuadrants * sizeof(Quadrant);
-		unsigned int quadrantsEdgesBufferMemoryInUse = 0;
-		for (unsigned int i = 0; i < numLeafQuadrants; i++)
-		{
-			QuadrantEdges& quadrantEdges = quadrantsEdges[i];
-			quadrantsEdgesBufferMemoryInUse += sizeof(EdgeIndex) * quadrantEdges.lastEdgeIndex + sizeof(unsigned int);
-		}
-		return (quadrantsBufferMemoryInUse + quadrantsEdgesBufferMemoryInUse);
-	}
-
-	unsigned long getNumCollisionChecks() const
-	{
-		return numCollisionChecks;
-	}
-
-	unsigned int getMaxEdgesPerQuadrantInUse() const
-	{
-		unsigned int maxEdgesPerQuadrantInUse = 0;
-		for (unsigned int i = 0; i < numLeafQuadrants; i++)
-		{
-			if (quadrantsEdges[i].lastEdgeIndex > maxEdgesPerQuadrantInUse)
-			{
-				maxEdgesPerQuadrantInUse = quadrantsEdges[i].lastEdgeIndex;
-			}
-		}
-		return maxEdgesPerQuadrantInUse;
-	}
-#endif
-
-private:
-	unsigned int maxResultsPerQuery;
-	AABB worldBounds;
-	unsigned int maxDepth;
-	Quadrant* quadrants;
-	QuadrantEdges* quadrantsEdges;
-	QuadrantIndex lastQuadrantIndex;
-	unsigned int totalNumQuadrants;
-	unsigned int numLeafQuadrants;
-#ifdef _DEBUG
-	unsigned long numCollisionChecks;
-#endif
 
 };
 

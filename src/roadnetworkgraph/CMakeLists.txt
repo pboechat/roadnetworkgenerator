@@ -11,6 +11,10 @@ if (MSVC)
 	add_definitions(/D "_CRT_SECURE_NO_WARNINGS")
 endif (MSVC)
 
+if (USE_QUADTREE)
+	add_definitions(/D "USE_QUADTREE")
+endif(USE_QUADTREE)
+
 add_library(
 	roadnetworkgraph
 	${CPP_HEADERS}
