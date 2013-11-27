@@ -24,6 +24,7 @@
 
 struct Configuration
 {
+	std::string name;
 	int seed;
 	unsigned int worldWidth;
 	unsigned int worldHeight;
@@ -97,6 +98,7 @@ struct Configuration
 			properties.insert(std::make_pair(key, value));
 		}
 
+		name = getProperty(properties, "name");
 		seed = getPropertyAsInt(properties, "seed");
 		if (seed < 0)
 		{

@@ -57,7 +57,7 @@ int main(int argc, char** argv)
 		Configuration configuration;
 		configuration.loadFromFile(configurationFile);
 
-		Application application("Road Network Generator (CPU)", screenWidth, screenHeight);
+		Application application("Road Network Generator (CPU) - " + configuration.name, screenWidth, screenHeight);
 
 		if (gl3wInit())
 		{
@@ -115,12 +115,12 @@ int main(int argc, char** argv)
 
 	catch (std::exception& e)
 	{
-		std::cout << "Exception: " << std::endl  << std::endl << e.what() << std::endl << std::endl;
+		std::cout << std::endl << "Exception: " << std::endl  << std::endl << e.what() << std::endl << std::endl;
 	}
 
 	catch (...)
 	{
-		std::cout << "Unknown error" << std::endl << std::endl;
+		std::cout << std::endl << "Unknown error" << std::endl << std::endl;
 	}
 
 	// DEBUG:

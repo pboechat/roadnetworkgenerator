@@ -5,6 +5,7 @@
 #include <glm/glm.hpp>
 
 #include <string>
+#include <exception>
 
 class ImageMap
 {
@@ -41,6 +42,11 @@ public:
 		int size = width * height;
 		data = new unsigned char[size];
 		unsigned char* bgra = (unsigned char*)FreeImage_GetBits(image);
+
+		if (bgra == 0)
+		{
+			throw std::exception(("invalid image map: " + filePath).c_str());
+		}
 
 		for (int i = 0, j = 0; i < size; i++, j += 4)
 		{

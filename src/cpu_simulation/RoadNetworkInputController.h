@@ -27,7 +27,7 @@ public:
 							   SceneRenderer& sceneRenderer,
 							   RoadNetworkGeometry& geometry) 
 		: 
-		InputController(camera, 20.0f, 10.0f),
+		InputController(camera, 100.0f, 10.0f),
 		configurationFile(configurationFile),
 		sceneRenderer(sceneRenderer),
 		geometry(geometry)
