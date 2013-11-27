@@ -27,6 +27,9 @@ struct Configuration
 	int seed;
 	unsigned int worldWidth;
 	unsigned int worldHeight;
+	unsigned int maxVertices;
+	unsigned int maxEdges;
+	unsigned int maxResultsPerQuery;
 	unsigned int highwayLength;
 	unsigned int minSamplingRayLength;
 	unsigned int maxSamplingRayLength;
@@ -44,7 +47,7 @@ struct Configuration
 	unsigned int samplingArc; // degrees
 	int halfSamplingArc;
 	unsigned int quadtreeDepth;
-	unsigned int quadtreeQueryRadius;
+	float snapRadius;
 	ImageMap populationDensityMap;
 	ImageMap waterBodiesMap;
 	glm::vec4 highwayColor;
@@ -104,26 +107,29 @@ struct Configuration
 #endif
 		srand(seed);
 
-		worldWidth = getPropertyAsUInt(properties, "world_width");
-		worldHeight = getPropertyAsUInt(properties, "world_height");
-		highwayLength = getPropertyAsUInt(properties, "highway_length");
-		minSamplingRayLength = getPropertyAsUInt(properties, "max_sampling_ray_length");
-		maxSamplingRayLength = getPropertyAsUInt(properties, "max_sampling_ray_length");
-		streetLength = getPropertyAsUInt(properties, "street_length");
-		maxStreetBranchDepth = getPropertyAsUInt(properties, "max_street_branch_depth");
-		highwayBranchingDelay = getPropertyAsUInt(properties, "highway_branching_delay");
-		minHighwayBranchingDistance = getPropertyAsUInt(properties, "min_highway_branching_distance");
-		minPureHighwayBranchingDistance = getPropertyAsUInt(properties, "min_pure_highway_branching_distance");
-		streetBranchingDelay = getPropertyAsUInt(properties, "street_branching_delay");
-		maxDerivations = getPropertyAsUInt(properties, "max_derivations");
-		maxHighwayGoalDeviation = getPropertyAsUInt(properties, "max_highway_goal_deviation");
+		worldWidth = getPropertyAsUnsignedInt(properties, "world_width");
+		worldHeight = getPropertyAsUnsignedInt(properties, "world_height");
+		maxVertices = getPropertyAsUnsignedInt(properties, "max_vertices");
+		maxEdges = getPropertyAsUnsignedInt(properties, "max_edges");
+		maxResultsPerQuery = getPropertyAsUnsignedInt(properties, "max_results_per_query");
+		highwayLength = getPropertyAsUnsignedInt(properties, "highway_length");
+		minSamplingRayLength = getPropertyAsUnsignedInt(properties, "max_sampling_ray_length");
+		maxSamplingRayLength = getPropertyAsUnsignedInt(properties, "max_sampling_ray_length");
+		streetLength = getPropertyAsUnsignedInt(properties, "street_length");
+		maxStreetBranchDepth = getPropertyAsUnsignedInt(properties, "max_street_branch_depth");
+		highwayBranchingDelay = getPropertyAsUnsignedInt(properties, "highway_branching_delay");
+		minHighwayBranchingDistance = getPropertyAsUnsignedInt(properties, "min_highway_branching_distance");
+		minPureHighwayBranchingDistance = getPropertyAsUnsignedInt(properties, "min_pure_highway_branching_distance");
+		streetBranchingDelay = getPropertyAsUnsignedInt(properties, "street_branching_delay");
+		maxDerivations = getPropertyAsUnsignedInt(properties, "max_derivations");
+		maxHighwayGoalDeviation = getPropertyAsUnsignedInt(properties, "max_highway_goal_deviation");
 		halfMaxHighwayGoalDeviation = (maxHighwayGoalDeviation + 1) / 2;
-		maxObstacleDeviationAngle = getPropertyAsUInt(properties, "max_obstacle_deviation_angle");
-		minRoadLength = getPropertyAsUInt(properties, "min_road_length");
-		samplingArc = getPropertyAsUInt(properties, "sampling_arc");
+		maxObstacleDeviationAngle = getPropertyAsUnsignedInt(properties, "max_obstacle_deviation_angle");
+		minRoadLength = getPropertyAsUnsignedInt(properties, "min_road_length");
+		samplingArc = getPropertyAsUnsignedInt(properties, "sampling_arc");
 		halfSamplingArc = (samplingArc + 1) / 2;
-		quadtreeDepth = getPropertyAsUInt(properties, "quadtree_depth");
-		quadtreeQueryRadius = getPropertyAsUInt(properties, "quadtree_query_radius");
+		quadtreeDepth = getPropertyAsUnsignedInt(properties, "quadtree_depth");
+		snapRadius = getPropertyAsFloat(properties, "snap_radius");
 		highwayColor = getPropertyAsVec4(properties, "highway_color");
 		streetColor = getPropertyAsVec4(properties, "street_color");
 		quadtreeColor = getPropertyAsVec4(properties, "quadtree_color");
@@ -157,7 +163,7 @@ private:
 		return i->second;
 	}
 
-	static unsigned int getPropertyAsUInt(const std::map<std::string, std::string>& properties, const std::string& propertyName)
+	static unsigned int getPropertyAsUnsignedInt(const std::map<std::string, std::string>& properties, const std::string& propertyName)
 	{
 		return (unsigned int)atoi(getProperty(properties, propertyName).c_str());
 	}
@@ -165,6 +171,11 @@ private:
 	static long getPropertyAsInt(const std::map<std::string, std::string>& properties, const std::string& propertyName)
 	{
 		return atoi(getProperty(properties, propertyName).c_str());
+	}
+
+	static float getPropertyAsFloat(const std::map<std::string, std::string>& properties, const std::string& propertyName)
+	{
+		return (float)atof(getProperty(properties, propertyName).c_str());
 	}
 
 	static bool getPropertyAsBool(const std::map<std::string, std::string>& properties, const std::string& propertyName)

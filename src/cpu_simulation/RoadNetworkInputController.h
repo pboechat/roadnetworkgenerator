@@ -15,6 +15,8 @@
 
 #ifdef _DEBUG
 #include <iostream>
+#define toKilobytes(a) (a / 1024)
+#define toMegabytes(a) (a / 1048576)
 #endif
 
 class RoadNetworkInputController : public InputController
@@ -23,12 +25,12 @@ public:
 	RoadNetworkInputController(Camera& camera, 
 							   const std::string& configurationFile,
 							   SceneRenderer& sceneRenderer,
-							   RoadNetworkGeometry& roadNetworkGeometry) 
+							   RoadNetworkGeometry& geometry) 
 		: 
 		InputController(camera, 20.0f, 10.0f),
 		configurationFile(configurationFile),
 		sceneRenderer(sceneRenderer),
-		roadNetworkGeometry(roadNetworkGeometry)
+		geometry(geometry)
 	{
 	}
 
@@ -75,20 +77,39 @@ public:
 			Configuration configuration;
 			configuration.loadFromFile(configurationFile);
 			AABB worldBounds(0.0f, 0.0f, (float)configuration.worldWidth, (float)configuration.worldHeight);
-			RoadNetworkGraph::Graph roadNetwork(worldBounds, configuration.quadtreeDepth, (float)configuration.quadtreeQueryRadius);
+#ifdef USE_QUADTREE
+			RoadNetworkGraph::Graph graph(worldBounds, configuration.quadtreeDepth, configuration.snapRadius, configuration.maxVertices, configuration.maxEdges, configuration.maxResultsPerQuery);
+#else
+			RoadNetworkGraph::Graph graph(worldBounds, configuration.snapRadius, configuration.maxVertices, configuration.maxEdges, configuration.maxResultsPerQuery);
+#endif
 			// regenerate road network graph
-			RoadNetworkGenerator roadNetworkGenerator;
+			RoadNetworkGenerator generator;
 #ifdef _DEBUG
 			Timer timer;
 			timer.start();
 #endif
-			roadNetworkGenerator.execute(configuration, roadNetwork);
+			generator.execute(configuration, graph);
 #ifdef _DEBUG
 			timer.end();
+			std::cout << "*****************************" << std::endl;
+			std::cout << "	STATISTICS:				   " << std::endl;
+			std::cout << "*****************************" << std::endl;
 			std::cout << "generation time: " << timer.elapsedTime() << " seconds" << std::endl;
+			std::cout << "memory (allocated/in use): " << toMegabytes(graph.getAllocatedMemory()) << " MB / " << toMegabytes(graph.getMemoryInUse()) << " MB" << std::endl;
+			std::cout << "vertices (allocated/in use): " << graph.getAllocatedVertices() << " / " << graph.getVerticesInUse() << std::endl;
+			std::cout << "edges (allocated/in use): " << graph.getAllocatedEdges() << " / " << graph.getEdgesInUse() << std::endl;
+			std::cout << "vertex in connections (max./max. in use): " << graph.getMaxVertexInConnections() << " / " << graph.getMaxVertexInConnectionsInUse() << std::endl;
+			std::cout << "vertex out connections (max./max. in use): " << graph.getMaxVertexOutConnections() << " / " << graph.getMaxVertexOutConnectionsInUse() << std::endl;
+			std::cout << "avg. vertex in connections in use: " << graph.getAverageVertexInConnectionsInUse() << std::endl;
+			std::cout << "avg. vertex out connections in use: " << graph.getAverageVertexOutConnectionsInUse() << std::endl;
+#ifdef USE_QUADTREE
+			std::cout << "edges per quadrant (max./max. in use): " << graph.getMaxEdgesPerQuadrant() << " / " << graph.getMaxEdgesPerQuadrantInUse() << std::endl;
+#endif
+			std::cout << "num. collision checks: " << graph.getNumCollisionChecks() << std::endl;
+			std::cout  << std::endl << std::endl;
 #endif
 			// rebuild road network geometry
-			roadNetworkGeometry.build(roadNetwork, configuration.highwayColor, configuration.streetColor);
+			geometry.build(graph, configuration.highwayColor, configuration.streetColor);
 			sceneRenderer.setWorldBounds(worldBounds);
 			camera.centerOnTarget(worldBounds);
 		}
@@ -105,7 +126,7 @@ public:
 private:
 	std::string configurationFile;
 	SceneRenderer& sceneRenderer;
-	RoadNetworkGeometry& roadNetworkGeometry;
+	RoadNetworkGeometry& geometry;
 
 };
 

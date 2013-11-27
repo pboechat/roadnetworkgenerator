@@ -1,5 +1,5 @@
-#ifndef QUADREE_H
-#define QUADREE_H
+#ifndef ROADNETWORKGRAPH_QUADREE_H
+#define ROADNETWORKGRAPH_QUADREE_H
 
 #include <Defines.h>
 #include <Quadrant.h>
@@ -22,9 +22,18 @@ namespace RoadNetworkGraph
 class QuadTree
 {
 public:
-	QuadTree(const AABB& worldBounds, unsigned int maxDepth) : worldBounds(worldBounds), maxDepth(maxDepth), lastQuadrantIndex(0), quadrants(0), quadrantsEdges(0), totalNumQuadrants(0)
+	QuadTree(const AABB& worldBounds, unsigned int maxDepth, unsigned int maxResultsPerQuery) : 
+		worldBounds(worldBounds), 
+		maxDepth(maxDepth), 
+		quadrants(0), 
+		quadrantsEdges(0), 
+		totalNumQuadrants(0), 
+		numLeafQuadrants(0),
+		maxResultsPerQuery(maxResultsPerQuery)
+#ifdef _DEBUG
+		,numCollisionChecks(0)
+#endif
 	{
-		unsigned int numLeafQuadrants;
 		totalNumQuadrants = 0;
 		for (unsigned int i = 0; i < maxDepth; i++)
 		{
@@ -78,7 +87,7 @@ public:
 		}
 	}
 
-	void query(const AABB& region, EdgeIndex* queryResult, unsigned int& size, unsigned int offset = 0) const
+	void query(const AABB& region, EdgeIndex* queryResult, unsigned int& size, unsigned int offset = 0)
 	{
 		// TODO: optimize
 		size = 0;
@@ -100,16 +109,19 @@ public:
 					queryResult[size++] = quadrantEdges.edges[i];
 
 					// FIXME: checking boundaries
-					if (size >= MAX_RESULTS_PER_QUERY)
+					if (size >= maxResultsPerQuery)
 					{
 						throw std::exception("max. results per query overflow");
 					}
 				}
 			}
+#ifdef _DEBUG
+			numCollisionChecks++;
+#endif
 		}
 	}
 
-	void query(const Circle& circle, EdgeIndex* queryResult, unsigned int& size, unsigned int offset = 0) const
+	void query(const Circle& circle, EdgeIndex* queryResult, unsigned int& size, unsigned int offset = 0)
 	{
 		// TODO: optimize
 		size = offset;
@@ -131,12 +143,15 @@ public:
 					queryResult[size++] = quadrantEdges.edges[i];
 
 					// FIXME: checking boundaries
-					if (size >= MAX_RESULTS_PER_QUERY)
+					if (size >= maxResultsPerQuery)
 					{
 						throw std::exception("max. results per query overflow");
 					}
 				}
 			}
+#ifdef _DEBUG
+			numCollisionChecks++;
+#endif
 		}
 	}
 
@@ -266,13 +281,57 @@ public:
 		}*/
 	}
 
+#ifdef _DEBUG
+	unsigned int getAllocatedMemory() const
+	{
+		unsigned int quadrantsBufferMemory = totalNumQuadrants * sizeof(Quadrant);
+		unsigned int quadrantsEdgesBufferMemory = numLeafQuadrants * sizeof(QuadrantEdges);
+		return (quadrantsBufferMemory + quadrantsEdgesBufferMemory);
+	}
+
+	unsigned int getMemoryInUse() const
+	{
+		unsigned int quadrantsBufferMemoryInUse = totalNumQuadrants * sizeof(Quadrant);
+		unsigned int quadrantsEdgesBufferMemoryInUse = 0;
+		for (unsigned int i = 0; i < numLeafQuadrants; i++)
+		{
+			QuadrantEdges& quadrantEdges = quadrantsEdges[i];
+			quadrantsEdgesBufferMemoryInUse += sizeof(EdgeIndex) * quadrantEdges.lastEdgeIndex + sizeof(unsigned int);
+		}
+		return (quadrantsBufferMemoryInUse + quadrantsEdgesBufferMemoryInUse);
+	}
+
+	unsigned long getNumCollisionChecks() const
+	{
+		return numCollisionChecks;
+	}
+
+	unsigned int getMaxEdgesPerQuadrantInUse() const
+	{
+		unsigned int maxEdgesPerQuadrantInUse = 0;
+		for (unsigned int i = 0; i < numLeafQuadrants; i++)
+		{
+			if (quadrantsEdges[i].lastEdgeIndex > maxEdgesPerQuadrantInUse)
+			{
+				maxEdgesPerQuadrantInUse = quadrantsEdges[i].lastEdgeIndex;
+			}
+		}
+		return maxEdgesPerQuadrantInUse;
+	}
+#endif
+
 private:
+	unsigned int maxResultsPerQuery;
 	AABB worldBounds;
 	unsigned int maxDepth;
 	Quadrant* quadrants;
 	QuadrantEdges* quadrantsEdges;
 	QuadrantIndex lastQuadrantIndex;
 	unsigned int totalNumQuadrants;
+	unsigned int numLeafQuadrants;
+#ifdef _DEBUG
+	unsigned long numCollisionChecks;
+#endif
 
 };
 

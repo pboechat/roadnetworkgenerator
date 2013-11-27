@@ -24,6 +24,11 @@
 #define FOVY_DEG 60.0f
 #define HALF_PI 1.570796325f
 
+#ifdef _DEBUG
+#define toKilobytes(a) (a / 1024)
+#define toMegabytes(a) (a / 1048576)
+#endif
+
 void printUsage()
 {
 	std::cerr << "Command line options: <width> <height> <configuration file>";
@@ -59,30 +64,49 @@ int main(int argc, char** argv)
 			throw std::runtime_error("gl3wInit() failed");
 		}
 
-		RoadNetworkGeometry roadNetworkGeometry;
+		RoadNetworkGeometry geometry;
 
 		Camera camera(screenWidth, screenHeight, FOVY_DEG, ZNEAR, ZFAR);
-		SceneRenderer renderer(camera, roadNetworkGeometry, configuration.populationDensityMap, configuration.waterBodiesMap);
-		RoadNetworkInputController inputController(camera, configurationFile, renderer, roadNetworkGeometry);
+		SceneRenderer renderer(camera, geometry, configuration.populationDensityMap, configuration.waterBodiesMap);
+		RoadNetworkInputController inputController(camera, configurationFile, renderer, geometry);
 
 		application.setCamera(camera);
 		application.setRenderer(renderer);
 		application.setInputController(inputController);
 
 		AABB worldBounds(0.0f, 0.0f, (float)configuration.worldWidth, (float)configuration.worldHeight);
-		RoadNetworkGraph::Graph roadNetwork(worldBounds, configuration.quadtreeDepth, (float)configuration.quadtreeQueryRadius);
-		RoadNetworkGenerator roadNetworkGenerator;
+#ifdef USE_QUADTREE
+		RoadNetworkGraph::Graph graph(worldBounds, configuration.quadtreeDepth, configuration.snapRadius, configuration.maxVertices, configuration.maxEdges, configuration.maxResultsPerQuery);
+#else
+		RoadNetworkGraph::Graph graph(worldBounds, configuration.snapRadius, configuration.maxVertices, configuration.maxEdges, configuration.maxResultsPerQuery);
+#endif
+		RoadNetworkGenerator generator;
 #ifdef _DEBUG
 		Timer timer;
 		timer.start();
 #endif
-		roadNetworkGenerator.execute(configuration, roadNetwork);
+		generator.execute(configuration, graph);
 #ifdef _DEBUG
 		timer.end();
+		std::cout << "*****************************" << std::endl;
+		std::cout << "	STATISTICS:				   " << std::endl;
+		std::cout << "*****************************" << std::endl;
 		std::cout << "generation time: " << timer.elapsedTime() << " seconds" << std::endl;
+		std::cout << "memory (allocated/in use): " << toMegabytes(graph.getAllocatedMemory()) << " MB / " << toMegabytes(graph.getMemoryInUse()) << " MB" << std::endl;
+		std::cout << "vertices (allocated/in use): " << graph.getAllocatedVertices() << " / " << graph.getVerticesInUse() << std::endl;
+		std::cout << "edges (allocated/in use): " << graph.getAllocatedEdges() << " / " << graph.getEdgesInUse() << std::endl;
+		std::cout << "vertex in connections (max./max. in use): " << graph.getMaxVertexInConnections() << " / " << graph.getMaxVertexInConnectionsInUse() << std::endl;
+		std::cout << "vertex out connections (max./max. in use): " << graph.getMaxVertexOutConnections() << " / " << graph.getMaxVertexOutConnectionsInUse() << std::endl;
+		std::cout << "avg. vertex in connections in use: " << graph.getAverageVertexInConnectionsInUse() << std::endl;
+		std::cout << "avg. vertex out connections in use: " << graph.getAverageVertexOutConnectionsInUse() << std::endl;
+#ifdef USE_QUADTREE
+		std::cout << "edges per quadrant (max./max. in use): " << graph.getMaxEdgesPerQuadrant() << " / " << graph.getMaxEdgesPerQuadrantInUse() << std::endl;
+#endif
+		std::cout << "num. collision checks: " << graph.getNumCollisionChecks() << std::endl;
+		std::cout  << std::endl << std::endl;
 #endif
 
-		roadNetworkGeometry.build(roadNetwork, configuration.highwayColor, configuration.streetColor);
+		geometry.build(graph, configuration.highwayColor, configuration.streetColor);
 		renderer.setWorldBounds(worldBounds);
 		camera.centerOnTarget(worldBounds);
 

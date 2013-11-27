@@ -1,5 +1,5 @@
-#ifndef EDGE_H
-#define EDGE_H
+#ifndef ROADNETWORKGRAPH_EDGE_H
+#define ROADNETWORKGRAPH_EDGE_H
 
 #include <Defines.h>
 
