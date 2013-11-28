@@ -21,7 +21,7 @@ if (USE_QUADTREE)
 	add_definitions(/D "USE_QUADTREE")
 endif(USE_QUADTREE)
 
-cuda_add_executable(
+add_executable(
 	cpu_simulation
 	${CPP_HEADERS}
 	${CPP_SOURCES}
