@@ -15,11 +15,8 @@
 #include <time.h>
 #include <random>
 #include <regex>
-#ifdef _DEBUG
-#include <iostream>
-#endif
 
-#define MAX_SPAWN_POINTS 10
+#define MAX_SPAWN_POINTS 20
 #define VEC3_VECTOR_PATTERN "(\\([^\\)]+\\)\\,?)"
 
 struct Configuration
@@ -104,9 +101,6 @@ struct Configuration
 		{
 			seed = (unsigned int)time(0);
 		}
-#ifdef _DEBUG
-		std::cout << "seed: " << seed << std::endl;
-#endif
 		srand(seed);
 
 		worldWidth = getPropertyAsUnsignedInt(properties, "world_width");

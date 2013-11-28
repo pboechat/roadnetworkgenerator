@@ -6,6 +6,10 @@
 #include <glm/glm.hpp>
 #include <glm/gtx/projection.hpp>
 
+#include <exception>
+
+#define EPSILON 0.001f
+
 struct Line
 {
 	glm::vec3 start;
@@ -27,44 +31,82 @@ struct Line
 		return intersects(line, intersection);
 	}
 
+	inline bool onSegment(const glm::vec3& p, const glm::vec3& q, const glm::vec3& r) const
+	{
+		if (q.x <= glm::max(p.x, r.x) && q.x >= glm::min(p.x, r.x) &&
+			q.y <= glm::max(p.y, r.y) && q.y >= glm::min(p.y, r.y))
+			return true;
+
+		return false;
+	}
+
+	// 0 -> collinear
+	// 1 -> clockwise
+	// 2 -> counterclockwise
+	inline int orientation(const glm::vec3& p, const glm::vec3& q, const glm::vec3& r) const
+	{
+		float val = (r.x - q.x) * (q.y - p.y) - (r.y - q.y) * (q.x - p.x);
+		if (val >= -EPSILON && val <= EPSILON) return 0;  // collinear
+		return (val > 0) ? 1 : 2; // clock or counterclockwise
+	}
+
 	bool intersects(const Line& line, glm::vec3& intersection) const
 	{
-		float x1 = start.x;
-		float y1 = start.y;
-		float x2 = end.x;
-		float y2 = end.y;
-		float x3 = line.start.x;
-		float y3 = line.start.y;
-		float x4 = line.end.x;
-		float y4 = line.end.y;
+		// find the four orientations needed for general and special cases
+		int o1 = orientation(start, end, line.start);
+		int o2 = orientation(start, end, line.end);
+		int o3 = orientation(line.start, line.end, start);
+		int o4 = orientation(line.start, line.end, end);
 
-		float determinant = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4);
-
-		if (determinant == 0)
+		// general case:
+		if (o1 != o2 && o3 != o4)
 		{
-			return false;
+			float determinant = (start.x - end.x) * (line.start.y - line.end.y) - (start.y - end.y) * (line.start.x - line.end.x);
+
+			// FIXME: checking invariants
+			if (determinant == 0)
+			{
+				throw std::exception("determinant == 0");
+			}
+
+			float pre = (start.x * end.y - start.y * end.x), post = (line.start.x * line.end.y - line.start.y * line.end.x);
+			float x = (pre * (line.start.x - line.end.x) - (start.x - end.x) * post) / determinant;
+			float y = (pre * (line.start.y - line.end.y) - (start.y - end.y) * post) / determinant;
+			intersection.x = x;
+			intersection.y = y;
+			return true;
 		}
 
-		float pre = (x1 * y2 - y1 * x2), post = (x3 * y4 - y3 * x4);
-		float x = (pre * (x3 - x4) - (x1 - x2) * post) / determinant;
-		float y = (pre * (y3 - y4) - (y1 - y2) * post) / determinant;
-
-		if (x < glm::min(x1, x2) || x > glm::max(x1, x2) ||
-			x < glm::min(x3, x4) || x > glm::max(x3, x4))
+		// special cases:
+		// 'start', 'end' and 'line.start' are collinear and 'line.start' lies on this segment
+		if (o1 == 0 && onSegment(start, line.start, end))
 		{
-			return false;
+			intersection = line.start;
+			return true;
 		}
 
-		if (y < glm::min(y1, y2) || y > glm::max(y1, y2) ||
-			y < glm::min(y3, y4) || y > glm::max(y3, y4))
+		// 'start', 'end' and 'line.start' are collinear and 'line.end' lies on this segment
+		if (o2 == 0 && onSegment(start, line.end, end)) 
 		{
-			return false;
+			intersection = line.end;
+			return true;
 		}
 
-		intersection.x = x;
-		intersection.y = y;
+		// 'line.start', 'line.end' and 'start' are collinear and 'start' lies on line segment
+		if (o3 == 0 && onSegment(line.start, start, line.end)) 
+		{
+			intersection = start;
+			return true;
+		}
 
-		return true;
+		// 'line.start', 'line.end' and 'end' are collinear and 'end' lies on line segment
+		if (o4 == 0 && onSegment(line.start, end, line.end)) 
+		{
+			intersection = end;
+			return true;
+		}
+
+		return false;
 	}
 
 	unsigned int intersects(const Circle& circle, glm::vec3& intersection1, glm::vec3& intersection2) const

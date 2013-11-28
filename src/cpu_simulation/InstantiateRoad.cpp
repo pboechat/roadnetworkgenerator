@@ -204,7 +204,12 @@ void InstantiateRoad::followHighestPopulationDensity(const Configuration& config
 
 void InstantiateRoad::applyAngleDeviation(const Configuration& configuration, RoadAttributes& roadAttributes) const
 {
-	roadAttributes.angle += ((rand() % configuration.halfMaxHighwayGoalDeviation) - configuration.halfMaxHighwayGoalDeviation);
+	if (configuration.maxHighwayGoalDeviation == 0)
+	{
+		return;
+	}
+
+	roadAttributes.angle += ((rand() % configuration.halfMaxHighwayGoalDeviation) - (int)configuration.maxHighwayGoalDeviation);
 }
 
 void InstantiateRoad::initialize(const Configuration& configuration)

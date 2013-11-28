@@ -73,14 +73,6 @@ public:
 		{
 			callback(configurationFile, renderer, geometry, camera);
 		}
-
-#ifdef _DEBUG
-		if (getLeftMouseButtonDown())
-		{
-			glm::vec2 mousePosition = getMousePosition();
-			std::cout << "(" << mousePosition.x << ", " << (camera.getScreenHeight() - mousePosition.y) << ")" << std::endl;
-		}
-#endif
 	}
 
 private:

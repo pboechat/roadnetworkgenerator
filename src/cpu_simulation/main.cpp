@@ -55,8 +55,11 @@ void generateAndDisplay(const std::string& configurationFile, SceneRenderer& ren
 #ifdef _DEBUG
 	timer.end();
 	std::cout << "*****************************" << std::endl;
-	std::cout << "	STATISTICS:				   " << std::endl;
+	std::cout << "	DETAILS:				   " << std::endl;
 	std::cout << "*****************************" << std::endl;
+#ifdef _DEBUG
+	std::cout << "seed: " << configuration.seed << std::endl;
+#endif
 	std::cout << "generation time: " << timer.elapsedTime() << " seconds" << std::endl;
 	std::cout << "memory (allocated/in use): " << toMegabytes(graph.getAllocatedMemory()) << " MB / " << toMegabytes(graph.getMemoryInUse()) << " MB" << std::endl;
 	std::cout << "vertices (allocated/in use): " << graph.getAllocatedVertices() << " / " << graph.getVerticesInUse() << std::endl;
