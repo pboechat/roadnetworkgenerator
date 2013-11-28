@@ -23,19 +23,21 @@ public:
 	////////////////////////////////////////////////////////////////////////////////////////////////////
 	void afterUpdate()
 	{
-		leftMouseButtonUp = leftMouseButtonDown = rightMouseButtonUp = rightMouseButtonDown = false;
+		clearTemporaryRegisters();
 	}
 
 	////////////////////////////////////////////////////////////////////////////////////////////////////
 	void keyDown(unsigned int virtualKey)
 	{
 		front.keys[virtualKey] = true;
+		keysDown[virtualKey] = true;
 	}
 
 	////////////////////////////////////////////////////////////////////////////////////////////////////
 	void keyUp(unsigned int virtualKey)
 	{
 		front.keys[virtualKey] = false;
+		keysUp[virtualKey] = true;
 	}
 
 	////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -82,6 +84,7 @@ protected:
 	////////////////////////////////////////////////////////////////////////////////////////////////////
 	InputController(Camera& camera, float moveSpeed, float rotationSpeed) : camera(camera), moveSpeed(moveSpeed), rotationSpeed(rotationSpeed), rightMouseButtonUp(false), rightMouseButtonDown(false), leftMouseButtonUp(false), leftMouseButtonDown(false), cameraYaw(0), cameraPitch(0), cameraRoll(0)
 	{
+		clearTemporaryRegisters();
 	}
 
 	////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -158,6 +161,18 @@ protected:
 	inline bool getKey(unsigned int keyCode) const
 	{
 		return back.keys[keyCode];
+	}
+
+	////////////////////////////////////////////////////////////////////////////////////////////////////
+	inline bool getKeyUp(unsigned int keyCode) const
+	{
+		return keysUp[keyCode];
+	}
+
+	////////////////////////////////////////////////////////////////////////////////////////////////////
+	inline bool getKeyDown(unsigned int keyCode) const
+	{
+		return keysDown[keyCode];
 	}
 
 	////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -283,12 +298,12 @@ private:
 
 		InputBuffer() : rightMouseButton(false), leftMouseButton(false)
 		{
-			memset(keys, 0, sizeof(bool) * NUMBER_OF_VIRTUAL_KEYS);
+			memset(keys, 0, NUMBER_OF_VIRTUAL_KEYS * sizeof(bool));
 		}
 
 		InputBuffer& operator = (InputBuffer& other)
 		{
-			memcpy(keys, other.keys, sizeof(bool) * NUMBER_OF_VIRTUAL_KEYS);
+			memcpy(keys, other.keys, NUMBER_OF_VIRTUAL_KEYS * sizeof(bool));
 			rightMouseButton = other.rightMouseButton;
 			leftMouseButton = other.leftMouseButton;
 			mousePosition = other.mousePosition;
@@ -305,10 +320,20 @@ private:
 	bool rightMouseButtonDown;
 	bool leftMouseButtonUp;
 	bool leftMouseButtonDown;
+	bool keysUp[NUMBER_OF_VIRTUAL_KEYS];
+	bool keysDown[NUMBER_OF_VIRTUAL_KEYS];
 	glm::vec2 lastMousePosition;
 	float cameraYaw;
 	float cameraPitch;
 	float cameraRoll;
+
+	////////////////////////////////////////////////////////////////////////////////////////////////////
+	void clearTemporaryRegisters() 
+	{
+		leftMouseButtonUp = leftMouseButtonDown = rightMouseButtonUp = rightMouseButtonDown = false;
+		memset(keysUp, 0, NUMBER_OF_VIRTUAL_KEYS * sizeof(bool));
+		memset(keysDown, 0, NUMBER_OF_VIRTUAL_KEYS * sizeof(bool));
+	}
 
 };
 

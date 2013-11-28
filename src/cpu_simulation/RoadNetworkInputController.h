@@ -56,7 +56,7 @@ public:
 
 		else if (getKey(VK_DOWN) || getKey(83))
 		{
-			moveCameraDown((float)deltaTime);
+			moveCameraDown((float)deltaTime);\
 		}
 
 		if (getKey(81) || getKey(33))
@@ -69,7 +69,17 @@ public:
 			moveCameraBackward((float)deltaTime);
 		}
 
-		if (getKey(VK_F5))
+		if (getKeyDown(VK_F1))
+		{
+			renderer.togglePopulationDensityMap();
+		}
+
+		if (getKeyDown(VK_F2))
+		{
+			renderer.toggleWaterBodiesMap();
+		}
+
+		if (getKeyDown(VK_F5))
 		{
 			callback(configurationFile, renderer, geometry, camera);
 		}
