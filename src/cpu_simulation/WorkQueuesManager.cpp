@@ -18,14 +18,14 @@
 		break; \
 	}
 
-WorkQueuesManager::WorkQueuesManager(unsigned int numberOfWorkQueues, unsigned int workQueueCapacity) : workQueues(0), workQueuesCounter(numberOfWorkQueues), workItemsCounter(0)
+WorkQueuesManager::WorkQueuesManager(unsigned int numberOfWorkQueues, unsigned int maxWorkQueueCapacity) : workQueues(0), workQueuesCounter(numberOfWorkQueues), workItemsCounter(0)
 {
 	unsigned int itemSize = max(sizeof(EvaluateBranch), max(sizeof(EvaluateRoad), sizeof(InstantiateRoad)));
 
 	workQueues = new static_alloc_queue*[workQueuesCounter];
 	for (unsigned int i = 0; i < workQueuesCounter; i++)
 	{
-		workQueues[i] = new static_alloc_queue(workQueueCapacity, itemSize);
+		workQueues[i] = new static_alloc_queue(maxWorkQueueCapacity, itemSize);
 	}
 }
 

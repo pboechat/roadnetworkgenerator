@@ -9,8 +9,13 @@
 class WorkQueuesManager
 {
 public:
-	WorkQueuesManager(unsigned int numberOfWorkQueues, unsigned int workQueueCapacity);
+	WorkQueuesManager(unsigned int numberOfWorkQueues, unsigned int maxWorkQueueCapacity);
 	~WorkQueuesManager();
+
+	inline unsigned int size() const
+	{
+		return workItemsCounter;
+	}
 
 	inline bool notEmpty() const
 	{

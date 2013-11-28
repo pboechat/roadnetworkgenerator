@@ -46,7 +46,7 @@ void generateAndDisplay(const std::string& configurationFile, SceneRenderer& ren
 #else
 	RoadNetworkGraph::Graph graph(worldBounds, configuration.snapRadius, configuration.maxVertices, configuration.maxEdges, configuration.maxResultsPerQuery);
 #endif
-	RoadNetworkGenerator generator;
+	RoadNetworkGenerator generator(configuration.maxWorkQueueCapacity);
 #ifdef _DEBUG
 	Timer timer;
 	timer.start();
@@ -61,6 +61,8 @@ void generateAndDisplay(const std::string& configurationFile, SceneRenderer& ren
 	std::cout << "seed: " << configuration.seed << std::endl;
 #endif
 	std::cout << "generation time: " << timer.elapsedTime() << " seconds" << std::endl;
+	std::cout << "steps (max./real): " << configuration.maxDerivations << " / " << generator.getLastStep() << std::endl;
+	std::cout << "work queue capacity (max/max. in use): " << generator.getMaxWorkQueueCapacity() << " / " << generator.getMaxWorkQueueCapacityUsed() << std::endl;
 	std::cout << "memory (allocated/in use): " << toMegabytes(graph.getAllocatedMemory()) << " MB / " << toMegabytes(graph.getMemoryInUse()) << " MB" << std::endl;
 	std::cout << "vertices (allocated/in use): " << graph.getAllocatedVertices() << " / " << graph.getVerticesInUse() << std::endl;
 	std::cout << "edges (allocated/in use): " << graph.getAllocatedEdges() << " / " << graph.getEdgesInUse() << std::endl;

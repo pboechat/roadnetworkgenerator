@@ -28,6 +28,7 @@ struct Configuration
 	unsigned int maxVertices;
 	unsigned int maxEdges;
 	unsigned int maxResultsPerQuery;
+	unsigned int maxWorkQueueCapacity;
 	unsigned int highwayLength;
 	unsigned int minSamplingRayLength;
 	unsigned int maxSamplingRayLength;
@@ -108,6 +109,7 @@ struct Configuration
 		maxVertices = getPropertyAsUnsignedInt(properties, "max_vertices");
 		maxEdges = getPropertyAsUnsignedInt(properties, "max_edges");
 		maxResultsPerQuery = getPropertyAsUnsignedInt(properties, "max_results_per_query");
+		maxWorkQueueCapacity = getPropertyAsUnsignedInt(properties, "max_work_queue_capacity");
 		highwayLength = getPropertyAsUnsignedInt(properties, "highway_length");
 		minSamplingRayLength = getPropertyAsUnsignedInt(properties, "max_sampling_ray_length");
 		maxSamplingRayLength = getPropertyAsUnsignedInt(properties, "max_sampling_ray_length");

@@ -15,12 +15,15 @@
 #include <glm/glm.hpp>
 
 #define NUM_WORK_QUEUES 3
-#define WORK_QUEUE_CAPACITY 100000
 
 class RoadNetworkGenerator
 {
 public:
-	RoadNetworkGenerator() : buffer1(NUM_WORK_QUEUES, WORK_QUEUE_CAPACITY), buffer2(NUM_WORK_QUEUES, WORK_QUEUE_CAPACITY) {}
+	RoadNetworkGenerator(unsigned int maxWorkQueueCapacity) : maxWorkQueueCapacity(maxWorkQueueCapacity), buffer1(NUM_WORK_QUEUES, maxWorkQueueCapacity), buffer2(NUM_WORK_QUEUES, maxWorkQueueCapacity), lastDerivation(0)
+#ifdef _DEBUG
+	,maxWorkQueueCapacityUsed(0) 
+#endif
+	{}
 	~RoadNetworkGenerator() {}
 
 	void execute(const Configuration& configuration, RoadNetworkGraph::Graph& graph)
@@ -43,9 +46,16 @@ public:
 		// TODO: improve design
 		InstantiateRoad::initialize(configuration);
 
-		unsigned int derivation = 0;
-		while (frontBuffer->notEmpty() && derivation++ < configuration.maxDerivations)
+		lastDerivation = 0;
+		while (frontBuffer->notEmpty() && lastDerivation++ < configuration.maxDerivations)
 		{
+#ifdef _DEBUG
+			if (frontBuffer->size() > maxWorkQueueCapacityUsed)
+			{
+				maxWorkQueueCapacityUsed = frontBuffer->size();
+			}
+#endif
+
 			frontBuffer->executeAllWorkItems(*backBuffer, graph, configuration);
 			std::swap(frontBuffer, backBuffer);
 		}
@@ -59,9 +69,31 @@ public:
 		InstantiateRoad::dispose();
 	}
 
+#ifdef _DEBUG
+	inline unsigned int getLastStep() const
+	{
+		return lastDerivation - 1;
+	}
+
+	inline unsigned int getMaxWorkQueueCapacity() const
+	{
+		return maxWorkQueueCapacity;
+	}
+
+	inline unsigned int getMaxWorkQueueCapacityUsed() const
+	{
+		return maxWorkQueueCapacityUsed;
+	}
+#endif
+
 private:
 	WorkQueuesManager buffer1;
 	WorkQueuesManager buffer2;
+	unsigned int maxWorkQueueCapacity;
+	unsigned int lastDerivation;
+#ifdef _DEBUG
+	unsigned int maxWorkQueueCapacityUsed;
+#endif
 
 };
 
