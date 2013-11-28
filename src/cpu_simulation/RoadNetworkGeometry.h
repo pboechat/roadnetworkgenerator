@@ -49,18 +49,20 @@ public:
 
 	~RoadNetworkGeometry()
 	{
-	}
-
-	void build(const RoadNetworkGraph::Graph& roadNetworkGraph, const glm::vec4& highwayColor, const glm::vec4& streetColor)
-	{
 		if (built)
 		{
 			glDeleteBuffers(3, buffers);
 			glDeleteVertexArrays(1, &vao);
 		}
+	}
 
-		glGenBuffers(3, buffers);
-		glGenVertexArrays(1, &vao);
+	void build(const RoadNetworkGraph::Graph& roadNetworkGraph, const glm::vec4& highwayColor, const glm::vec4& streetColor)
+	{
+		if (!built)
+		{
+			glGenBuffers(3, buffers);
+			glGenVertexArrays(1, &vao);
+		}
 
 		std::vector<glm::vec4> vertices;
 		std::vector<glm::vec4> colors;

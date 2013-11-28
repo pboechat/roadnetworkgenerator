@@ -11,6 +11,7 @@
 #include <AABB.h>
 #include <Graph.h>
 #include <Timer.h>
+#include <MathExtras.h>
 
 #include <glm/glm.hpp>
 
@@ -22,7 +23,6 @@
 #define ZNEAR 10.0f
 #define ZFAR 10000.0f
 #define FOVY_DEG 60.0f
-#define HALF_PI 1.570796325f
 
 #ifdef _DEBUG
 #define toKilobytes(a) (a / 1024)
@@ -40,7 +40,7 @@ void generateAndDisplay(const std::string& configurationFile, SceneRenderer& ren
 	configuration.loadFromFile(configurationFile);
 
 	AABB worldBounds(0.0f, 0.0f, (float)configuration.worldWidth, (float)configuration.worldHeight);
-	renderer.setUpImageMaps(worldBounds, configuration.populationDensityMap, configuration.waterBodiesMap);
+	renderer.setUpImageMaps(worldBounds, configuration.populationDensityMap, configuration.waterBodiesMap, configuration.blockadesMap);
 #ifdef USE_QUADTREE
 	RoadNetworkGraph::Graph graph(worldBounds, configuration.quadtreeDepth, configuration.snapRadius, configuration.maxVertices, configuration.maxEdges, configuration.maxResultsPerQuery);
 #else

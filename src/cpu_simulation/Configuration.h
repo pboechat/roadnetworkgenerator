@@ -16,7 +16,7 @@
 #include <random>
 #include <regex>
 
-#define MAX_SPAWN_POINTS 20
+#define MAX_SPAWN_POINTS 100
 #define VEC3_VECTOR_PATTERN "(\\([^\\)]+\\)\\,?)"
 
 struct Configuration
@@ -40,15 +40,17 @@ struct Configuration
 	unsigned int streetBranchingDelay;
 	unsigned int maxDerivations;
 	unsigned int maxHighwayGoalDeviation; // degrees
+	unsigned int goalDistanceThreshold;
 	int halfMaxHighwayGoalDeviation; // degrees
 	unsigned int maxObstacleDeviationAngle; // degrees
 	unsigned int minRoadLength;
 	unsigned int samplingArc; // degrees
-	int halfSamplingArc;
+	int halfSamplingArc; // degrees
 	unsigned int quadtreeDepth;
 	float snapRadius;
 	ImageMap populationDensityMap;
 	ImageMap waterBodiesMap;
+	ImageMap blockadesMap;
 	glm::vec4 highwayColor;
 	glm::vec4 streetColor;
 	glm::vec4 quadtreeColor;
@@ -121,6 +123,7 @@ struct Configuration
 		streetBranchingDelay = getPropertyAsUnsignedInt(properties, "street_branching_delay");
 		maxDerivations = getPropertyAsUnsignedInt(properties, "max_derivations");
 		maxHighwayGoalDeviation = getPropertyAsUnsignedInt(properties, "max_highway_goal_deviation");
+		goalDistanceThreshold = getPropertyAsUnsignedInt(properties, "goal_distance_threshold");
 		halfMaxHighwayGoalDeviation = (maxHighwayGoalDeviation + 1) / 2;
 		maxObstacleDeviationAngle = getPropertyAsUnsignedInt(properties, "max_obstacle_deviation_angle");
 		minRoadLength = getPropertyAsUnsignedInt(properties, "min_road_length");
@@ -133,16 +136,25 @@ struct Configuration
 		quadtreeColor = getPropertyAsVec4(properties, "quadtree_color");
 		std::string populationDensityMapFile = getProperty(properties, "population_density_map");
 		std::string waterBodiesMapFile = getProperty(properties, "water_bodies_map");
+		std::string blockadesMapFile = getProperty(properties, "blockades_map");
+		// population density map
 		populationDensityMap.import(populationDensityMapFile, worldWidth, worldHeight);
 		glm::vec4 color1 = getPropertyAsVec4(properties, "population_density_map_color1");
 		glm::vec4 color2 = getPropertyAsVec4(properties, "population_density_map_color2");
 		populationDensityMap.setColor1(color1);
 		populationDensityMap.setColor2(color2);
+		// water bodies map
 		waterBodiesMap.import(waterBodiesMapFile, worldWidth, worldHeight);
 		color1 = getPropertyAsVec4(properties, "water_bodies_map_color1");
 		color2 = getPropertyAsVec4(properties, "water_bodies_map_color2");
 		waterBodiesMap.setColor1(color1);
 		waterBodiesMap.setColor2(color2);
+		// blockades map
+		blockadesMap.import(blockadesMapFile, worldWidth, worldHeight);
+		color1 = getPropertyAsVec4(properties, "blockades_map_color1");
+		color2 = getPropertyAsVec4(properties, "blockades_map_color2");
+		blockadesMap.setColor1(color1);
+		blockadesMap.setColor2(color2);
 		removeDeadEndRoads = getPropertyAsBool(properties, "remove_dead_end_roads");
 		getPropertyAsVec3Array(properties, "spawn_points", spawnPoints, numSpawnPoints, MAX_SPAWN_POINTS);
 	}

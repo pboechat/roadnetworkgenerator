@@ -34,7 +34,7 @@ public:
 
 		if (originalWidth != desiredWidth || originalHeigth != desiredHeight)
 		{
-			image = FreeImage_Rescale(image, desiredWidth, desiredHeight, FILTER_BILINEAR);
+			image = FreeImage_Rescale(image, desiredWidth, desiredHeight, FILTER_BOX);
 		}
 
 		width = desiredWidth;

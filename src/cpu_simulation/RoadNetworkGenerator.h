@@ -11,6 +11,7 @@
 #include <RuleAttributes.h>
 #include <Road.h>
 #include <Graph.h>
+#include <MathExtras.h>
 
 #include <glm/glm.hpp>
 
@@ -38,9 +39,9 @@ public:
 			RoadNetworkGraph::VertexIndex source = graph.createVertex(spawnPoint);
 
 			frontBuffer->addWorkItem(EvaluateRoad(Road(0, RoadAttributes(source, configuration.highwayLength, 0, true), RuleAttributes(), UNASSIGNED)));
-			frontBuffer->addWorkItem(EvaluateRoad(Road(0, RoadAttributes(source, configuration.highwayLength, -90, true), RuleAttributes(), UNASSIGNED)));
-			frontBuffer->addWorkItem(EvaluateRoad(Road(0, RoadAttributes(source, configuration.highwayLength, 90, true), RuleAttributes(), UNASSIGNED)));
-			frontBuffer->addWorkItem(EvaluateRoad(Road(0, RoadAttributes(source, configuration.highwayLength, 180, true), RuleAttributes(), UNASSIGNED)));
+			frontBuffer->addWorkItem(EvaluateRoad(Road(0, RoadAttributes(source, configuration.highwayLength, -MathExtras::HALF_PI, true), RuleAttributes(), UNASSIGNED)));
+			frontBuffer->addWorkItem(EvaluateRoad(Road(0, RoadAttributes(source, configuration.highwayLength, MathExtras::HALF_PI, true), RuleAttributes(), UNASSIGNED)));
+			frontBuffer->addWorkItem(EvaluateRoad(Road(0, RoadAttributes(source, configuration.highwayLength, MathExtras::PI, true), RuleAttributes(), UNASSIGNED)));
 		}
 
 		// TODO: improve design

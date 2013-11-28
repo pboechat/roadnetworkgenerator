@@ -36,11 +36,12 @@ public:
 		roadNetworkGeometry(roadNetworkGeometry),
 		drawPopulationDensityMap(true),
 		drawWaterBodiesMap(true),
+		drawBlockadesMap(true),
 		worldSizedQuad(0)
 	{
 		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 		glEnable(GL_PROGRAM_POINT_SIZE);
-		glPointSize(2.0f);
+		glPointSize(5.0f);
 		glEnable(GL_CULL_FACE);
 		glCullFace(GL_BACK);
 	}
@@ -55,11 +56,12 @@ public:
 		destroyImageMaps();
 	}
 
-	void setUpImageMaps(const AABB& worldBounds, const ImageMap& populationDensityMap, const ImageMap& waterBodiesMap)
+	void setUpImageMaps(const AABB& worldBounds, const ImageMap& populationDensityMap, const ImageMap& waterBodiesMap, const ImageMap& blockadesMap)
 	{
 		destroyImageMaps();
 		setUpImageMapRenderData(populationDensityMap, populationDensityMapData);
 		setUpImageMapRenderData(waterBodiesMap, waterBodiesMapData);
+		setUpImageMapRenderData(blockadesMap, blockadesMapData);
 		glm::vec3 size = worldBounds.getExtents();
 
 		if (worldSizedQuad != 0)
@@ -89,7 +91,7 @@ public:
 			// render image maps
 			glDepthMask(GL_FALSE);
 			glEnable(GL_BLEND);
-			glBlendFunc(GL_ONE, GL_ONE);
+			glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 			imageMapShader.bind();
 			imageMapShader.setMat4("uViewProjection", viewProjection);
 			if (drawPopulationDensityMap)
@@ -99,6 +101,10 @@ public:
 			if (drawWaterBodiesMap)
 			{
 				drawImageMap(waterBodiesMapData);
+			}
+			if (drawBlockadesMap)
+			{
+				drawImageMap(blockadesMapData);
 			}
 			imageMapShader.unbind();
 			glDisable(GL_BLEND);
@@ -122,6 +128,11 @@ public:
 		drawWaterBodiesMap = !drawWaterBodiesMap;
 	}
 
+	void toggleBlockadesMap()
+	{
+		drawBlockadesMap = !drawBlockadesMap;
+	}
+
 private:
 	Shader solidShader;
 	Shader imageMapShader;
@@ -129,8 +140,10 @@ private:
 	Quad* worldSizedQuad;
 	bool drawPopulationDensityMap;
 	bool drawWaterBodiesMap;
+	bool drawBlockadesMap;
 	ImageMapRenderData populationDensityMapData;
 	ImageMapRenderData waterBodiesMapData;
+	ImageMapRenderData blockadesMapData;
 
 	void setUpImageMapRenderData(const ImageMap& imageMap, ImageMapRenderData& imageMapData)
 	{
@@ -149,6 +162,11 @@ private:
 		if (waterBodiesMapData.texture != 0)
 		{
 			delete waterBodiesMapData.texture;
+		}
+
+		if (blockadesMapData.texture != 0)
+		{
+			delete blockadesMapData.texture;
 		}
 	}
 

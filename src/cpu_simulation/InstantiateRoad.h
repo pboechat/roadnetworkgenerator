@@ -3,6 +3,7 @@
 
 #include <Procedure.h>
 #include <Road.h>
+#include <Pattern.h>
 
 #include <glm/glm.hpp>
 
@@ -26,9 +27,13 @@ private:
 
 	Road road;
 
-	void evaluateGlobalGoals(const Configuration& configuration, RoadNetworkGraph::VertexIndex newOrigin, const glm::vec3& position, float length, int* delays, RoadAttributes* roadAttributes, RuleAttributes* ruleAttributes);
-	void followHighestPopulationDensity(const Configuration& configuration, const glm::vec3& start, RoadAttributes& highwayRoadAttributes, RuleAttributes& highwayRuleAttributes) const;
-	void applyAngleDeviation(const Configuration& configuration, RoadAttributes& roadAttributes) const;
+	void evaluateGlobalGoals(const Configuration& configuration, RoadNetworkGraph::VertexIndex newOrigin, const glm::vec3& position, int* delays, RoadAttributes* roadAttributes, RuleAttributes* ruleAttributes);
+	void findHighestPopulationDensity(const Configuration& configuration, const glm::vec3& start, float startingAngle, glm::vec3& goal, unsigned int& distance) const;
+	Pattern findUnderlyingPattern(const Configuration& configuration, const glm::vec3& position) const;
+	void applyHighwayGoalDeviation(const Configuration& configuration, RoadAttributes& roadAttributes) const;
+	void applyBasicPatternRule(const Configuration& configuration, const glm::vec3& position, unsigned int goalDistance, int& delay, RoadAttributes& roadAttributes, RuleAttributes& ruleAttributes) const;
+	void applyRadialPatternRule(const Configuration& configuration, const glm::vec3& position, unsigned int goalDistance, int& delay, RoadAttributes& roadAttributes, RuleAttributes& ruleAttributes) const;
+	void applyRasterPatternRule(const Configuration& configuration, const glm::vec3& position, unsigned int goalDistance, int& delay, RoadAttributes& roadAttributes, RuleAttributes& ruleAttributes) const;
 
 };
 

@@ -2,10 +2,12 @@
 #include <EvaluateBranch.h>
 #include <EvaluateRoad.h>
 #include <Circle.h>
-#include <random>
+#include <Pattern.h>
+#include <MathExtras.h>
 
 #include <glm/gtx/quaternion.hpp>
 
+#include <random>
 #include <exception>
 
 unsigned char* InstantiateRoad::populationDensities = 0;
@@ -34,12 +36,11 @@ void InstantiateRoad::execute(WorkQueuesManager& manager, RoadNetworkGraph::Grap
 		throw std::exception("road.state != SUCCEED");
 	}
 
-	glm::vec3 direction = glm::rotate(glm::quat(glm::vec3(0, 0, glm::radians(road.roadAttributes.angle))), glm::vec3(0.0f, (float)road.roadAttributes.length, 0.0f));
+	glm::vec3 direction = glm::rotate(glm::quat(glm::vec3(0, 0, road.roadAttributes.angle)), glm::vec3(0.0f, road.roadAttributes.length, 0.0f));
 
 	RoadNetworkGraph::VertexIndex newSource;
 	glm::vec3 position;
-	float length;
-	bool interrupted = graph.addRoad(road.roadAttributes.source, direction, newSource, position, length, road.roadAttributes.highway);
+	bool interrupted = graph.addRoad(road.roadAttributes.source, direction, newSource, position, road.roadAttributes.highway);
 
 	int delays[3];
 	RoadAttributes roadAttributes[3];
@@ -54,7 +55,7 @@ void InstantiateRoad::execute(WorkQueuesManager& manager, RoadNetworkGraph::Grap
 
 	else
 	{
-		evaluateGlobalGoals(configuration, newSource, position, length, delays, roadAttributes, ruleAttributes);
+		evaluateGlobalGoals(configuration, newSource, position, delays, roadAttributes, ruleAttributes);
 	}
 
 	manager.addWorkItem(EvaluateBranch(Branch(delays[0], roadAttributes[0], ruleAttributes[0])));
@@ -62,7 +63,7 @@ void InstantiateRoad::execute(WorkQueuesManager& manager, RoadNetworkGraph::Grap
 	manager.addWorkItem(EvaluateRoad(Road(delays[2], roadAttributes[2], ruleAttributes[2], UNASSIGNED)));
 }
 
-void InstantiateRoad::evaluateGlobalGoals(const Configuration& configuration, RoadNetworkGraph::VertexIndex source, const glm::vec3& position, float length, int* delays, RoadAttributes* roadAttributes, RuleAttributes* ruleAttributes)
+void InstantiateRoad::evaluateGlobalGoals(const Configuration& configuration, RoadNetworkGraph::VertexIndex source, const glm::vec3& position, int* delays, RoadAttributes* roadAttributes, RuleAttributes* ruleAttributes)
 {
 	if (road.roadAttributes.highway)
 	{
@@ -72,29 +73,52 @@ void InstantiateRoad::evaluateGlobalGoals(const Configuration& configuration, Ro
 		// highway continuation
 		delays[2] = 0;
 		roadAttributes[2].source = source;
-		roadAttributes[2].length = configuration.highwayLength;
-		roadAttributes[2].angle = road.roadAttributes.angle;
 		roadAttributes[2].highway = true;
 		ruleAttributes[2].hasGoal = road.ruleAttributes.hasGoal;
+		ruleAttributes[2].goal = road.ruleAttributes.goal;
 
 		ruleAttributes[2].highwayBranchingDistance = (doRegularBranch) ? 0 : road.ruleAttributes.highwayBranchingDistance + 1;
 		ruleAttributes[2].pureHighwayBranchingDistance = (doPureHighwayBranch) ? 0 : road.ruleAttributes.pureHighwayBranchingDistance + 1;
 
+		unsigned int goalDistance;
 		if (!ruleAttributes[2].hasGoal)
 		{
-			followHighestPopulationDensity(configuration, position, roadAttributes[2], ruleAttributes[2]);
+			findHighestPopulationDensity(configuration, position, road.roadAttributes.angle, ruleAttributes[2].goal, goalDistance);
+			ruleAttributes[2].hasGoal = true;
 		}
 
 		else
 		{
-			ruleAttributes[2].goalDistance = road.ruleAttributes.goalDistance - length;
-			if (ruleAttributes[2].goalDistance <= 0)
+			goalDistance = (unsigned int)glm::distance(position, road.ruleAttributes.goal);
+		}
+		
+		if (goalDistance <= configuration.goalDistanceThreshold)
+		{
+			delays[2] = -1; // remove highway
+		}
+
+		else
+		{
+			Pattern pattern = findUnderlyingPattern(configuration, position);
+			if (pattern == BASIC)
 			{
-				delays[2] = -1; // remove highway
+				applyBasicPatternRule(configuration, position, goalDistance, delays[2], roadAttributes[2], ruleAttributes[2]);
 			}
+
+			else if (pattern == RADIAL)
+			{
+				applyRadialPatternRule(configuration, position, goalDistance, delays[2], roadAttributes[2], ruleAttributes[2]);
+			}
+
+			else if (pattern == RASTER)
+			{
+				applyRasterPatternRule(configuration, position, goalDistance, delays[2], roadAttributes[2], ruleAttributes[2]);
+			}
+
 			else
 			{
-				applyAngleDeviation(configuration, roadAttributes[2]);
+				// FIXME: checking invariants
+				throw std::exception("invalid pattern");
 			}
 		}
 
@@ -104,19 +128,19 @@ void InstantiateRoad::evaluateGlobalGoals(const Configuration& configuration, Ro
 			delays[0] = 0;
 			roadAttributes[0].source = source;
 			roadAttributes[0].length = configuration.highwayLength;
-			roadAttributes[0].angle = roadAttributes[2].angle - 90.0f;
+			roadAttributes[0].angle = roadAttributes[2].angle - MathExtras::HALF_PI;
 			roadAttributes[0].highway = true;
 
-			applyAngleDeviation(configuration, roadAttributes[0]);
+			applyHighwayGoalDeviation(configuration, roadAttributes[0]);
 
 			// new highway branch right
 			delays[1] = 0;
 			roadAttributes[1].source = source;
 			roadAttributes[1].length = configuration.highwayLength;
-			roadAttributes[1].angle = roadAttributes[2].angle + 90.0f;
+			roadAttributes[1].angle = roadAttributes[2].angle + MathExtras::HALF_PI;
 			roadAttributes[1].highway = true;
 
-			applyAngleDeviation(configuration, roadAttributes[1]);
+			applyHighwayGoalDeviation(configuration, roadAttributes[1]);
 		}
 
 		else
@@ -125,14 +149,14 @@ void InstantiateRoad::evaluateGlobalGoals(const Configuration& configuration, Ro
 			delays[0] = (doRegularBranch) ? configuration.highwayBranchingDelay : -1;
 			roadAttributes[0].source = source;
 			roadAttributes[0].length = configuration.streetLength;
-			roadAttributes[0].angle = roadAttributes[2].angle - 90.0f;
+			roadAttributes[0].angle = roadAttributes[2].angle - MathExtras::HALF_PI;
 			roadAttributes[0].highway = false;
 
 			// new street branch right
 			delays[1] = (doRegularBranch) ? configuration.highwayBranchingDelay : -1;
 			roadAttributes[1].source = source;
 			roadAttributes[1].length = configuration.streetLength;
-			roadAttributes[1].angle = roadAttributes[2].angle + 90.0f;
+			roadAttributes[1].angle = roadAttributes[2].angle + MathExtras::HALF_PI;
 			roadAttributes[1].highway = false;
 		}
 	}
@@ -145,7 +169,7 @@ void InstantiateRoad::evaluateGlobalGoals(const Configuration& configuration, Ro
 		delays[0] = configuration.streetBranchingDelay;
 		roadAttributes[0].source = source;
 		roadAttributes[0].length = configuration.streetLength;
-		roadAttributes[0].angle = road.roadAttributes.angle - 90.0f;
+		roadAttributes[0].angle = road.roadAttributes.angle - MathExtras::HALF_PI;
 		roadAttributes[0].highway = false;
 		ruleAttributes[0].streetBranchDepth = newStreetDepth;
 
@@ -153,7 +177,7 @@ void InstantiateRoad::evaluateGlobalGoals(const Configuration& configuration, Ro
 		delays[1] = configuration.streetBranchingDelay;
 		roadAttributes[1].source = source;
 		roadAttributes[1].length = configuration.streetLength;
-		roadAttributes[1].angle = road.roadAttributes.angle + 90.0f;
+		roadAttributes[1].angle = road.roadAttributes.angle + MathExtras::HALF_PI;
 		roadAttributes[1].highway = false;
 		ruleAttributes[1].streetBranchDepth = newStreetDepth;
 
@@ -167,13 +191,19 @@ void InstantiateRoad::evaluateGlobalGoals(const Configuration& configuration, Ro
 	}
 }
 
-void InstantiateRoad::followHighestPopulationDensity(const Configuration& configuration, const glm::vec3& start, RoadAttributes& roadAttributes, RuleAttributes& ruleAttributes) const
+Pattern InstantiateRoad::findUnderlyingPattern(const Configuration& configuration, const glm::vec3& position) const
+{
+	// TODO:
+	return BASIC;
+}
+
+void InstantiateRoad::findHighestPopulationDensity(const Configuration& configuration, const glm::vec3& start, float startingAngle, glm::vec3& goal, unsigned int& distance) const
 {
 	int currentAngleStep = -configuration.halfSamplingArc;
 
 	for (unsigned int i = 0; i < configuration.samplingArc; i++, currentAngleStep++)
 	{
-		glm::vec3 direction = glm::normalize(glm::rotate(glm::quat(glm::vec3(0.0f, 0.0f, glm::radians(roadAttributes.angle + (float)currentAngleStep))), glm::vec3(0.0f, 1.0f, 0.0f)));
+		glm::vec3 direction = glm::normalize(glm::rotate(glm::quat(glm::vec3(0.0f, 0.0f, startingAngle + glm::radians((float)currentAngleStep))), glm::vec3(0.0f, 1.0f, 0.0f)));
 		unsigned char populationDensity;
 		int distance;
 		configuration.populationDensityMap.scan(start, direction, configuration.minSamplingRayLength, configuration.maxSamplingRayLength, populationDensity, distance);
@@ -197,19 +227,36 @@ void InstantiateRoad::followHighestPopulationDensity(const Configuration& config
 		}
 	}
 
-	roadAttributes.angle += (angleIncrement - configuration.halfSamplingArc);
-	ruleAttributes.goalDistance = (float)distances[j];
-	ruleAttributes.hasGoal = true;
+	float angle = startingAngle + glm::radians(angleIncrement - (float)configuration.halfSamplingArc);
+	distance = distances[j];
+	goal = start + glm::rotate(glm::quat(glm::vec3(0.0f, 0.0f, angle)), glm::vec3(0.0f, (float)distance, 0.0f));
 }
 
-void InstantiateRoad::applyAngleDeviation(const Configuration& configuration, RoadAttributes& roadAttributes) const
+void InstantiateRoad::applyHighwayGoalDeviation(const Configuration& configuration, RoadAttributes& roadAttributes) const
 {
 	if (configuration.maxHighwayGoalDeviation == 0)
 	{
 		return;
 	}
 
-	roadAttributes.angle += ((rand() % configuration.halfMaxHighwayGoalDeviation) - (int)configuration.maxHighwayGoalDeviation);
+	roadAttributes.angle += glm::radians((float)(rand() % configuration.halfMaxHighwayGoalDeviation) - (int)configuration.maxHighwayGoalDeviation);
+}
+
+void InstantiateRoad::applyBasicPatternRule(const Configuration& configuration, const glm::vec3& position, unsigned int goalDistance, int& delay, RoadAttributes& roadAttributes, RuleAttributes& ruleAttributes) const
+{
+	roadAttributes.length = MathExtras::min(goalDistance, configuration.highwayLength);
+	roadAttributes.angle = MathExtras::getOrientedAngle(glm::vec3(0.0f, 1.0f, 0.0f), ruleAttributes.goal - position);
+	applyHighwayGoalDeviation(configuration, roadAttributes);
+}
+
+void InstantiateRoad::applyRadialPatternRule(const Configuration& configuration, const glm::vec3& position, unsigned int goalDistance, int& delay, RoadAttributes& roadAttributes, RuleAttributes& ruleAttributes) const
+{
+	// TODO:
+}
+
+void InstantiateRoad::applyRasterPatternRule(const Configuration& configuration, const glm::vec3& position, unsigned int goalDistance, int& delay, RoadAttributes& roadAttributes, RuleAttributes& ruleAttributes) const
+{
+	// TODO:
 }
 
 void InstantiateRoad::initialize(const Configuration& configuration)

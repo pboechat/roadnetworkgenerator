@@ -69,14 +69,23 @@ void EvaluateRoad::evaluateLocalContraints(const Configuration& configuration, c
 		return;
 	}
 
-	unsigned int angleIncrement = 0;
+	if (!evaluateWaterBodies(configuration, position))
+	{
+		return;
+	}
 
+	evaluateBlockades(configuration, position);
+}
+
+bool EvaluateRoad::evaluateWaterBodies(const Configuration &configuration, const glm::vec3& position)
+{
+	unsigned int angleIncrement = 0;
 	unsigned int length = road.roadAttributes.length;
 	while (length >= configuration.minRoadLength)
 	{
 		do
 		{
-			glm::vec3 direction = glm::normalize(glm::rotate(glm::quat(glm::vec3(0, 0, glm::radians(road.roadAttributes.angle + (float)angleIncrement))), glm::vec3(0.0f, 1.0f, 0.0f)));
+			glm::vec3 direction = glm::normalize(glm::rotate(glm::quat(glm::vec3(0, 0, road.roadAttributes.angle + glm::radians((float)angleIncrement))), glm::vec3(0.0f, 1.0f, 0.0f)));
 
 			if (configuration.waterBodiesMap.castRay(position, direction, length, 0))
 			{
@@ -101,10 +110,55 @@ void EvaluateRoad::evaluateLocalContraints(const Configuration& configuration, c
 	if (angleIncrement > configuration.maxObstacleDeviationAngle)
 	{
 		road.state = FAILED;
+		return false;
 	}
 
 	else
 	{
-		road.roadAttributes.angle += angleIncrement;
+		road.roadAttributes.angle += glm::radians((float)angleIncrement);
 	}
+	return true;
+}
+
+bool EvaluateRoad::evaluateBlockades(const Configuration &configuration, const glm::vec3& position)
+{
+	unsigned int angleIncrement = 0;
+	unsigned int length = road.roadAttributes.length;
+	while (length >= configuration.minRoadLength)
+	{
+		do
+		{
+			glm::vec3 direction = glm::normalize(glm::rotate(glm::quat(glm::vec3(0, 0, road.roadAttributes.angle + glm::radians((float)angleIncrement))), glm::vec3(0.0f, 1.0f, 0.0f)));
+
+			if (configuration.blockadesMap.castRay(position, direction, length, 0))
+			{
+				road.state = SUCCEED;
+				break;
+			}
+
+			angleIncrement++;;
+		}
+		while (angleIncrement <= configuration.maxObstacleDeviationAngle);
+
+		if (road.state == SUCCEED)
+		{
+			break;
+		}
+
+		length--;
+	}
+
+	road.roadAttributes.length = length;
+
+	if (angleIncrement > configuration.maxObstacleDeviationAngle)
+	{
+		road.state = FAILED;
+		return false;
+	}
+
+	else
+	{
+		road.roadAttributes.angle += glm::radians((float)angleIncrement);
+	}
+	return true;
 }

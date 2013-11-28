@@ -65,7 +65,7 @@ Graph::~Graph()
 }
 
 #ifdef USE_QUADTREE
-bool Graph::addRoad(VertexIndex source, const glm::vec3& direction, VertexIndex& newVertex, glm::vec3& end, float& length, bool highway)
+bool Graph::addRoad(VertexIndex source, const glm::vec3& direction, VertexIndex& newVertex, glm::vec3& end, bool highway)
 {
 	glm::vec3 start = getPosition(source);
 	end = start + direction;
@@ -83,7 +83,6 @@ bool Graph::addRoad(VertexIndex source, const glm::vec3& direction, VertexIndex&
 	if (checkIntersection(newEdgeLine, querySize, source, edgeIndex, intersection, intersectionType))
 	{
 		end = intersection;
-		length = glm::distance(start, end);
 
 		if (intersectionType == SOURCE)
 		{
@@ -117,7 +116,6 @@ bool Graph::addRoad(VertexIndex source, const glm::vec3& direction, VertexIndex&
 		if (checkSnapping(snapCircle, querySize, source, snapping, edgeIndex))
 		{
 			end = snapping;
-			length = glm::distance(start, end);
 
 			newVertex = createVertex(end);
 			splitEdge(edgeIndex, newVertex);
@@ -128,7 +126,6 @@ bool Graph::addRoad(VertexIndex source, const glm::vec3& direction, VertexIndex&
 
 		else 
 		{
-			length = glm::distance(start, end);
 			newVertex = createVertex(end);
 			connect(source, newVertex, highway);
 

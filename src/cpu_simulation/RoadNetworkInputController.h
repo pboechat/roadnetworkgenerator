@@ -79,6 +79,11 @@ public:
 			renderer.toggleWaterBodiesMap();
 		}
 
+		if (getKeyDown(VK_F3))
+		{
+			renderer.toggleBlockadesMap();
+		}
+
 		if (getKeyDown(VK_F5))
 		{
 			callback(configurationFile, renderer, geometry, camera);
