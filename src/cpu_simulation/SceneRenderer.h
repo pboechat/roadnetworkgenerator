@@ -41,7 +41,7 @@ public:
 	{
 		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 		glEnable(GL_PROGRAM_POINT_SIZE);
-		glPointSize(5.0f);
+		glPointSize(3.0f);
 		glEnable(GL_CULL_FACE);
 		glCullFace(GL_BACK);
 	}

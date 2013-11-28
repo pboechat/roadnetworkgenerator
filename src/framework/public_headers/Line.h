@@ -8,7 +8,7 @@
 
 #include <exception>
 
-#define EPSILON 0.01f
+#define EPSILON 0.001f
 
 struct Line
 {
