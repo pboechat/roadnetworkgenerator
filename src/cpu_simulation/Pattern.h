@@ -3,9 +3,9 @@
 
 enum Pattern
 {
-	BASIC,
-	RADIAL,
-	RASTER
+	NATURAL_PATTERN,
+	RADIAL_PATTERN,
+	RASTER_PATTERN
 
 };
 

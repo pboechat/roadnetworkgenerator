@@ -8,6 +8,13 @@ namespace MathExtras
 const float TWO_PI = 6.28318530717958647692f;
 const float PI = 3.14159265358979323846f;
 const float HALF_PI = 1.57079632679489661923f;
+const float PI_AND_HALF = 4.71238898038468985769f;
+
+template<typename T>
+inline static T max(T a, T b)
+{
+	return (a > b) ? a : b;
+}
 
 template<typename T>
 inline static T min(T a, T b)

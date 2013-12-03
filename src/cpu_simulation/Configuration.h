@@ -51,9 +51,13 @@ struct Configuration
 	ImageMap populationDensityMap;
 	ImageMap waterBodiesMap;
 	ImageMap blockadesMap;
+	ImageMap patternsMap;
 	glm::vec4 highwayColor;
 	glm::vec4 streetColor;
 	glm::vec4 quadtreeColor;
+	unsigned char naturalPattern;
+	unsigned char radialPattern;
+	unsigned char rasterPattern;
 	bool removeDeadEndRoads;
 	unsigned int numSpawnPoints;
 	glm::vec3 spawnPoints[MAX_SPAWN_POINTS];
@@ -134,9 +138,13 @@ struct Configuration
 		highwayColor = getPropertyAsVec4(properties, "highway_color");
 		streetColor = getPropertyAsVec4(properties, "street_color");
 		quadtreeColor = getPropertyAsVec4(properties, "quadtree_color");
+		naturalPattern = getPropertyAsUnsignedChar(properties, "natural_pattern");
+		radialPattern = getPropertyAsUnsignedChar(properties, "radial_pattern");
+		rasterPattern = getPropertyAsUnsignedChar(properties, "raster_pattern");
 		std::string populationDensityMapFile = getProperty(properties, "population_density_map");
 		std::string waterBodiesMapFile = getProperty(properties, "water_bodies_map");
 		std::string blockadesMapFile = getProperty(properties, "blockades_map");
+		std::string patternsMapFile = getProperty(properties, "patterns_map");
 		// population density map
 		populationDensityMap.import(populationDensityMapFile, worldWidth, worldHeight);
 		glm::vec4 color1 = getPropertyAsVec4(properties, "population_density_map_color1");
@@ -155,6 +163,12 @@ struct Configuration
 		color2 = getPropertyAsVec4(properties, "blockades_map_color2");
 		blockadesMap.setColor1(color1);
 		blockadesMap.setColor2(color2);
+		// patterns map
+		patternsMap.import(patternsMapFile, worldWidth, worldHeight);
+		color1 = getPropertyAsVec4(properties, "patterns_map_color1");
+		color2 = getPropertyAsVec4(properties, "patterns_map_color2");
+		patternsMap.setColor1(color1);
+		patternsMap.setColor2(color2);
 		removeDeadEndRoads = getPropertyAsBool(properties, "remove_dead_end_roads");
 		getPropertyAsVec3Array(properties, "spawn_points", spawnPoints, numSpawnPoints, MAX_SPAWN_POINTS);
 	}
@@ -171,6 +185,11 @@ private:
 		}
 
 		return i->second;
+	}
+
+	static unsigned char getPropertyAsUnsignedChar(const std::map<std::string, std::string>& properties, const std::string& propertyName)
+	{
+		return (unsigned char)atoi(getProperty(properties, propertyName).c_str());
 	}
 
 	static unsigned int getPropertyAsUnsignedInt(const std::map<std::string, std::string>& properties, const std::string& propertyName)

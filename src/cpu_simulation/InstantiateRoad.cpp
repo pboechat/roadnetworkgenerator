@@ -7,6 +7,7 @@
 
 #include <glm/gtx/quaternion.hpp>
 
+#include <sstream>
 #include <random>
 #include <exception>
 
@@ -100,17 +101,17 @@ void InstantiateRoad::evaluateGlobalGoals(const Configuration& configuration, Ro
 		else
 		{
 			Pattern pattern = findUnderlyingPattern(configuration, position);
-			if (pattern == BASIC)
+			if (pattern == NATURAL_PATTERN)
 			{
-				applyBasicPatternRule(configuration, position, goalDistance, delays[2], roadAttributes[2], ruleAttributes[2]);
+				applyNaturalPatternRule(configuration, position, goalDistance, delays[2], roadAttributes[2], ruleAttributes[2]);
 			}
 
-			else if (pattern == RADIAL)
+			else if (pattern == RADIAL_PATTERN)
 			{
 				applyRadialPatternRule(configuration, position, goalDistance, delays[2], roadAttributes[2], ruleAttributes[2]);
 			}
 
-			else if (pattern == RASTER)
+			else if (pattern == RASTER_PATTERN)
 			{
 				applyRasterPatternRule(configuration, position, goalDistance, delays[2], roadAttributes[2], ruleAttributes[2]);
 			}
@@ -131,7 +132,7 @@ void InstantiateRoad::evaluateGlobalGoals(const Configuration& configuration, Ro
 			roadAttributes[0].angle = roadAttributes[2].angle - MathExtras::HALF_PI;
 			roadAttributes[0].highway = true;
 
-			applyHighwayGoalDeviation(configuration, roadAttributes[0]);
+			//applyHighwayGoalDeviation(configuration, roadAttributes[0]);
 
 			// new highway branch right
 			delays[1] = 0;
@@ -140,7 +141,7 @@ void InstantiateRoad::evaluateGlobalGoals(const Configuration& configuration, Ro
 			roadAttributes[1].angle = roadAttributes[2].angle + MathExtras::HALF_PI;
 			roadAttributes[1].highway = true;
 
-			applyHighwayGoalDeviation(configuration, roadAttributes[1]);
+			//applyHighwayGoalDeviation(configuration, roadAttributes[1]);
 		}
 
 		else
@@ -193,8 +194,31 @@ void InstantiateRoad::evaluateGlobalGoals(const Configuration& configuration, Ro
 
 Pattern InstantiateRoad::findUnderlyingPattern(const Configuration& configuration, const glm::vec3& position) const
 {
-	// TODO:
-	return BASIC;
+	unsigned char sample = configuration.patternsMap.sample(position);
+	unsigned char min = (unsigned char)MathExtras::max(0, (int)sample - 5);
+	unsigned char max = (unsigned char)MathExtras::min(255, (int)sample + 5);
+	if (configuration.naturalPattern >= min && configuration.naturalPattern <= max)
+	{
+		return NATURAL_PATTERN;
+	}
+
+	else if (configuration.radialPattern >= min && configuration.radialPattern <= max)
+	{
+		return RADIAL_PATTERN;
+	}
+
+	else if (configuration.rasterPattern >= min && configuration.rasterPattern <= max)
+	{
+		return RASTER_PATTERN;
+	}
+
+	else
+	{
+		std::stringstream message;
+		message << "unknown pattern: " << (int)sample;
+		// FIXME: checking invariants
+		throw std::exception(message.str().c_str());
+	}
 }
 
 void InstantiateRoad::findHighestPopulationDensity(const Configuration& configuration, const glm::vec3& start, float startingAngle, glm::vec3& goal, unsigned int& distance) const
@@ -242,7 +266,7 @@ void InstantiateRoad::applyHighwayGoalDeviation(const Configuration& configurati
 	roadAttributes.angle += glm::radians((float)(rand() % configuration.halfMaxHighwayGoalDeviation) - (int)configuration.maxHighwayGoalDeviation);
 }
 
-void InstantiateRoad::applyBasicPatternRule(const Configuration& configuration, const glm::vec3& position, unsigned int goalDistance, int& delay, RoadAttributes& roadAttributes, RuleAttributes& ruleAttributes) const
+void InstantiateRoad::applyNaturalPatternRule(const Configuration& configuration, const glm::vec3& position, unsigned int goalDistance, int& delay, RoadAttributes& roadAttributes, RuleAttributes& ruleAttributes) const
 {
 	roadAttributes.length = MathExtras::min(goalDistance, configuration.highwayLength);
 	roadAttributes.angle = MathExtras::getOrientedAngle(glm::vec3(0.0f, 1.0f, 0.0f), ruleAttributes.goal - position);
@@ -256,7 +280,44 @@ void InstantiateRoad::applyRadialPatternRule(const Configuration& configuration,
 
 void InstantiateRoad::applyRasterPatternRule(const Configuration& configuration, const glm::vec3& position, unsigned int goalDistance, int& delay, RoadAttributes& roadAttributes, RuleAttributes& ruleAttributes) const
 {
-	// TODO:
+	float angle = MathExtras::getOrientedAngle(glm::vec3(1.0f, 0.0f, 0.0f), ruleAttributes.goal - position);
+
+	unsigned int horizontalDistance = (unsigned int)glm::abs((float)goalDistance * glm::cos(angle));
+	unsigned int verticalDistance = (unsigned int)glm::abs((float)goalDistance * glm::sin(angle));
+
+	bool canMoveHorizontally = horizontalDistance >= configuration.minRoadLength;
+	bool canMoveVertically = verticalDistance >= configuration.minRoadLength;
+
+	bool moveHorizontally;
+	if (!canMoveHorizontally && !canMoveVertically)
+	{
+		delay = -1;
+		return;
+	}
+	else if (!canMoveHorizontally)
+	{
+		moveHorizontally = false;
+	}
+	else if (!canMoveVertically)
+	{
+		moveHorizontally = true;
+	}
+	else
+	{
+		moveHorizontally = (rand() % 99) < 50;
+	}
+
+	unsigned int length = (rand() % (configuration.highwayLength - configuration.minRoadLength)) + configuration.minRoadLength;
+	if (moveHorizontally)
+	{
+		roadAttributes.length = MathExtras::min(horizontalDistance, length);
+		roadAttributes.angle = (angle > MathExtras::HALF_PI && angle < MathExtras::PI_AND_HALF) ? MathExtras::HALF_PI : -MathExtras::HALF_PI;
+	}
+	else
+	{
+		roadAttributes.length = MathExtras::min(verticalDistance, length);
+		roadAttributes.angle = (angle > MathExtras::PI) ? MathExtras::PI : 0;
+	}
 }
 
 void InstantiateRoad::initialize(const Configuration& configuration)
