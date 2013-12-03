@@ -87,7 +87,13 @@ bool EvaluateRoad::evaluateWaterBodies(const Configuration &configuration, const
 		{
 			glm::vec3 direction = glm::normalize(glm::rotate(glm::quat(glm::vec3(0, 0, road.roadAttributes.angle + glm::radians((float)angleIncrement))), glm::vec3(0.0f, 1.0f, 0.0f)));
 
-			if (configuration.waterBodiesMap.castRay(position, direction, length, 0))
+			// FIXME: checking invariants
+			if (configuration.waterBodiesMap == 0)
+			{
+				throw std::exception("configuration.waterBodiesMap == 0");
+			}
+
+			if (configuration.waterBodiesMap->castRay(position, direction, length, 0))
 			{
 				road.state = SUCCEED;
 				break;
@@ -130,7 +136,13 @@ bool EvaluateRoad::evaluateBlockades(const Configuration &configuration, const g
 		{
 			glm::vec3 direction = glm::normalize(glm::rotate(glm::quat(glm::vec3(0, 0, road.roadAttributes.angle + glm::radians((float)angleIncrement))), glm::vec3(0.0f, 1.0f, 0.0f)));
 
-			if (configuration.blockadesMap.castRay(position, direction, length, 0))
+			// FIXME: checking invariants
+			if (configuration.blockadesMap == 0)
+			{
+				throw std::exception("configuration.blockadesMap == 0");
+			}
+
+			if (configuration.blockadesMap->castRay(position, direction, length, 0))
 			{
 				road.state = SUCCEED;
 				break;

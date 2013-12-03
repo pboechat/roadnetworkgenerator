@@ -56,14 +56,32 @@ public:
 		destroyImageMaps();
 	}
 
-	void setUpImageMaps(const AABB& worldBounds, const ImageMap& populationDensityMap, const ImageMap& waterBodiesMap, const ImageMap& blockadesMap)
+	void setUpImageMaps(const AABB& worldBounds, const ImageMap* populationDensityMap, const ImageMap* waterBodiesMap, const ImageMap* blockadesMap)
 	{
+		// FIXME: checking invariants
+		if (populationDensityMap == 0)
+		{
+			throw std::exception("populationDensityMap == 0");
+		}
+
+		// FIXME: checking invariants
+		if (waterBodiesMap == 0)
+		{
+			throw std::exception("waterBodiesMap == 0");
+		}
+
+		// FIXME: checking invariants
+		if (blockadesMap == 0)
+		{
+			throw std::exception("blockadesMap == 0");
+		}
+
 		destroyImageMaps();
 		setUpImageMapRenderData(populationDensityMap, populationDensityMapData);
 		setUpImageMapRenderData(waterBodiesMap, waterBodiesMapData);
 		setUpImageMapRenderData(blockadesMap, blockadesMapData);
-		glm::vec3 size = worldBounds.getExtents();
 
+		glm::vec3 size = worldBounds.getExtents();
 		if (worldSizedQuad != 0)
 		{
 			if (worldSizedQuad->getX() != worldBounds.min.x || worldSizedQuad->getY() != worldBounds.min.y ||
@@ -145,11 +163,11 @@ private:
 	ImageMapRenderData waterBodiesMapData;
 	ImageMapRenderData blockadesMapData;
 
-	void setUpImageMapRenderData(const ImageMap& imageMap, ImageMapRenderData& imageMapData)
+	void setUpImageMapRenderData(const ImageMap* imageMap, ImageMapRenderData& imageMapData)
 	{
-		imageMapData.texture = new Texture(imageMap.getWidth(), imageMap.getHeight(), GL_RED, GL_R8, GL_UNSIGNED_BYTE, GL_NEAREST, GL_CLAMP_TO_EDGE, (void*)imageMap.getData());
-		imageMapData.color1 = imageMap.getColor1();
-		imageMapData.color2 = imageMap.getColor2();
+		imageMapData.texture = new Texture(imageMap->getWidth(), imageMap->getHeight(), GL_RED, GL_R8, GL_UNSIGNED_BYTE, GL_NEAREST, GL_CLAMP_TO_EDGE, (void*)imageMap->getData());
+		imageMapData.color1 = imageMap->getColor1();
+		imageMapData.color2 = imageMap->getColor2();
 	}
 
 	void destroyImageMaps()

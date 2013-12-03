@@ -194,30 +194,45 @@ void InstantiateRoad::evaluateGlobalGoals(const Configuration& configuration, Ro
 
 Pattern InstantiateRoad::findUnderlyingPattern(const Configuration& configuration, const glm::vec3& position) const
 {
-	unsigned char sample = configuration.patternsMap.sample(position);
-	unsigned char min = (unsigned char)MathExtras::max(0, (int)sample - 5);
-	unsigned char max = (unsigned char)MathExtras::min(255, (int)sample + 5);
-	if (configuration.naturalPattern >= min && configuration.naturalPattern <= max)
+	unsigned char naturalPattern = 0;
+	if (configuration.naturalPatternMap != 0)
 	{
-		return NATURAL_PATTERN;
+		naturalPattern = configuration.naturalPatternMap->sample(position);
 	}
 
-	else if (configuration.radialPattern >= min && configuration.radialPattern <= max)
+	unsigned char radialPattern = 0;
+	if (configuration.radialPatternMap != 0)
 	{
-		return RADIAL_PATTERN;
+		radialPattern = configuration.radialPatternMap->sample(position);
 	}
 
-	else if (configuration.rasterPattern >= min && configuration.rasterPattern <= max)
+	unsigned char rasterPattern = 0;
+	if (configuration.rasterPatternMap != 0)
 	{
-		return RASTER_PATTERN;
+		rasterPattern = configuration.rasterPatternMap->sample(position);
 	}
 
+	if (rasterPattern > radialPattern)
+	{
+		if (rasterPattern > naturalPattern)
+		{
+			return RASTER_PATTERN;
+		}
+		else
+		{
+			return NATURAL_PATTERN;
+		}
+	}
 	else
 	{
-		std::stringstream message;
-		message << "unknown pattern: " << (int)sample;
-		// FIXME: checking invariants
-		throw std::exception(message.str().c_str());
+		if (radialPattern > naturalPattern)
+		{
+			return RADIAL_PATTERN;
+		}
+		else
+		{
+			return NATURAL_PATTERN;
+		}
 	}
 }
 
@@ -225,12 +240,18 @@ void InstantiateRoad::findHighestPopulationDensity(const Configuration& configur
 {
 	int currentAngleStep = -configuration.halfSamplingArc;
 
+	// FIXME: checking invariants
+	if (configuration.populationDensityMap == 0)
+	{
+		throw std::exception("configuration.populationDensityMap == 0");
+	}
+
 	for (unsigned int i = 0; i < configuration.samplingArc; i++, currentAngleStep++)
 	{
 		glm::vec3 direction = glm::normalize(glm::rotate(glm::quat(glm::vec3(0.0f, 0.0f, startingAngle + glm::radians((float)currentAngleStep))), glm::vec3(0.0f, 1.0f, 0.0f)));
 		unsigned char populationDensity;
 		int distance;
-		configuration.populationDensityMap.scan(start, direction, configuration.minSamplingRayLength, configuration.maxSamplingRayLength, populationDensity, distance);
+		configuration.populationDensityMap->scan(start, direction, configuration.minSamplingRayLength, configuration.maxSamplingRayLength, populationDensity, distance);
 		populationDensities[i] = populationDensity;
 		distances[i] = distance;
 	}

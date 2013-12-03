@@ -48,22 +48,52 @@ struct Configuration
 	int halfSamplingArc; // degrees
 	unsigned int quadtreeDepth;
 	float snapRadius;
-	ImageMap populationDensityMap;
-	ImageMap waterBodiesMap;
-	ImageMap blockadesMap;
-	ImageMap patternsMap;
+	ImageMap* populationDensityMap;
+	ImageMap* waterBodiesMap;
+	ImageMap* blockadesMap;
+	ImageMap* naturalPatternMap;
+	ImageMap* radialPatternMap;
+	ImageMap* rasterPatternMap;
 	glm::vec4 highwayColor;
 	glm::vec4 streetColor;
 	glm::vec4 quadtreeColor;
-	unsigned char naturalPattern;
-	unsigned char radialPattern;
-	unsigned char rasterPattern;
 	bool removeDeadEndRoads;
 	unsigned int numSpawnPoints;
 	glm::vec3 spawnPoints[MAX_SPAWN_POINTS];
 
-	Configuration() {}
-	~Configuration() {}
+	Configuration() : populationDensityMap(0), waterBodiesMap(0), blockadesMap(0), naturalPatternMap(0), radialPatternMap(0), rasterPatternMap(0) {}
+	~Configuration() 
+	{
+		if (populationDensityMap != 0)
+		{
+			delete populationDensityMap;
+		}
+
+		if (waterBodiesMap != 0)
+		{
+			delete waterBodiesMap;
+		}
+
+		if (blockadesMap != 0)
+		{
+			delete blockadesMap;
+		}
+
+		if (naturalPatternMap != 0)
+		{
+			delete naturalPatternMap;
+		}
+
+		if (radialPatternMap != 0)
+		{
+			delete radialPatternMap;
+		}
+
+		if (rasterPatternMap != 0)
+		{
+			delete rasterPatternMap;
+		}
+	}
 
 	void loadFromFile(const std::string& filePath)
 	{
@@ -138,42 +168,22 @@ struct Configuration
 		highwayColor = getPropertyAsVec4(properties, "highway_color");
 		streetColor = getPropertyAsVec4(properties, "street_color");
 		quadtreeColor = getPropertyAsVec4(properties, "quadtree_color");
-		naturalPattern = getPropertyAsUnsignedChar(properties, "natural_pattern");
-		radialPattern = getPropertyAsUnsignedChar(properties, "radial_pattern");
-		rasterPattern = getPropertyAsUnsignedChar(properties, "raster_pattern");
-		std::string populationDensityMapFile = getProperty(properties, "population_density_map");
-		std::string waterBodiesMapFile = getProperty(properties, "water_bodies_map");
-		std::string blockadesMapFile = getProperty(properties, "blockades_map");
-		std::string patternsMapFile = getProperty(properties, "patterns_map");
-		// population density map
-		populationDensityMap.import(populationDensityMapFile, worldWidth, worldHeight);
-		glm::vec4 color1 = getPropertyAsVec4(properties, "population_density_map_color1");
-		glm::vec4 color2 = getPropertyAsVec4(properties, "population_density_map_color2");
-		populationDensityMap.setColor1(color1);
-		populationDensityMap.setColor2(color2);
-		// water bodies map
-		waterBodiesMap.import(waterBodiesMapFile, worldWidth, worldHeight);
-		color1 = getPropertyAsVec4(properties, "water_bodies_map_color1");
-		color2 = getPropertyAsVec4(properties, "water_bodies_map_color2");
-		waterBodiesMap.setColor1(color1);
-		waterBodiesMap.setColor2(color2);
-		// blockades map
-		blockadesMap.import(blockadesMapFile, worldWidth, worldHeight);
-		color1 = getPropertyAsVec4(properties, "blockades_map_color1");
-		color2 = getPropertyAsVec4(properties, "blockades_map_color2");
-		blockadesMap.setColor1(color1);
-		blockadesMap.setColor2(color2);
-		// patterns map
-		patternsMap.import(patternsMapFile, worldWidth, worldHeight);
-		color1 = getPropertyAsVec4(properties, "patterns_map_color1");
-		color2 = getPropertyAsVec4(properties, "patterns_map_color2");
-		patternsMap.setColor1(color1);
-		patternsMap.setColor2(color2);
+		populationDensityMap = createAndImportImageMap(properties, "population_density_map", worldWidth, worldHeight);
+		waterBodiesMap = createAndImportImageMap(properties, "water_bodies_map", worldWidth, worldHeight);
+		blockadesMap = createAndImportImageMap(properties, "blockades_map", worldWidth, worldHeight);
+		naturalPatternMap = createAndImportImageMap(properties, "natural_pattern_map", worldWidth, worldHeight);
+		radialPatternMap = createAndImportImageMap(properties, "radial_pattern_map", worldWidth, worldHeight);
+		rasterPatternMap = createAndImportImageMap(properties, "raster_pattern_map", worldWidth, worldHeight);
 		removeDeadEndRoads = getPropertyAsBool(properties, "remove_dead_end_roads");
 		getPropertyAsVec3Array(properties, "spawn_points", spawnPoints, numSpawnPoints, MAX_SPAWN_POINTS);
 	}
 
 private:
+	static bool hasProperty(const std::map<std::string, std::string>& properties, const std::string& propertyName)
+	{
+		return properties.find(propertyName) != properties.end();
+	}
+
 	static const std::string& getProperty(const std::map<std::string, std::string>& properties, const std::string& propertyName)
 	{
 		std::map<std::string, std::string>::const_iterator i;
@@ -212,12 +222,12 @@ private:
 		return getProperty(properties, propertyName) == "true";
 	}
 
-	glm::vec4 getPropertyAsVec4(const std::map<std::string, std::string>& properties, const std::string& propertyName)
+	static glm::vec4 getPropertyAsVec4(const std::map<std::string, std::string>& properties, const std::string& propertyName)
 	{
 		return ParseUtils::parseVec4(getProperty(properties, propertyName));
 	}
 
-	void getPropertyAsVec3Array(const std::map<std::string, std::string>& properties, const std::string& propertyName, glm::vec3* vec3Array, unsigned int& size, unsigned int maxSize)
+	static void getPropertyAsVec3Array(const std::map<std::string, std::string>& properties, const std::string& propertyName, glm::vec3* vec3Array, unsigned int& size, unsigned int maxSize)
 	{
 		std::string propertyValue = getProperty(properties, propertyName);
 
@@ -246,6 +256,22 @@ private:
 
 			propertyValue = matches.suffix().str();
 		}
+	}
+
+	static ImageMap* createAndImportImageMap(const std::map<std::string, std::string>& properties, const std::string& propertyName, unsigned int width, unsigned int height)
+	{
+		if (!hasProperty(properties, propertyName))
+		{
+			return 0;
+		}
+		std::string mapFile = getProperty(properties, propertyName);
+		ImageMap* imageMap = new ImageMap();
+		imageMap->import(mapFile, width, height);
+		glm::vec4 color1 = getPropertyAsVec4(properties, propertyName + "_color1");
+		glm::vec4 color2 = getPropertyAsVec4(properties, propertyName + "_color2");
+		imageMap->setColor1(color1);
+		imageMap->setColor2(color2);
+		return imageMap;
 	}
 
 };

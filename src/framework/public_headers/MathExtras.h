@@ -22,6 +22,12 @@ inline static T min(T a, T b)
 	return (a < b) ? a : b;
 }
 
+template<typename T>
+inline static T clamp(T min, T max, T x)
+{
+	return ((x < min) ? min : ((x > max) ? max : x));
+}
+
 static float getOrientedAngle(const glm::vec3& a, const glm::vec3& b)
 {
 	float angle = acos(glm::dot(a, b) / (glm::length(a) * glm::length(b)));

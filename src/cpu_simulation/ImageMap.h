@@ -1,6 +1,8 @@
 #ifndef IMAGEMAP_H
 #define IMAGEMAP_H
 
+#include <MathExtras.h>
+
 #include <FreeImage.h>
 #include <glm/glm.hpp>
 
@@ -100,9 +102,8 @@ public:
 	{
 		glm::vec3 position;
 
-		// clamp
-		position.x = glm::max(0.0f, glm::min(point.x, (float)width));
-		position.y = glm::max(0.0f, glm::min(point.y, (float)height));
+		position.x = MathExtras::clamp(0.0f, (float)width, point.x);
+		position.y = MathExtras::clamp(0.0f, (float)height, point.y);
 
 		int i = ((int)position.y * width) + (int)position.x;
 
