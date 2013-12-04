@@ -1,2 +1,2 @@
 add_subdirectory(cpu_simulation)
-add_subdirectory(roadnetworkgraph)
+add_subdirectory(road_network_graph)
