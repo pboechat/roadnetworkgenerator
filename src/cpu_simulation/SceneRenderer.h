@@ -106,17 +106,17 @@ public:
 			imageMapShader.bind();
 			imageMapShader.setMat4("uViewProjection", viewProjection);
 
-			if (populationDensityMapData.enabled)
+			if (populationDensityMapData.enabled && populationDensityMapData.texture != 0)
 			{
 				drawImageMap(populationDensityMapData);
 			}
 
-			if (waterBodiesMapData.enabled)
+			if (waterBodiesMapData.enabled && waterBodiesMapData.texture != 0)
 			{
 				drawImageMap(waterBodiesMapData);
 			}
 
-			if (blockadesMapData.enabled)
+			if (blockadesMapData.enabled && blockadesMapData.texture != 0)
 			{
 				drawImageMap(blockadesMapData);
 			}
