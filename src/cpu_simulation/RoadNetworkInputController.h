@@ -16,14 +16,14 @@
 class RoadNetworkInputController : public InputController
 {
 public:
-	typedef void (*GenerateAndDisplayCallback)(const std::string&,SceneRenderer&,RoadNetworkGeometry&,Camera&);
+	typedef void (*GenerateAndDisplayCallback)(const std::string&, SceneRenderer&, RoadNetworkGeometry&, Camera&);
 
-	RoadNetworkInputController(Camera& camera, 
+	RoadNetworkInputController(Camera& camera,
 							   const std::string& configurationFile,
 							   SceneRenderer& renderer,
 							   RoadNetworkGeometry& geometry,
-							   GenerateAndDisplayCallback callback) 
-		: 
+							   GenerateAndDisplayCallback callback)
+		:
 		InputController(camera, 100.0f, 10.0f),
 		configurationFile(configurationFile),
 		renderer(renderer),
@@ -56,7 +56,8 @@ public:
 
 		else if (getKey(VK_DOWN) || getKey(83))
 		{
-			moveCameraDown((float)deltaTime);\
+			moveCameraDown((float)deltaTime);
+			\
 		}
 
 		if (getKey(81) || getKey(33))

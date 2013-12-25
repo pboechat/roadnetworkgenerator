@@ -17,4 +17,4 @@ struct QuadrantEdges
 
 }
 
-#endif 
+#endif

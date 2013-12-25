@@ -328,7 +328,7 @@ private:
 	float cameraRoll;
 
 	////////////////////////////////////////////////////////////////////////////////////////////////////
-	void clearTemporaryRegisters() 
+	void clearTemporaryRegisters()
 	{
 		leftMouseButtonUp = leftMouseButtonDown = rightMouseButtonUp = rightMouseButtonDown = false;
 		memset(keysUp, 0, NUMBER_OF_VIRTUAL_KEYS * sizeof(bool));

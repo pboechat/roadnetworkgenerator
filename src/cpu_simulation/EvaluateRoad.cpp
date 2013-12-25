@@ -74,13 +74,19 @@ void EvaluateRoad::evaluateLocalContraints(const Configuration& configuration, c
 		return;
 	}
 
+	if (configuration.blockadesMap == 0)
+	{
+		return;
+	}
+
 	evaluateBlockades(configuration, position);
 }
 
-bool EvaluateRoad::evaluateWaterBodies(const Configuration &configuration, const glm::vec3& position)
+bool EvaluateRoad::evaluateWaterBodies(const Configuration& configuration, const glm::vec3& position)
 {
 	unsigned int angleIncrement = 0;
 	unsigned int length = road.roadAttributes.length;
+
 	while (length >= configuration.minRoadLength)
 	{
 		do
@@ -111,25 +117,23 @@ bool EvaluateRoad::evaluateWaterBodies(const Configuration &configuration, const
 		length--;
 	}
 
-	road.roadAttributes.length = length;
-
-	if (angleIncrement > configuration.maxObstacleDeviationAngle)
+	if (road.state == UNASSIGNED)
 	{
 		road.state = FAILED;
 		return false;
 	}
 
-	else
-	{
-		road.roadAttributes.angle += glm::radians((float)angleIncrement);
-	}
+	road.roadAttributes.length = length;
+	road.roadAttributes.angle += glm::radians((float)angleIncrement);
+	
 	return true;
 }
 
-bool EvaluateRoad::evaluateBlockades(const Configuration &configuration, const glm::vec3& position)
+bool EvaluateRoad::evaluateBlockades(const Configuration& configuration, const glm::vec3& position)
 {
 	unsigned int angleIncrement = 0;
 	unsigned int length = road.roadAttributes.length;
+
 	while (length >= configuration.minRoadLength)
 	{
 		do
@@ -160,17 +164,14 @@ bool EvaluateRoad::evaluateBlockades(const Configuration &configuration, const g
 		length--;
 	}
 
-	road.roadAttributes.length = length;
-
-	if (angleIncrement > configuration.maxObstacleDeviationAngle)
+	if (road.state == UNASSIGNED)
 	{
 		road.state = FAILED;
 		return false;
 	}
 
-	else
-	{
-		road.roadAttributes.angle += glm::radians((float)angleIncrement);
-	}
+	road.roadAttributes.length = length;
+	road.roadAttributes.angle += glm::radians((float)angleIncrement);
+
 	return true;
 }

@@ -40,14 +40,16 @@ private:
 	bool executeWorkItem(static_alloc_queue* workQueue, WorkQueuesManager& manager, RoadNetworkGraph::Graph& graph, const Configuration& configuration)
 	{
 		T workItem;
+
 		if (workQueue->dequeue(workItem))
 		{
 			workItem.execute(manager, graph, configuration);
 			return true;
 		}
+
 		return false;
 	}
-	
+
 };
 
 #endif

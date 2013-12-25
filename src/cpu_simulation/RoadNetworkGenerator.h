@@ -22,7 +22,7 @@ class RoadNetworkGenerator
 public:
 	RoadNetworkGenerator(unsigned int maxWorkQueueCapacity) : maxWorkQueueCapacity(maxWorkQueueCapacity), buffer1(NUM_WORK_QUEUES, maxWorkQueueCapacity), buffer2(NUM_WORK_QUEUES, maxWorkQueueCapacity), lastDerivation(0)
 #ifdef _DEBUG
-	,maxWorkQueueCapacityUsed(0) 
+		, maxWorkQueueCapacityUsed(0)
 #endif
 	{}
 	~RoadNetworkGenerator() {}
@@ -35,9 +35,7 @@ public:
 		for (unsigned int i = 0; i < configuration.numSpawnPoints; i++)
 		{
 			glm::vec3 spawnPoint = configuration.spawnPoints[i];
-
 			RoadNetworkGraph::VertexIndex source = graph.createVertex(spawnPoint);
-
 			frontBuffer->addWorkItem(EvaluateRoad(Road(0, RoadAttributes(source, configuration.highwayLength, 0, true), RuleAttributes(), UNASSIGNED)));
 			frontBuffer->addWorkItem(EvaluateRoad(Road(0, RoadAttributes(source, configuration.highwayLength, -MathExtras::HALF_PI, true), RuleAttributes(), UNASSIGNED)));
 			frontBuffer->addWorkItem(EvaluateRoad(Road(0, RoadAttributes(source, configuration.highwayLength, MathExtras::HALF_PI, true), RuleAttributes(), UNASSIGNED)));
@@ -46,17 +44,18 @@ public:
 
 		// TODO: improve design
 		InstantiateRoad::initialize(configuration);
-
 		lastDerivation = 0;
+
 		while (frontBuffer->notEmpty() && lastDerivation++ < configuration.maxDerivations)
 		{
 #ifdef _DEBUG
+
 			if (frontBuffer->size() > maxWorkQueueCapacityUsed)
 			{
 				maxWorkQueueCapacityUsed = frontBuffer->size();
 			}
-#endif
 
+#endif
 			frontBuffer->executeAllWorkItems(*backBuffer, graph, configuration);
 			std::swap(frontBuffer, backBuffer);
 		}

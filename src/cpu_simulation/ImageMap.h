@@ -65,7 +65,7 @@ public:
 		{
 			glm::vec3 point = origin + (direction * (float)i);
 
-			if (sample(point) > threshold) 
+			if (sample(point) > threshold)
 			{
 				hit = point;
 				return false;
@@ -85,12 +85,13 @@ public:
 	{
 		distance = maxDistance;
 		greaterSample = 0;
+
 		for (int i = minDistance; i <= maxDistance; i++)
 		{
 			glm::vec3 point = origin + (direction * (float)i);
-
 			unsigned char currentSample = sample(point);
-			if (currentSample > greaterSample) 
+
+			if (currentSample > greaterSample)
 			{
 				distance = i;
 				greaterSample = currentSample;
@@ -101,12 +102,9 @@ public:
 	unsigned char sample(const glm::vec3& point) const
 	{
 		glm::vec3 position;
-
 		position.x = MathExtras::clamp(0.0f, (float)width, point.x);
 		position.y = MathExtras::clamp(0.0f, (float)height, point.y);
-
 		int i = ((int)position.y * width) + (int)position.x;
-
 		return data[i];
 	}
 

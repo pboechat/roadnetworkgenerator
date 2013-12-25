@@ -16,13 +16,16 @@ static void close_libgl(void)
 	FreeLibrary(libgl);
 }
 
-static void *get_proc(const char *proc)
+static void* get_proc(const char* proc)
 {
-	void *res;
-
+	void* res;
 	res = wglGetProcAddress(proc);
+
 	if (!res)
+	{
 		res = GetProcAddress(libgl, proc);
+	}
+
 	return res;
 }
 #elif defined(__APPLE__) || defined(__APPLE_CC__)
@@ -34,9 +37,8 @@ CFURLRef bundleURL;
 static void open_libgl(void)
 {
 	bundleURL = CFURLCreateWithFileSystemPath(kCFAllocatorDefault,
-		CFSTR("/System/Library/Frameworks/OpenGL.framework"),
-		kCFURLPOSIXPathStyle, true);
-
+				CFSTR("/System/Library/Frameworks/OpenGL.framework"),
+				kCFURLPOSIXPathStyle, true);
 	bundle = CFBundleCreate(kCFAllocatorDefault, bundleURL);
 	assert(bundle != NULL);
 }
@@ -47,12 +49,11 @@ static void close_libgl(void)
 	CFRelease(bundleURL);
 }
 
-static void *get_proc(const char *proc)
+static void* get_proc(const char* proc)
 {
-	void *res;
-
+	void* res;
 	CFStringRef procname = CFStringCreateWithCString(kCFAllocatorDefault, proc,
-		kCFStringEncodingASCII);
+						   kCFStringEncodingASCII);
 	res = CFBundleGetFunctionPointerForName(bundle, procname);
 	CFRelease(procname);
 	return res;
@@ -61,7 +62,7 @@ static void *get_proc(const char *proc)
 #include <dlfcn.h>
 #include <GL/glx.h>
 
-static void *libgl;
+static void* libgl;
 
 static void open_libgl(void)
 {
@@ -73,31 +74,40 @@ static void close_libgl(void)
 	dlclose(libgl);
 }
 
-static void *get_proc(const char *proc)
+static void* get_proc(const char* proc)
 {
-	void *res;
+	void* res;
+	res = glXGetProcAddress((const GLubyte*) proc);
 
-	res = glXGetProcAddress((const GLubyte *) proc);
 	if (!res)
+	{
 		res = dlsym(libgl, proc);
+	}
+
 	return res;
 }
 #endif
 
-static struct {
+static struct
+{
 	int major, minor;
 } version;
 
 static int parse_version(void)
 {
 	if (!glGetIntegerv)
+	{
 		return -1;
+	}
 
 	glGetIntegerv(GL_MAJOR_VERSION, &version.major);
 	glGetIntegerv(GL_MINOR_VERSION, &version.minor);
 
 	if (version.major < 3)
+	{
 		return -1;
+	}
+
 	return 0;
 }
 
@@ -114,13 +124,19 @@ int gl3wInit(void)
 int gl3wIsSupported(int major, int minor)
 {
 	if (major < 3)
+	{
 		return 0;
+	}
+
 	if (version.major == major)
+	{
 		return version.minor >= minor;
+	}
+
 	return version.major >= major;
 }
 
-void *gl3wGetProcAddress(const char *proc)
+void* gl3wGetProcAddress(const char* proc)
 {
 	return get_proc(proc);
 }

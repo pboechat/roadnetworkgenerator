@@ -18,9 +18,9 @@ private:
 	Road road;
 
 	void evaluateLocalContraints(const Configuration& configuration, const RoadNetworkGraph::Graph& roadNetworkGraph);
-	bool evaluateWaterBodies(const Configuration &configuration, const glm::vec3& position);
-	bool evaluateBlockades(const Configuration &configuration, const glm::vec3& position);
-	
+	bool evaluateWaterBodies(const Configuration& configuration, const glm::vec3& position);
+	bool evaluateBlockades(const Configuration& configuration, const glm::vec3& position);
+
 
 };
 

@@ -38,7 +38,6 @@ void generateAndDisplay(const std::string& configurationFile, SceneRenderer& ren
 {
 	Configuration configuration;
 	configuration.loadFromFile(configurationFile);
-
 	AABB worldBounds(0.0f, 0.0f, (float)configuration.worldWidth, (float)configuration.worldHeight);
 	renderer.setUpImageMaps(worldBounds, configuration.populationDensityMap, configuration.waterBodiesMap, configuration.blockadesMap);
 #ifdef USE_QUADTREE
@@ -76,7 +75,6 @@ void generateAndDisplay(const std::string& configurationFile, SceneRenderer& ren
 	std::cout << "num. collision checks: " << graph.getNumCollisionChecks() << std::endl;
 	std::cout  << std::endl << std::endl;
 #endif
-
 	geometry.build(graph, configuration.highwayColor, configuration.streetColor);
 	camera.centerOnTarget(worldBounds);
 }
@@ -112,13 +110,10 @@ int main(int argc, char** argv)
 		RoadNetworkGeometry geometry;
 		SceneRenderer renderer(camera, geometry);
 		RoadNetworkInputController inputController(camera, configurationFile, renderer, geometry, generateAndDisplay);
-
 		application.setCamera(camera);
 		application.setRenderer(renderer);
 		application.setInputController(inputController);
-
 		generateAndDisplay(configurationFile, renderer, geometry, camera);
-
 		return application.run();
 	}
 

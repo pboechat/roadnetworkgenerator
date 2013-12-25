@@ -30,20 +30,16 @@ public:
 		StringUtils::replace(value, "(", "");
 		StringUtils::trim(value);
 		float x = (float)atof(value.c_str());
-
 		value = values[1];
 		StringUtils::trim(value);
 		float y = (float)atof(value.c_str());
-
 		value = values[2];
 		StringUtils::trim(value);
 		float z = (float)atof(value.c_str());
-
 		value = values[3];
 		StringUtils::replace(value, ")", "");
 		StringUtils::trim(value);
 		float w = (float)atof(value.c_str());
-
 		return glm::vec4(x, y, z, w);
 	}
 
@@ -62,16 +58,13 @@ public:
 		StringUtils::replace(value, "(", "");
 		StringUtils::trim(value);
 		float x = (float)atof(value.c_str());
-
 		value = values[1];
 		StringUtils::trim(value);
 		float y = (float)atof(value.c_str());
-
 		value = values[2];
 		StringUtils::replace(value, ")", "");
 		StringUtils::trim(value);
 		float z = (float)atof(value.c_str());
-
 		return glm::vec3(x, y, z);
 	}
 
@@ -90,12 +83,10 @@ public:
 		StringUtils::replace(value, "(", "");
 		StringUtils::trim(value);
 		float x = (float)atof(value.c_str());
-
 		value = values[1];
 		StringUtils::replace(value, ")", "");
 		StringUtils::trim(value);
 		float y = (float)atof(value.c_str());
-
 		return glm::vec2(x, y);
 	}
 
@@ -104,8 +95,8 @@ public:
 	{
 		std::vector<std::string> values;
 		StringUtils::tokenize(aString, ",", values);
-
 		size = values.size();
+
 		for (unsigned int i = 0; i < size; i++)
 		{
 			std::string value = values[i];

@@ -21,8 +21,8 @@
 WorkQueuesManager::WorkQueuesManager(unsigned int numberOfWorkQueues, unsigned int maxWorkQueueCapacity) : workQueues(0), workQueuesCounter(numberOfWorkQueues), workItemsCounter(0)
 {
 	unsigned int itemSize = max(sizeof(EvaluateBranch), max(sizeof(EvaluateRoad), sizeof(InstantiateRoad)));
-
 	workQueues = new static_alloc_queue*[workQueuesCounter];
+
 	for (unsigned int i = 0; i < workQueuesCounter; i++)
 	{
 		workQueues[i] = new static_alloc_queue(maxWorkQueueCapacity, itemSize);
@@ -37,6 +37,7 @@ WorkQueuesManager::~WorkQueuesManager()
 		{
 			delete workQueues[i];
 		}
+
 		delete[] workQueues;
 	}
 }
@@ -51,7 +52,7 @@ void WorkQueuesManager::executeAllWorkItems(WorkQueuesManager& manager, RoadNetw
 
 		do
 		{
-			if (currentWorkQueueIndex == INSTANTIATE_ROAD_CODE) 
+			if (currentWorkQueueIndex == INSTANTIATE_ROAD_CODE)
 			{
 				_executeWorkItem(InstantiateRoad);
 			}

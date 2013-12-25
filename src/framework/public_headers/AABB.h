@@ -71,8 +71,8 @@ struct AABB
 
 	inline float getArea() const
 	{
-		 glm::vec3 size = getExtents();
-		 return size.x * size.y;
+		glm::vec3 size = getExtents();
+		return size.x * size.y;
 	}
 
 	bool intersects(const Circle& circle) const
@@ -81,7 +81,6 @@ struct AABB
 		glm::vec3 b(max.x, max.y, 0.0f);
 		glm::vec3 c(max.x, min.y, 0.0f);
 		glm::vec3 d(min.x, min.y, 0.0f);
-
 		return contains(circle.center) || Line(a, b).intersects(circle) || Line(b, c).intersects(circle) || Line(c, d).intersects(circle) || Line(d, a).intersects(circle);
 	}
 
@@ -101,7 +100,6 @@ struct AABB
 		glm::vec3 b(max.x, max.y, 0.0f);
 		glm::vec3 c(max.x, min.y, 0.0f);
 		glm::vec3 d(min.x, min.y, 0.0f);
-
 		return contains(line.start) || contains(line.end) || Line(a, b).intersects(line) || Line(b, c).intersects(line) || Line(c, d).intersects(line) || Line(d, a).intersects(line);
 	}
 

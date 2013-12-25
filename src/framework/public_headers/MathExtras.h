@@ -31,10 +31,12 @@ inline static T clamp(T min, T max, T x)
 static float getOrientedAngle(const glm::vec3& a, const glm::vec3& b)
 {
 	float angle = acos(glm::dot(a, b) / (glm::length(a) * glm::length(b)));
+
 	if (glm::cross(a, b).z > 0)
 	{
 		return angle;
 	}
+
 	else
 	{
 		return TWO_PI - angle;

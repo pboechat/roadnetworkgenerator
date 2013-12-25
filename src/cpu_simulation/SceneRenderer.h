@@ -19,8 +19,9 @@ struct ImageMapRenderData
 	Texture* texture;
 	glm::vec4 color1;
 	glm::vec4 color2;
+	bool enabled;
 
-	ImageMapRenderData() : texture(0)
+	ImageMapRenderData() : texture(0), enabled(false)
 	{
 	}
 
@@ -34,9 +35,6 @@ public:
 		solidShader("../../../../../shaders/solid.vs.glsl", "../../../../../shaders/solid.fs.glsl"),
 		imageMapShader("../../../../../shaders/imageMap.vs.glsl", "../../../../../shaders/imageMap.fs.glsl"),
 		roadNetworkGeometry(roadNetworkGeometry),
-		drawPopulationDensityMap(true),
-		drawWaterBodiesMap(true),
-		drawBlockadesMap(true),
 		worldSizedQuad(0)
 	{
 		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
@@ -58,34 +56,29 @@ public:
 
 	void setUpImageMaps(const AABB& worldBounds, const ImageMap* populationDensityMap, const ImageMap* waterBodiesMap, const ImageMap* blockadesMap)
 	{
-		// FIXME: checking invariants
-		if (populationDensityMap == 0)
-		{
-			throw std::exception("populationDensityMap == 0");
-		}
-
-		// FIXME: checking invariants
-		if (waterBodiesMap == 0)
-		{
-			throw std::exception("waterBodiesMap == 0");
-		}
-
-		// FIXME: checking invariants
-		if (blockadesMap == 0)
-		{
-			throw std::exception("blockadesMap == 0");
-		}
-
 		destroyImageMaps();
-		setUpImageMapRenderData(populationDensityMap, populationDensityMapData);
-		setUpImageMapRenderData(waterBodiesMap, waterBodiesMapData);
-		setUpImageMapRenderData(blockadesMap, blockadesMapData);
 
+		if ((populationDensityMapData.enabled = (populationDensityMap != 0)))
+		{
+			setUpImageMapRenderData(populationDensityMap, populationDensityMapData);
+		}
+
+		if ((waterBodiesMapData.enabled = (waterBodiesMap != 0)))
+		{
+			setUpImageMapRenderData(waterBodiesMap, waterBodiesMapData);
+		}
+
+		if ((blockadesMapData.enabled = (blockadesMap != 0)))
+		{
+			setUpImageMapRenderData(blockadesMap, blockadesMapData);
+		}
+		
 		glm::vec3 size = worldBounds.getExtents();
+
 		if (worldSizedQuad != 0)
 		{
 			if (worldSizedQuad->getX() != worldBounds.min.x || worldSizedQuad->getY() != worldBounds.min.y ||
-					worldSizedQuad->getWidth() != size.x || worldSizedQuad->getHeight() != size.y)
+				worldSizedQuad->getWidth() != size.x || worldSizedQuad->getHeight() != size.y)
 			{
 				delete worldSizedQuad;
 			}
@@ -112,18 +105,22 @@ public:
 			glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 			imageMapShader.bind();
 			imageMapShader.setMat4("uViewProjection", viewProjection);
-			if (drawPopulationDensityMap)
+
+			if (populationDensityMapData.enabled)
 			{
 				drawImageMap(populationDensityMapData);
 			}
-			if (drawWaterBodiesMap)
+
+			if (waterBodiesMapData.enabled)
 			{
 				drawImageMap(waterBodiesMapData);
 			}
-			if (drawBlockadesMap)
+
+			if (blockadesMapData.enabled)
 			{
 				drawImageMap(blockadesMapData);
 			}
+
 			imageMapShader.unbind();
 			glDisable(GL_BLEND);
 			glDepthMask(GL_TRUE);
@@ -136,19 +133,19 @@ public:
 		solidShader.unbind();
 	}
 
-	void togglePopulationDensityMap() 
+	void togglePopulationDensityMap()
 	{
-		drawPopulationDensityMap = !drawPopulationDensityMap;
+		populationDensityMapData.enabled = !populationDensityMapData.enabled;
 	}
 
-	void toggleWaterBodiesMap() 
+	void toggleWaterBodiesMap()
 	{
-		drawWaterBodiesMap = !drawWaterBodiesMap;
+		waterBodiesMapData.enabled = !waterBodiesMapData.enabled;
 	}
 
 	void toggleBlockadesMap()
 	{
-		drawBlockadesMap = !drawBlockadesMap;
+		blockadesMapData.enabled = !blockadesMapData.enabled;
 	}
 
 private:
@@ -188,7 +185,7 @@ private:
 		}
 	}
 
-	void drawImageMap(const ImageMapRenderData& imageMapRenderData) 
+	void drawImageMap(const ImageMapRenderData& imageMapRenderData)
 	{
 		imageMapShader.setTexture("uBaseTex", *imageMapRenderData.texture, 0);
 		imageMapShader.setVec4("uColor1", imageMapRenderData.color1);

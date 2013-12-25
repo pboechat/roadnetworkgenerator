@@ -69,7 +69,6 @@ public:
 
 		getItem(head++ % capacity, item);
 		counter--;
-
 		return true;
 	}
 

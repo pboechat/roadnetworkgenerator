@@ -34,8 +34,10 @@ struct Line
 	inline bool onSegment(const glm::vec3& p, const glm::vec3& q, const glm::vec3& r) const
 	{
 		if (q.x <= glm::max(p.x, r.x) && q.x >= glm::min(p.x, r.x) &&
-			q.y <= glm::max(p.y, r.y) && q.y >= glm::min(p.y, r.y))
+				q.y <= glm::max(p.y, r.y) && q.y >= glm::min(p.y, r.y))
+		{
 			return true;
+		}
 
 		return false;
 	}
@@ -46,7 +48,12 @@ struct Line
 	inline int orientation(const glm::vec3& p, const glm::vec3& q, const glm::vec3& r) const
 	{
 		float val = (r.x - q.x) * (q.y - p.y) - (r.y - q.y) * (q.x - p.x);
-		if (val >= -EPSILON && val <= EPSILON) return 0;  // collinear
+
+		if (val >= -EPSILON && val <= EPSILON)
+		{
+			return 0;    // collinear
+		}
+
 		return (val > 0) ? 1 : 2; // clock or counterclockwise
 	}
 
@@ -86,21 +93,21 @@ struct Line
 		}
 
 		// 'start', 'end' and 'line.start' are collinear and 'line.end' lies on this segment
-		if (o2 == 0 && onSegment(start, line.end, end)) 
+		if (o2 == 0 && onSegment(start, line.end, end))
 		{
 			intersection = line.end;
 			return true;
 		}
 
 		// 'line.start', 'line.end' and 'start' are collinear and 'start' lies on line segment
-		if (o3 == 0 && onSegment(line.start, start, line.end)) 
+		if (o3 == 0 && onSegment(line.start, start, line.end))
 		{
 			intersection = start;
 			return true;
 		}
 
 		// 'line.start', 'line.end' and 'end' are collinear and 'end' lies on line segment
-		if (o4 == 0 && onSegment(line.start, end, line.end)) 
+		if (o4 == 0 && onSegment(line.start, end, line.end))
 		{
 			intersection = end;
 			return true;
@@ -119,11 +126,9 @@ struct Line
 
 		glm::vec3 direction = glm::normalize(end - start);
 		glm::vec3 centerToStart = start - circle.center;
-
 		float a = glm::dot(direction, direction);
 		float b = 2.0f * glm::dot(centerToStart, direction);
 		float c = glm::dot(centerToStart, centerToStart) - circle.radius * circle.radius;
-
 		float discriminant = b * b - 4 * a * c;
 
 		if (discriminant < 0)
@@ -134,9 +139,7 @@ struct Line
 		else
 		{
 			unsigned int mask = 0;
-
 			discriminant = glm::sqrt(discriminant);
-
 			float t1 = (-b - discriminant) / (2.0f * a);
 			float t2 = (-b + discriminant) / (2.0f * a);
 

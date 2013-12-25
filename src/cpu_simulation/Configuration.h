@@ -62,7 +62,7 @@ struct Configuration
 	glm::vec3 spawnPoints[MAX_SPAWN_POINTS];
 
 	Configuration() : populationDensityMap(0), waterBodiesMap(0), blockadesMap(0), naturalPatternMap(0), radialPatternMap(0), rasterPatternMap(0) {}
-	~Configuration() 
+	~Configuration()
 	{
 		if (populationDensityMap != 0)
 		{
@@ -134,12 +134,13 @@ struct Configuration
 
 		name = getProperty(properties, "name");
 		seed = getPropertyAsInt(properties, "seed");
+
 		if (seed < 0)
 		{
 			seed = (unsigned int)time(0);
 		}
-		srand(seed);
 
+		srand(seed);
 		worldWidth = getPropertyAsUnsignedInt(properties, "world_width");
 		worldHeight = getPropertyAsUnsignedInt(properties, "world_height");
 		maxVertices = getPropertyAsUnsignedInt(properties, "max_vertices");
@@ -230,9 +231,9 @@ private:
 	static void getPropertyAsVec3Array(const std::map<std::string, std::string>& properties, const std::string& propertyName, glm::vec3* vec3Array, unsigned int& size, unsigned int maxSize)
 	{
 		std::string propertyValue = getProperty(properties, propertyName);
-
 		std::smatch matches;
 		size = 0;
+
 		while (std::regex_search(propertyValue, matches, std::regex(VEC3_VECTOR_PATTERN)))
 		{
 			// FIXME: checking invariants
@@ -242,7 +243,6 @@ private:
 			}
 
 			std::string vec3Str = matches[0].str();
-
 			int pos = vec3Str.find_last_of(')');
 
 			// FIXME: checking invariants
@@ -250,10 +250,9 @@ private:
 			{
 				throw std::exception("pos == string::npos");
 			}
+
 			vec3Str = vec3Str.substr(0, pos + 1);
-
 			vec3Array[size++] = ParseUtils::parseVec3(vec3Str);
-
 			propertyValue = matches.suffix().str();
 		}
 	}
@@ -264,6 +263,7 @@ private:
 		{
 			return 0;
 		}
+
 		std::string mapFile = getProperty(properties, propertyName);
 		ImageMap* imageMap = new ImageMap();
 		imageMap->import(mapFile, width, height);

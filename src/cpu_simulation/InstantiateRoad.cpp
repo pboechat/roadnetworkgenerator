@@ -38,11 +38,9 @@ void InstantiateRoad::execute(WorkQueuesManager& manager, RoadNetworkGraph::Grap
 	}
 
 	glm::vec3 direction = glm::rotate(glm::quat(glm::vec3(0, 0, road.roadAttributes.angle)), glm::vec3(0.0f, road.roadAttributes.length, 0.0f));
-
 	RoadNetworkGraph::VertexIndex newSource;
 	glm::vec3 position;
 	bool interrupted = graph.addRoad(road.roadAttributes.source, direction, newSource, position, road.roadAttributes.highway);
-
 	int delays[3];
 	RoadAttributes roadAttributes[3];
 	RuleAttributes ruleAttributes[3];
@@ -70,18 +68,16 @@ void InstantiateRoad::evaluateGlobalGoals(const Configuration& configuration, Ro
 	{
 		bool doPureHighwayBranch = (road.ruleAttributes.pureHighwayBranchingDistance == configuration.minPureHighwayBranchingDistance);
 		bool doRegularBranch = (road.ruleAttributes.highwayBranchingDistance == configuration.minHighwayBranchingDistance);
-
 		// highway continuation
 		delays[2] = 0;
 		roadAttributes[2].source = source;
 		roadAttributes[2].highway = true;
 		ruleAttributes[2].hasGoal = road.ruleAttributes.hasGoal;
 		ruleAttributes[2].goal = road.ruleAttributes.goal;
-
 		ruleAttributes[2].highwayBranchingDistance = (doRegularBranch) ? 0 : road.ruleAttributes.highwayBranchingDistance + 1;
 		ruleAttributes[2].pureHighwayBranchingDistance = (doPureHighwayBranch) ? 0 : road.ruleAttributes.pureHighwayBranchingDistance + 1;
-
 		unsigned int goalDistance;
+
 		if (!ruleAttributes[2].hasGoal)
 		{
 			findHighestPopulationDensity(configuration, position, road.roadAttributes.angle, ruleAttributes[2].goal, goalDistance);
@@ -92,7 +88,7 @@ void InstantiateRoad::evaluateGlobalGoals(const Configuration& configuration, Ro
 		{
 			goalDistance = (unsigned int)glm::distance(position, road.ruleAttributes.goal);
 		}
-		
+
 		if (goalDistance <= configuration.goalDistanceThreshold)
 		{
 			delays[2] = -1; // remove highway
@@ -101,6 +97,7 @@ void InstantiateRoad::evaluateGlobalGoals(const Configuration& configuration, Ro
 		else
 		{
 			Pattern pattern = findUnderlyingPattern(configuration, position);
+
 			if (pattern == NATURAL_PATTERN)
 			{
 				applyNaturalPatternRule(configuration, position, goalDistance, delays[2], roadAttributes[2], ruleAttributes[2]);
@@ -131,16 +128,13 @@ void InstantiateRoad::evaluateGlobalGoals(const Configuration& configuration, Ro
 			roadAttributes[0].length = configuration.highwayLength;
 			roadAttributes[0].angle = roadAttributes[2].angle - MathExtras::HALF_PI;
 			roadAttributes[0].highway = true;
-
 			//applyHighwayGoalDeviation(configuration, roadAttributes[0]);
-
 			// new highway branch right
 			delays[1] = 0;
 			roadAttributes[1].source = source;
 			roadAttributes[1].length = configuration.highwayLength;
 			roadAttributes[1].angle = roadAttributes[2].angle + MathExtras::HALF_PI;
 			roadAttributes[1].highway = true;
-
 			//applyHighwayGoalDeviation(configuration, roadAttributes[1]);
 		}
 
@@ -152,7 +146,6 @@ void InstantiateRoad::evaluateGlobalGoals(const Configuration& configuration, Ro
 			roadAttributes[0].length = configuration.streetLength;
 			roadAttributes[0].angle = roadAttributes[2].angle - MathExtras::HALF_PI;
 			roadAttributes[0].highway = false;
-
 			// new street branch right
 			delays[1] = (doRegularBranch) ? configuration.highwayBranchingDelay : -1;
 			roadAttributes[1].source = source;
@@ -165,7 +158,6 @@ void InstantiateRoad::evaluateGlobalGoals(const Configuration& configuration, Ro
 	else
 	{
 		unsigned int newStreetDepth = road.ruleAttributes.streetBranchDepth + 1;
-
 		// street branch left
 		delays[0] = configuration.streetBranchingDelay;
 		roadAttributes[0].source = source;
@@ -173,7 +165,6 @@ void InstantiateRoad::evaluateGlobalGoals(const Configuration& configuration, Ro
 		roadAttributes[0].angle = road.roadAttributes.angle - MathExtras::HALF_PI;
 		roadAttributes[0].highway = false;
 		ruleAttributes[0].streetBranchDepth = newStreetDepth;
-
 		// street branch right
 		delays[1] = configuration.streetBranchingDelay;
 		roadAttributes[1].source = source;
@@ -181,7 +172,6 @@ void InstantiateRoad::evaluateGlobalGoals(const Configuration& configuration, Ro
 		roadAttributes[1].angle = road.roadAttributes.angle + MathExtras::HALF_PI;
 		roadAttributes[1].highway = false;
 		ruleAttributes[1].streetBranchDepth = newStreetDepth;
-
 		// street continuation
 		delays[2] = 0;
 		roadAttributes[2].source = source;
@@ -195,18 +185,21 @@ void InstantiateRoad::evaluateGlobalGoals(const Configuration& configuration, Ro
 Pattern InstantiateRoad::findUnderlyingPattern(const Configuration& configuration, const glm::vec3& position) const
 {
 	unsigned char naturalPattern = 0;
+
 	if (configuration.naturalPatternMap != 0)
 	{
 		naturalPattern = configuration.naturalPatternMap->sample(position);
 	}
 
 	unsigned char radialPattern = 0;
+
 	if (configuration.radialPatternMap != 0)
 	{
 		radialPattern = configuration.radialPatternMap->sample(position);
 	}
 
 	unsigned char rasterPattern = 0;
+
 	if (configuration.rasterPatternMap != 0)
 	{
 		rasterPattern = configuration.rasterPatternMap->sample(position);
@@ -218,17 +211,20 @@ Pattern InstantiateRoad::findUnderlyingPattern(const Configuration& configuratio
 		{
 			return RASTER_PATTERN;
 		}
+
 		else
 		{
 			return NATURAL_PATTERN;
 		}
 	}
+
 	else
 	{
 		if (radialPattern > naturalPattern)
 		{
 			return RADIAL_PATTERN;
 		}
+
 		else
 		{
 			return NATURAL_PATTERN;
@@ -302,38 +298,41 @@ void InstantiateRoad::applyRadialPatternRule(const Configuration& configuration,
 void InstantiateRoad::applyRasterPatternRule(const Configuration& configuration, const glm::vec3& position, unsigned int goalDistance, int& delay, RoadAttributes& roadAttributes, RuleAttributes& ruleAttributes) const
 {
 	float angle = MathExtras::getOrientedAngle(glm::vec3(1.0f, 0.0f, 0.0f), ruleAttributes.goal - position);
-
 	unsigned int horizontalDistance = (unsigned int)glm::abs((float)goalDistance * glm::cos(angle));
 	unsigned int verticalDistance = (unsigned int)glm::abs((float)goalDistance * glm::sin(angle));
-
 	bool canMoveHorizontally = horizontalDistance >= configuration.minRoadLength;
 	bool canMoveVertically = verticalDistance >= configuration.minRoadLength;
-
 	bool moveHorizontally;
+
 	if (!canMoveHorizontally && !canMoveVertically)
 	{
 		delay = -1;
 		return;
 	}
+
 	else if (!canMoveHorizontally)
 	{
 		moveHorizontally = false;
 	}
+
 	else if (!canMoveVertically)
 	{
 		moveHorizontally = true;
 	}
+
 	else
 	{
 		moveHorizontally = (rand() % 99) < 50;
 	}
 
 	unsigned int length = (rand() % (configuration.highwayLength - configuration.minRoadLength)) + configuration.minRoadLength;
+
 	if (moveHorizontally)
 	{
 		roadAttributes.length = MathExtras::min(horizontalDistance, length);
 		roadAttributes.angle = (angle > MathExtras::HALF_PI && angle < MathExtras::PI_AND_HALF) ? MathExtras::HALF_PI : -MathExtras::HALF_PI;
 	}
+
 	else
 	{
 		roadAttributes.length = MathExtras::min(verticalDistance, length);
