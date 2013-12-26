@@ -8,12 +8,12 @@
 #include <RoadNetworkGeometry.h>
 #include <Configuration.h>
 #include <RoadNetworkGenerator.h>
-#include <AABB.h>
+#include <Box2D.h>
 #include <Graph.h>
 #include <Timer.h>
 #include <MathExtras.h>
 
-#include <glm/glm.hpp>
+#include <vector_math.h>
 
 #include <string>
 #include <iostream>
@@ -38,7 +38,7 @@ void generateAndDisplay(const std::string& configurationFile, SceneRenderer& ren
 {
 	Configuration configuration;
 	configuration.loadFromFile(configurationFile);
-	AABB worldBounds(0.0f, 0.0f, (float)configuration.worldWidth, (float)configuration.worldHeight);
+	Box2D worldBounds(0.0f, 0.0f, (float)configuration.worldWidth, (float)configuration.worldHeight);
 	renderer.setUpImageMaps(worldBounds, configuration.populationDensityMap, configuration.waterBodiesMap, configuration.blockadesMap);
 #ifdef USE_QUADTREE
 	RoadNetworkGraph::Graph graph(worldBounds, configuration.quadtreeDepth, configuration.snapRadius, configuration.maxVertices, configuration.maxEdges, configuration.maxResultsPerQuery);

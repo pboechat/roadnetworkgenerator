@@ -5,6 +5,7 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}
 					${CMAKE_SOURCE_DIR}/dependencies/glm/include
 					${CMAKE_CURRENT_SOURCE_DIR}/public_headers
 					${CMAKE_SOURCE_DIR}/src/framework/public_headers
+					${CMAKE_SOURCE_DIR}/src/vector_math/public_headers
 )
 
 if (MSVC)
@@ -14,6 +15,10 @@ endif (MSVC)
 if (USE_QUADTREE)
 	add_definitions(/D "USE_QUADTREE")
 endif(USE_QUADTREE)
+
+if (USE_GLM)
+	add_definitions(/D "USE_GLM")
+endif(USE_GLM)
 
 add_library(
 	road_network_graph STATIC

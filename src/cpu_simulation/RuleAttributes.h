@@ -1,7 +1,7 @@
 #ifndef RULEATTRIBUTES_H
 #define RULEATTRIBUTES_H
 
-#include <glm/glm.hpp>
+#include <vector_math.h>
 
 struct RuleAttributes
 {
@@ -9,7 +9,7 @@ struct RuleAttributes
 	unsigned int highwayBranchingDistance;
 	unsigned int pureHighwayBranchingDistance;
 	bool hasGoal;
-	glm::vec3 goal;
+	vml_vec2 goal;
 
 	RuleAttributes() : streetBranchDepth(0), highwayBranchingDistance(0), pureHighwayBranchingDistance(0), hasGoal(false) {}
 

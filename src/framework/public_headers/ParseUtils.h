@@ -3,20 +3,19 @@
 
 #include <StringUtils.h>
 
+#include <vector_math.h>
+
 #include <stdlib.h>
 #include <exception>
 #include <regex>
 #include <string>
 #include <vector>
 
-#include <glm/glm.hpp>
-#include <glm/gtc/quaternion.hpp>
-
 class ParseUtils
 {
 public:
 	//////////////////////////////////////////////////////////////////////////
-	static glm::vec4 parseVec4(const std::string& aString)
+	static vml_vec4 parseVec4(const std::string& aString)
 	{
 		std::vector<std::string> values;
 		StringUtils::tokenize(aString, ",", values);
@@ -40,36 +39,11 @@ public:
 		StringUtils::replace(value, ")", "");
 		StringUtils::trim(value);
 		float w = (float)atof(value.c_str());
-		return glm::vec4(x, y, z, w);
+		return vml_vec4(x, y, z, w);
 	}
 
 	//////////////////////////////////////////////////////////////////////////
-	static glm::vec3 parseVec3(const std::string& aString)
-	{
-		std::vector<std::string> values;
-		StringUtils::tokenize(aString, ",", values);
-
-		if (values.size() != 3)
-		{
-			throw std::exception("parseVec3: invalid number of arguments");
-		}
-
-		std::string value = values[0];
-		StringUtils::replace(value, "(", "");
-		StringUtils::trim(value);
-		float x = (float)atof(value.c_str());
-		value = values[1];
-		StringUtils::trim(value);
-		float y = (float)atof(value.c_str());
-		value = values[2];
-		StringUtils::replace(value, ")", "");
-		StringUtils::trim(value);
-		float z = (float)atof(value.c_str());
-		return glm::vec3(x, y, z);
-	}
-
-	//////////////////////////////////////////////////////////////////////////
-	static glm::vec2 parseVec2(const std::string& aString)
+	static vml_vec2 parseVec2(const std::string& aString)
 	{
 		std::vector<std::string> values;
 		StringUtils::tokenize(aString, ",", values);
@@ -87,7 +61,7 @@ public:
 		StringUtils::replace(value, ")", "");
 		StringUtils::trim(value);
 		float y = (float)atof(value.c_str());
-		return glm::vec2(x, y);
+		return vml_vec2(x, y);
 	}
 
 	//////////////////////////////////////////////////////////////////////////

@@ -6,9 +6,7 @@
 #include <Renderer.h>
 #include <InputController.h>
 
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtx/quaternion.hpp>
+#include <vector_math.h>
 
 #include <windows.h>
 #include <windowsx.h>
@@ -39,8 +37,8 @@ class Application
 {
 public:
 	static const unsigned int BYTES_PER_PIXEL;
-	static const glm::vec4 CLEAR_COLOR;
-	static const glm::vec4 GLOBAL_AMBIENT_LIGHT;
+	static const vml_vec4 CLEAR_COLOR;
+	static const vml_vec4 GLOBAL_AMBIENT_LIGHT;
 
 	static Application* instance;
 

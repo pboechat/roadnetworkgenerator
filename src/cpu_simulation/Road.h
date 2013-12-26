@@ -4,8 +4,6 @@
 #include <RoadAttributes.h>
 #include <RuleAttributes.h>
 
-#include <glm/glm.hpp>
-
 enum RoadState
 {
 	UNASSIGNED,

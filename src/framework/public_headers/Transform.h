@@ -1,67 +1,65 @@
-#ifndef TRANSFORM_H_
-#define TRANSFORM_H_
+#ifndef TRANSFORM_H
+#define TRANSFORM_H
 
-#include <glm/glm.hpp>
-#include <glm/gtx/quaternion.hpp>
-#include <glm/gtc/matrix_transform.hpp>
+#include <vector_math.h>
 
 struct Transform
 {
-	glm::vec3 scale;
-	glm::quat rotation;
-	glm::vec3 position;
+	vml_vec3 scale;
+	vml_quat rotation;
+	vml_vec3 position;
 
 	////////////////////////////////////////////////////////////////////////////////////////////////////
 	Transform()
 	{
-		scale = glm::vec3(1, 1, 1);
+		scale = vml_vec3(1, 1, 1);
 	}
-	Transform(const glm::vec3& scale, const glm::quat& rotation, const glm::vec3& position) : scale(scale), rotation(rotation), position(position) {}
+	Transform(const vml_vec3& scale, const vml_quat& rotation, const vml_vec3& position) : scale(scale), rotation(rotation), position(position) {}
 	~Transform() {}
 
 	////////////////////////////////////////////////////////////////////////////////////////////////////
-	inline glm::vec3 up() const
+	inline vml_vec3 up() const
 	{
-		return rotation * glm::vec3(0, 1, 0);
+		return rotation * vml_vec3(0, 1, 0);
 	}
 
 	////////////////////////////////////////////////////////////////////////////////////////////////////
-	inline glm::vec3 right() const
+	inline vml_vec3 right() const
 	{
-		return rotation * glm::vec3(1, 0, 0);
+		return rotation * vml_vec3(1, 0, 0);
 	}
 
 	////////////////////////////////////////////////////////////////////////////////////////////////////
-	inline glm::vec3 forward() const
+	inline vml_vec3 forward() const
 	{
-		return rotation * glm::vec3(0, 0, -1);
+		return rotation * vml_vec3(0, 0, -1);
 	}
 
 	////////////////////////////////////////////////////////////////////////////////////////////////////
-	inline glm::mat4 toMat4() const
+	inline vml_mat4 toMat4() const
 	{
-		glm::mat4 model = glm::toMat4(rotation);
+		vml_mat4 model = vml_to_mat4(rotation);
 		model[0][3] = position.x;
 		model[1][3] = position.y;
 		model[2][3] = position.z;
-		return glm::scale(model, scale);
+		return vml_scale(model, scale);
 	}
 
 	////////////////////////////////////////////////////////////////////////////////////////////////////
-	void lookAt(const glm::vec3& forward, const glm::vec3& up = glm::vec3(0, 1, 0))
+	void lookAt(const vml_vec3& forward, const vml_vec3& up = vml_vec3(0, 1, 0))
 	{
-		glm::vec3 z = glm::normalize(position - forward);
-		glm::vec3 x = glm::normalize(glm::cross(up, z));
-		glm::vec3 y = glm::normalize(glm::cross(z, x));
-		rotation = glm::toQuat(glm::mat3(x.x, x.y, x.z,
-										 y.x, y.y, y.z,
-										 z.x, z.y, z.z));
+		vml_vec3 z = vml_normalize(position - forward);
+		vml_vec3 x = vml_normalize(vml_cross(up, z));
+		vml_vec3 y = vml_normalize(vml_cross(z, x));
+		rotation = vml_to_quat(vml_mat3(x.x, x.y, x.z,
+										y.x, y.y, y.z,
+										z.x, z.y, z.z));
 	}
 
 	////////////////////////////////////////////////////////////////////////////////////////////////////
-	inline glm::vec3 operator * (const glm::vec3& other) const
+	inline vml_vec3 operator * (const vml_vec3& other) const
 	{
-		glm::vec3 vector = other;
+		vml_vec3 vector = other;
 		vector = scale * vector;
 		vector = rotation * vector;
 		vector += position;

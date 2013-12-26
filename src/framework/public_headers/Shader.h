@@ -4,6 +4,8 @@
 #include <FileReader.h>
 #include <Texture.h>
 
+#include <vector_math.h>
+
 #include <GL3/gl3w.h>
 #include <GL/utils/gl.h>
 #include <GL/utils/gl_shader.h>
@@ -49,19 +51,19 @@ public:
 	}
 
 	////////////////////////////////////////////////////////////////////////////////////////////////////
-	inline void setMat4(const std::string& name, const glm::mat4& uniform) const
+	inline void setMat4(const std::string& name, const vml_mat4& uniform) const
 	{
 		glUniformMatrix4fv(glGetUniformLocation(program, name.c_str()), 1, GL_FALSE, &uniform[0][0]);
 	}
 
 	////////////////////////////////////////////////////////////////////////////////////////////////////
-	inline void setVec2(const std::string& name, const glm::vec2& uniform) const
+	inline void setVec2(const std::string& name, const vml_vec2& uniform) const
 	{
 		glUniform2fv(glGetUniformLocation(program, name.c_str()), 1, &uniform[0]);
 	}
 
 	////////////////////////////////////////////////////////////////////////////////////////////////////
-	inline void setVec4(const std::string& name, const glm::vec4& uniform) const
+	inline void setVec4(const std::string& name, const vml_vec4& uniform) const
 	{
 		glUniform4fv(glGetUniformLocation(program, name.c_str()), 1, &uniform[0]);
 	}

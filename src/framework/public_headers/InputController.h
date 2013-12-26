@@ -3,6 +3,8 @@
 
 #include <Camera.h>
 
+#include <vector_math.h>
+
 #include <Windows.h>
 
 #define CAMERA_PITCH_LIMIT 45.0f
@@ -75,7 +77,7 @@ public:
 	////////////////////////////////////////////////////////////////////////////////////////////////////
 	virtual void mouseMove(int x, int y)
 	{
-		front.mousePosition = glm::vec2((float)x, (float)y);
+		front.mousePosition = vml_vec2((float)x, (float)y);
 	}
 
 protected:
@@ -125,14 +127,14 @@ protected:
 			return;
 		}
 
-		glm::vec2 mousePosition = getMousePosition();
+		vml_vec2 mousePosition = getMousePosition();
 
 		if (lastMousePosition.x == mousePosition.x && lastMousePosition.y == mousePosition.y)
 		{
 			return;
 		}
 
-		glm::vec2 mouseDirection = glm::normalize(mousePosition - lastMousePosition);
+		vml_vec2 mouseDirection = vml_normalize(mousePosition - lastMousePosition);
 
 		if (mouseDirection.x > 0)
 		{
@@ -212,7 +214,7 @@ protected:
 	}
 
 	////////////////////////////////////////////////////////////////////////////////////////////////////
-	inline glm::vec2 getMousePosition() const
+	inline vml_vec2 getMousePosition() const
 	{
 		return back.mousePosition;
 	}
@@ -244,26 +246,26 @@ protected:
 	////////////////////////////////////////////////////////////////////////////////////////////////////
 	inline void moveCameraUp(float deltaTime)
 	{
-		camera.localTransform.position += glm::vec3(0, 1, 0) * moveSpeed * deltaTime;
+		camera.localTransform.position += vml_vec3(0, 1, 0) * moveSpeed * deltaTime;
 	}
 
 	////////////////////////////////////////////////////////////////////////////////////////////////////
 	inline void moveCameraDown(float deltaTime)
 	{
-		camera.localTransform.position -= glm::vec3(0, 1, 0) * moveSpeed * deltaTime;
+		camera.localTransform.position -= vml_vec3(0, 1, 0) * moveSpeed * deltaTime;
 	}
 
 	////////////////////////////////////////////////////////////////////////////////////////////////////
 	inline void turnCameraUp(float deltaTime)
 	{
-		cameraPitch = glm::clamp(cameraPitch - rotationSpeed * deltaTime, -CAMERA_PITCH_LIMIT, CAMERA_PITCH_LIMIT);
+		cameraPitch = MathExtras::clamp(cameraPitch - rotationSpeed * deltaTime, -CAMERA_PITCH_LIMIT, CAMERA_PITCH_LIMIT);
 		updateCameraRotation();
 	}
 
 	////////////////////////////////////////////////////////////////////////////////////////////////////
 	inline void turnCameraDown(float deltaTime)
 	{
-		cameraPitch = glm::clamp(cameraPitch + rotationSpeed * deltaTime, -CAMERA_PITCH_LIMIT, CAMERA_PITCH_LIMIT);
+		cameraPitch = MathExtras::clamp(cameraPitch + rotationSpeed * deltaTime, -CAMERA_PITCH_LIMIT, CAMERA_PITCH_LIMIT);
 		updateCameraRotation();
 	}
 
@@ -284,7 +286,7 @@ protected:
 	////////////////////////////////////////////////////////////////////////////////////////////////////
 	inline void updateCameraRotation()
 	{
-		glm::vec3 forward = glm::angleAxis(cameraPitch, glm::vec3(1, 0, 0)) * glm::angleAxis(cameraYaw, glm::vec3(0, 1, 0)) * glm::vec3(0, 0, -1);
+		vml_vec3 forward = vml_angle_axis(cameraPitch, vml_vec3(1, 0, 0)) * vml_angle_axis(cameraYaw, vml_vec3(0, 1, 0)) * vml_vec3(0, 0, -1);
 		camera.localTransform.lookAt(camera.localTransform.position + forward);
 	}
 
@@ -294,7 +296,7 @@ private:
 		bool keys[NUMBER_OF_VIRTUAL_KEYS];
 		bool rightMouseButton;
 		bool leftMouseButton;
-		glm::vec2 mousePosition;
+		vml_vec2 mousePosition;
 
 		InputBuffer() : rightMouseButton(false), leftMouseButton(false)
 		{
@@ -322,7 +324,7 @@ private:
 	bool leftMouseButtonDown;
 	bool keysUp[NUMBER_OF_VIRTUAL_KEYS];
 	bool keysDown[NUMBER_OF_VIRTUAL_KEYS];
-	glm::vec2 lastMousePosition;
+	vml_vec2 lastMousePosition;
 	float cameraYaw;
 	float cameraPitch;
 	float cameraRoll;

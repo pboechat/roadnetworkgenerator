@@ -6,7 +6,7 @@
 #include <StringUtils.h>
 #include <ParseUtils.h>
 
-#include <glm/glm.hpp>
+#include <vector_math.h>
 
 #include <string>
 #include <vector>
@@ -17,7 +17,7 @@
 #include <regex>
 
 #define MAX_SPAWN_POINTS 100
-#define VEC3_VECTOR_PATTERN "(\\([^\\)]+\\)\\,?)"
+#define VEC2_VECTOR_PATTERN "(\\([^\\)]+\\)\\,?)"
 
 struct Configuration
 {
@@ -54,12 +54,12 @@ struct Configuration
 	ImageMap* naturalPatternMap;
 	ImageMap* radialPatternMap;
 	ImageMap* rasterPatternMap;
-	glm::vec4 highwayColor;
-	glm::vec4 streetColor;
-	glm::vec4 quadtreeColor;
+	vml_vec4 highwayColor;
+	vml_vec4 streetColor;
+	vml_vec4 quadtreeColor;
 	bool removeDeadEndRoads;
 	unsigned int numSpawnPoints;
-	glm::vec3 spawnPoints[MAX_SPAWN_POINTS];
+	vml_vec2 spawnPoints[MAX_SPAWN_POINTS];
 
 	Configuration() : populationDensityMap(0), waterBodiesMap(0), blockadesMap(0), naturalPatternMap(0), radialPatternMap(0), rasterPatternMap(0) {}
 	~Configuration()
@@ -176,7 +176,7 @@ struct Configuration
 		radialPatternMap = createAndImportImageMap(properties, "radial_pattern_map", worldWidth, worldHeight);
 		rasterPatternMap = createAndImportImageMap(properties, "raster_pattern_map", worldWidth, worldHeight);
 		removeDeadEndRoads = getPropertyAsBool(properties, "remove_dead_end_roads");
-		getPropertyAsVec3Array(properties, "spawn_points", spawnPoints, numSpawnPoints, MAX_SPAWN_POINTS);
+		getPropertyAsVec2Array(properties, "spawn_points", spawnPoints, numSpawnPoints, MAX_SPAWN_POINTS);
 	}
 
 private:
@@ -223,18 +223,18 @@ private:
 		return getProperty(properties, propertyName) == "true";
 	}
 
-	static glm::vec4 getPropertyAsVec4(const std::map<std::string, std::string>& properties, const std::string& propertyName)
+	static vml_vec4 getPropertyAsVec4(const std::map<std::string, std::string>& properties, const std::string& propertyName)
 	{
 		return ParseUtils::parseVec4(getProperty(properties, propertyName));
 	}
 
-	static void getPropertyAsVec3Array(const std::map<std::string, std::string>& properties, const std::string& propertyName, glm::vec3* vec3Array, unsigned int& size, unsigned int maxSize)
+	static void getPropertyAsVec2Array(const std::map<std::string, std::string>& properties, const std::string& propertyName, vml_vec2* vec2Array, unsigned int& size, unsigned int maxSize)
 	{
 		std::string propertyValue = getProperty(properties, propertyName);
 		std::smatch matches;
 		size = 0;
 
-		while (std::regex_search(propertyValue, matches, std::regex(VEC3_VECTOR_PATTERN)))
+		while (std::regex_search(propertyValue, matches, std::regex(VEC2_VECTOR_PATTERN)))
 		{
 			// FIXME: checking invariants
 			if (size >= maxSize)
@@ -242,8 +242,8 @@ private:
 				throw std::exception("i >= maxArraySize");
 			}
 
-			std::string vec3Str = matches[0].str();
-			int pos = vec3Str.find_last_of(')');
+			std::string vec2Str = matches[0].str();
+			int pos = vec2Str.find_last_of(')');
 
 			// FIXME: checking invariants
 			if (pos == std::string::npos)
@@ -251,8 +251,8 @@ private:
 				throw std::exception("pos == string::npos");
 			}
 
-			vec3Str = vec3Str.substr(0, pos + 1);
-			vec3Array[size++] = ParseUtils::parseVec3(vec3Str);
+			vec2Str = vec2Str.substr(0, pos + 1);
+			vec2Array[size++] = ParseUtils::parseVec2(vec2Str);
 			propertyValue = matches.suffix().str();
 		}
 	}
@@ -267,8 +267,8 @@ private:
 		std::string mapFile = getProperty(properties, propertyName);
 		ImageMap* imageMap = new ImageMap();
 		imageMap->import(mapFile, width, height);
-		glm::vec4 color1 = getPropertyAsVec4(properties, propertyName + "_color1");
-		glm::vec4 color2 = getPropertyAsVec4(properties, propertyName + "_color2");
+		vml_vec4 color1 = getPropertyAsVec4(properties, propertyName + "_color1");
+		vml_vec4 color2 = getPropertyAsVec4(properties, propertyName + "_color2");
 		imageMap->setColor1(color1);
 		imageMap->setColor2(color2);
 		return imageMap;

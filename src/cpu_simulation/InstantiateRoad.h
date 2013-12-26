@@ -5,7 +5,7 @@
 #include <Road.h>
 #include <Pattern.h>
 
-#include <glm/glm.hpp>
+#include <vector_math.h>
 
 #define INSTANTIATE_ROAD_CODE 0
 
@@ -27,13 +27,13 @@ private:
 
 	Road road;
 
-	void evaluateGlobalGoals(const Configuration& configuration, RoadNetworkGraph::VertexIndex newOrigin, const glm::vec3& position, int* delays, RoadAttributes* roadAttributes, RuleAttributes* ruleAttributes);
-	void findHighestPopulationDensity(const Configuration& configuration, const glm::vec3& start, float startingAngle, glm::vec3& goal, unsigned int& distance) const;
-	Pattern findUnderlyingPattern(const Configuration& configuration, const glm::vec3& position) const;
+	void evaluateGlobalGoals(const Configuration& configuration, RoadNetworkGraph::VertexIndex newOrigin, const vml_vec2& position, int* delays, RoadAttributes* roadAttributes, RuleAttributes* ruleAttributes);
+	void findHighestPopulationDensity(const Configuration& configuration, const vml_vec2& start, float startingAngle, vml_vec2& goal, unsigned int& distance) const;
+	Pattern findUnderlyingPattern(const Configuration& configuration, const vml_vec2& position) const;
 	void applyHighwayGoalDeviation(const Configuration& configuration, RoadAttributes& roadAttributes) const;
-	void applyNaturalPatternRule(const Configuration& configuration, const glm::vec3& position, unsigned int goalDistance, int& delay, RoadAttributes& roadAttributes, RuleAttributes& ruleAttributes) const;
-	void applyRadialPatternRule(const Configuration& configuration, const glm::vec3& position, unsigned int goalDistance, int& delay, RoadAttributes& roadAttributes, RuleAttributes& ruleAttributes) const;
-	void applyRasterPatternRule(const Configuration& configuration, const glm::vec3& position, unsigned int goalDistance, int& delay, RoadAttributes& roadAttributes, RuleAttributes& ruleAttributes) const;
+	void applyNaturalPatternRule(const Configuration& configuration, const vml_vec2& position, unsigned int goalDistance, int& delay, RoadAttributes& roadAttributes, RuleAttributes& ruleAttributes) const;
+	void applyRadialPatternRule(const Configuration& configuration, const vml_vec2& position, unsigned int goalDistance, int& delay, RoadAttributes& roadAttributes, RuleAttributes& ruleAttributes) const;
+	void applyRasterPatternRule(const Configuration& configuration, const vml_vec2& position, unsigned int goalDistance, int& delay, RoadAttributes& roadAttributes, RuleAttributes& ruleAttributes) const;
 
 };
 

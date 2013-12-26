@@ -4,12 +4,14 @@
 #include <Defines.h>
 #include <Graph.h>
 
+#include <vector_math.h>
+
 namespace RoadNetworkGraph
 {
 
 struct GraphTraversal
 {
-	virtual bool operator () (const glm::vec3& source, const glm::vec3& destination, bool highway) = 0;
+	virtual bool operator () (const vml_vec2& source, const vml_vec2& destination, bool highway) = 0;
 
 };
 

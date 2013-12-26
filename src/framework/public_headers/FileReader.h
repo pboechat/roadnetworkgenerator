@@ -1,11 +1,9 @@
-#ifndef FILEREADER_H_
-#define FILEREADER_H_
+#ifndef FILEREADER_H
+#define FILEREADER_H
 
 #include <string>
 #include <exception>
 #include <stdio.h>
-
-#include <string>
 
 class FileReader
 {

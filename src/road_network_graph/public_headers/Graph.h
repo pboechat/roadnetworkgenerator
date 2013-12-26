@@ -6,11 +6,11 @@
 #include <Edge.h>
 #include <QuadTree.h>
 
-#include <AABB.h>
-#include <Line.h>
-#include <Circle.h>
+#include <Box2D.h>
+#include <Line2D.h>
+#include <Circle2D.h>
 
-#include <glm/glm.hpp>
+#include <vector_math.h>
 
 #include <vector>
 #include <exception>
@@ -24,13 +24,13 @@ class Graph
 {
 public:
 #ifdef USE_QUADTREE
-	Graph(const AABB& worldBounds, unsigned int quadtreeDepth, float snapRadius, unsigned int maxVertices, unsigned int maxEdges, unsigned int maxResultsPerQuery);
+	Graph(const Box2D& worldBounds, unsigned int quadtreeDepth, float snapRadius, unsigned int maxVertices, unsigned int maxEdges, unsigned int maxResultsPerQuery);
 #else
-	Graph(const AABB& worldBounds, float snapRadius, unsigned int maxVertices, unsigned int maxEdges, unsigned int maxResultsPerQuery);
+	Graph(const Box2D& worldBounds, float snapRadius, unsigned int maxVertices, unsigned int maxEdges, unsigned int maxResultsPerQuery);
 #endif
 	~Graph();
 
-	inline glm::vec3 getPosition(VertexIndex vertexIndex) const
+	inline vml_vec2 getPosition(VertexIndex vertexIndex) const
 	{
 		// FIXME: checking invariants
 		if (vertexIndex >= lastVertexIndex)
@@ -41,8 +41,8 @@ public:
 		return vertices[vertexIndex].position;
 	}
 
-	VertexIndex createVertex(const glm::vec3& position);
-	bool addRoad(VertexIndex source, const glm::vec3& direction, VertexIndex& newVertex, glm::vec3& end, bool highway);
+	VertexIndex createVertex(const vml_vec2& position);
+	bool addRoad(VertexIndex source, const vml_vec2& direction, VertexIndex& newVertex, vml_vec2& end, bool highway);
 	void removeDeadEndRoads();
 	void traverse(GraphTraversal& traversal) const;
 #ifdef _DEBUG
@@ -93,11 +93,11 @@ private:
 	void connect(VertexIndex source, VertexIndex destination, bool highway);
 	void splitEdge(EdgeIndex edge, VertexIndex vertex);
 #ifdef USE_QUADTREE
-	bool checkIntersection(const Line& newEdgeLine, unsigned int querySize, VertexIndex source, EdgeIndex& edgeIndex, glm::vec3& closestIntersection, IntersectionType& intersectionType);
-	bool checkSnapping(const Circle& snapCircle, unsigned int querySize, VertexIndex source, glm::vec3& closestSnapping, EdgeIndex& edgeIndex);
+	bool checkIntersection(const Line2D& newEdgeLine, unsigned int querySize, VertexIndex source, EdgeIndex& edgeIndex, vml_vec2& closestIntersection, IntersectionType& intersectionType);
+	bool checkSnapping(const Circle2D& snapCircle, unsigned int querySize, VertexIndex source, vml_vec2& closestSnapping, EdgeIndex& edgeIndex);
 #else
-	bool checkIntersection(const glm::vec3& start, const glm::vec3& end, VertexIndex source, EdgeIndex& edgeIndex, glm::vec3& closestIntersection, IntersectionType& intersectionType);
-	bool checkSnapping(const glm::vec3& end, VertexIndex source, glm::vec3& closestSnapping, EdgeIndex& edgeIndex);
+	bool checkIntersection(const vml_vec2& start, const vml_vec2& end, VertexIndex source, EdgeIndex& edgeIndex, vml_vec2& closestIntersection, IntersectionType& intersectionType);
+	bool checkSnapping(const vml_vec2& end, VertexIndex source, vml_vec2& closestSnapping, EdgeIndex& edgeIndex);
 #endif
 	unsigned int getValency(const Vertex& vertex) const;
 

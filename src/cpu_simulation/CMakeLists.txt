@@ -11,6 +11,7 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}
 					${CMAKE_SOURCE_DIR}/dependencies/gl3w/include
 					${CMAKE_SOURCE_DIR}/dependencies/GL_utils/include
 					${CMAKE_SOURCE_DIR}/src/framework/public_headers
+					${CMAKE_SOURCE_DIR}/src/vector_math/public_headers
 					${CMAKE_SOURCE_DIR}/src/road_network_graph/public_headers
 )
 
@@ -23,6 +24,10 @@ endif (MSVC)
 if (USE_QUADTREE)
 	add_definitions(/D "USE_QUADTREE")
 endif(USE_QUADTREE)
+
+if (USE_GLM)
+	add_definitions(/D "USE_GLM")
+endif(USE_GLM)
 
 add_executable(
 	cpu_simulation

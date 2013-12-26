@@ -2,10 +2,9 @@
 #define CAMERA_H
 
 #include <Transform.h>
-#include <AABB.h>
+#include <Box2D.h>
 
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
+#include <vector_math.h>
 
 struct Camera
 {
@@ -48,30 +47,30 @@ public:
 	}
 
 	////////////////////////////////////////////////////////////////////////////////////////////////////
-	inline glm::vec3 getPosition() const
+	inline vml_vec3 getPosition() const
 	{
 		return worldTransform.position;
 	}
 
 	////////////////////////////////////////////////////////////////////////////////////////////////////
-	inline glm::mat4 getProjectionMatrix() const
+	inline vml_mat4 getProjectionMatrix() const
 	{
-		return glm::perspective(fovY, aspectRatio, _near, _far);
+		return vml_perspective(fovY, aspectRatio, _near, _far);
 	}
 
 	////////////////////////////////////////////////////////////////////////////////////////////////////
-	inline const glm::mat4 getViewMatrix() const
+	inline const vml_mat4 getViewMatrix() const
 	{
-		return glm::lookAt(worldTransform.position, worldTransform.position + worldTransform.forward(), worldTransform.up());
+		return vml_look_at(worldTransform.position, worldTransform.position + worldTransform.forward(), worldTransform.up());
 	}
 
 	////////////////////////////////////////////////////////////////////////////////////////////////////
-	void centerOnTarget(const AABB& target)
+	void centerOnTarget(const Box2D& target)
 	{
-		glm::vec3 size = target.getExtents();
-		float diagonal = glm::sqrt(glm::pow(size.x, 2.0f) + glm::pow(size.y, 2.0f));
-		float distance = (diagonal / 2.0f) / glm::tan(glm::radians(fovY / 2.0f));
-		localTransform.position = glm::vec3(target.min.x + size.x / 2.0f, target.min.y + size.y / 2.0f, distance);
+		vml_vec2 size = target.getExtents();
+		float diagonal = sqrt(pow(size.x, 2.0f) + pow(size.y, 2.0f));
+		float distance = (diagonal / 2.0f) / tan(vml_radians(fovY / 2.0f));
+		localTransform.position = vml_vec3(target.min.x + size.x / 2.0f, target.min.y + size.y / 2.0f, distance);
 	}
 
 	////////////////////////////////////////////////////////////////////////////////////////////////////

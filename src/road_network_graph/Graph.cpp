@@ -7,7 +7,7 @@ namespace RoadNetworkGraph
 {
 
 #ifdef USE_QUADTREE
-Graph::Graph(const AABB& worldBounds, unsigned int quadtreeDepth, float snapRadius, unsigned int maxVertices, unsigned int maxEdges, unsigned int maxResultsPerQuery) :
+Graph::Graph(const Box2D& worldBounds, unsigned int quadtreeDepth, float snapRadius, unsigned int maxVertices, unsigned int maxEdges, unsigned int maxResultsPerQuery) :
 	vertices(0),
 	edges(0),
 	lastVertexIndex(0),
@@ -27,7 +27,7 @@ Graph::Graph(const AABB& worldBounds, unsigned int quadtreeDepth, float snapRadi
 	queryResult = new EdgeIndex[maxResultsPerQuery];
 }
 #else
-Graph::Graph(const AABB& worldBounds, float snapRadius, unsigned int maxVertices, unsigned int maxEdges, unsigned int maxResultsPerQuery) :
+Graph::Graph(const Box2D& worldBounds, float snapRadius, unsigned int maxVertices, unsigned int maxEdges, unsigned int maxResultsPerQuery) :
 	vertices(0),
 	edges(0),
 	lastVertexIndex(0),
@@ -68,17 +68,17 @@ Graph::~Graph()
 }
 
 #ifdef USE_QUADTREE
-bool Graph::addRoad(VertexIndex source, const glm::vec3& direction, VertexIndex& newVertex, glm::vec3& end, bool highway)
+bool Graph::addRoad(VertexIndex source, const vml_vec2& direction, VertexIndex& newVertex, vml_vec2& end, bool highway)
 {
-	glm::vec3 start = getPosition(source);
+	vml_vec2 start = getPosition(source);
 	end = start + direction;
-	Line newEdgeLine(start, end);
-	AABB newEdgeBounds(newEdgeLine);
+	Line2D newEdgeLine(start, end);
+	Box2D newEdgeBounds(newEdgeLine);
 	unsigned int querySize;
 	quadtree.query(newEdgeBounds, queryResult, querySize);
 	EdgeIndex edgeIndex;
-	glm::vec3 snapping;
-	glm::vec3 intersection;
+	vml_vec2 snapping;
+	vml_vec2 intersection;
 	IntersectionType intersectionType;
 
 	if (checkIntersection(newEdgeLine, querySize, source, edgeIndex, intersection, intersectionType))
@@ -113,7 +113,7 @@ bool Graph::addRoad(VertexIndex source, const glm::vec3& direction, VertexIndex&
 
 	else
 	{
-		Circle snapCircle(end, snapRadius);
+		Circle2D snapCircle(end, snapRadius);
 		quadtree.query(snapCircle, queryResult, querySize);
 
 		if (checkSnapping(snapCircle, querySize, source, snapping, edgeIndex))
@@ -134,7 +134,7 @@ bool Graph::addRoad(VertexIndex source, const glm::vec3& direction, VertexIndex&
 	}
 }
 
-bool Graph::checkIntersection(const Line& newEdgeLine, unsigned int querySize, VertexIndex source, EdgeIndex& edgeIndex, glm::vec3& closestIntersection, IntersectionType& intersectionType)
+bool Graph::checkIntersection(const Line2D& newEdgeLine, unsigned int querySize, VertexIndex source, EdgeIndex& edgeIndex, vml_vec2& closestIntersection, IntersectionType& intersectionType)
 {
 	float closestIntersectionDistance = FLT_MAX;
 	edgeIndex = -1;
@@ -153,21 +153,21 @@ bool Graph::checkIntersection(const Line& newEdgeLine, unsigned int querySize, V
 
 		Vertex& sourceVertex = vertices[edge.source];
 		Vertex& destinationVertex = vertices[edge.destination];
-		glm::vec3 intersection;
-		Line edgeLine(sourceVertex.position, destinationVertex.position);
+		vml_vec2 intersection;
+		Line2D edgeLine(sourceVertex.position, destinationVertex.position);
 
 		if (newEdgeLine.intersects(edgeLine, intersection))
 		{
-			float distance = glm::distance(newEdgeLine.start, intersection);
+			float distance = vml_distance(newEdgeLine.start, intersection);
 
 			if (distance < closestIntersectionDistance)
 			{
-				if (glm::distance(sourceVertex.position, intersection) <= snapRadius)
+				if (vml_distance(sourceVertex.position, intersection) <= snapRadius)
 				{
 					intersectionType = SOURCE;
 				}
 
-				else if (glm::distance(destinationVertex.position, intersection) <= snapRadius)
+				else if (vml_distance(destinationVertex.position, intersection) <= snapRadius)
 				{
 					intersectionType = DESTINATION;
 				}
@@ -191,7 +191,7 @@ bool Graph::checkIntersection(const Line& newEdgeLine, unsigned int querySize, V
 	return (intersectionType != NONE);
 }
 
-bool Graph::checkSnapping(const Circle& snapCircle, unsigned int querySize, VertexIndex source, glm::vec3& closestSnapping, EdgeIndex& edgeIndex)
+bool Graph::checkSnapping(const Circle2D& snapCircle, unsigned int querySize, VertexIndex source, vml_vec2& closestSnapping, EdgeIndex& edgeIndex)
 {
 	edgeIndex = -1;
 	float closestSnappingDistance = FLT_MAX;
@@ -210,10 +210,10 @@ bool Graph::checkSnapping(const Circle& snapCircle, unsigned int querySize, Vert
 
 		Vertex& sourceVertex = vertices[edge.source];
 		Vertex& destinationVertex = vertices[edge.destination];
-		Line edgeLine(sourceVertex.position, destinationVertex.position);
-		glm::vec3 intersection1;
-		glm::vec3 intersection2;
-		glm::vec3 snapping;
+		Line2D edgeLine(sourceVertex.position, destinationVertex.position);
+		vml_vec2 intersection1;
+		vml_vec2 intersection2;
+		vml_vec2 snapping;
 		int intersectionMask = edgeLine.intersects(snapCircle, intersection1, intersection2);
 
 		if (intersectionMask > 0)
@@ -222,20 +222,20 @@ bool Graph::checkSnapping(const Circle& snapCircle, unsigned int querySize, Vert
 
 			if (intersectionMask == 1)
 			{
-				distance = glm::distance(snapCircle.center, intersection1);
+				distance = vml_distance(snapCircle.center, intersection1);
 				snapping = intersection1;
 			}
 
 			else if (intersectionMask == 2)
 			{
-				distance = glm::distance(snapCircle.center, intersection2);
+				distance = vml_distance(snapCircle.center, intersection2);
 				snapping = intersection2;
 			}
 
 			else if (intersectionMask == 3)
 			{
-				float distance1 = glm::distance(snapCircle.center, intersection1);
-				float distance2 = glm::distance(snapCircle.center, intersection2);
+				float distance1 = vml_distance(snapCircle.center, intersection1);
+				float distance2 = vml_distance(snapCircle.center, intersection2);
 
 				if (distance1 <= distance2)
 				{
@@ -272,19 +272,19 @@ bool Graph::checkSnapping(const Circle& snapCircle, unsigned int querySize, Vert
 	return (edgeIndex != -1);
 }
 #else
-bool Graph::addRoad(VertexIndex source, const glm::vec3& direction, VertexIndex& newVertex, glm::vec3& end, float& length, bool highway)
+bool Graph::addRoad(VertexIndex source, const vml_vec2& direction, VertexIndex& newVertex, vml_vec2& end, float& length, bool highway)
 {
-	glm::vec3 start = getPosition(source);
+	vml_vec2 start = getPosition(source);
 	end = start + direction;
 	EdgeIndex edgeIndex;
-	glm::vec3 snapping;
-	glm::vec3 intersection;
+	vml_vec2 snapping;
+	vml_vec2 intersection;
 	IntersectionType intersectionType;
 
 	if (checkIntersection(start, end, source, edgeIndex, intersection, intersectionType))
 	{
 		end = intersection;
-		length = glm::distance(start, end);
+		length = vml_distance(start, end);
 
 		if (intersectionType == SOURCE)
 		{
@@ -315,7 +315,7 @@ bool Graph::addRoad(VertexIndex source, const glm::vec3& direction, VertexIndex&
 	else if (checkSnapping(end, source, snapping, edgeIndex))
 	{
 		end = snapping;
-		length = glm::distance(start, end);
+		length = vml_distance(start, end);
 		newVertex = createVertex(end);
 		splitEdge(edgeIndex, newVertex);
 		connect(source, newVertex, highway);
@@ -324,20 +324,20 @@ bool Graph::addRoad(VertexIndex source, const glm::vec3& direction, VertexIndex&
 
 	else
 	{
-		length = glm::distance(start, end);
+		length = vml_distance(start, end);
 		newVertex = createVertex(end);
 		connect(source, newVertex, highway);
 		return false;
 	}
 }
 
-bool Graph::checkIntersection(const glm::vec3& start, const glm::vec3& end, VertexIndex source, EdgeIndex& edgeIndex, glm::vec3& closestIntersection, IntersectionType& intersectionType)
+bool Graph::checkIntersection(const vml_vec2& start, const vml_vec2& end, VertexIndex source, EdgeIndex& edgeIndex, vml_vec2& closestIntersection, IntersectionType& intersectionType)
 {
 	// check for intersections
 	float closestIntersectionDistance = FLT_MAX;
 	edgeIndex = -1;
 	intersectionType = NONE;
-	Line newEdgeLine(start, end);
+	Line2D newEdgeLine(start, end);
 
 	for (int i = 0; i < lastEdgeIndex; i++)
 	{
@@ -351,21 +351,21 @@ bool Graph::checkIntersection(const glm::vec3& start, const glm::vec3& end, Vert
 
 		Vertex& sourceVertex = vertices[edge.source];
 		Vertex& destinationVertex = vertices[edge.destination];
-		glm::vec3 intersection;
-		Line edgeLine(sourceVertex.position, destinationVertex.position);
+		vml_vec2 intersection;
+		Line2D edgeLine(sourceVertex.position, destinationVertex.position);
 
 		if (newEdgeLine.intersects(edgeLine, intersection))
 		{
-			float distance = glm::distance(start, intersection);
+			float distance = vml_distance(start, intersection);
 
 			if (distance < closestIntersectionDistance)
 			{
-				if (glm::distance(sourceVertex.position, intersection) <= snapRadius)
+				if (vml_distance(sourceVertex.position, intersection) <= snapRadius)
 				{
 					intersectionType = SOURCE;
 				}
 
-				else if (glm::distance(destinationVertex.position, intersection) <= snapRadius)
+				else if (vml_distance(destinationVertex.position, intersection) <= snapRadius)
 				{
 					intersectionType = DESTINATION;
 				}
@@ -389,10 +389,10 @@ bool Graph::checkIntersection(const glm::vec3& start, const glm::vec3& end, Vert
 	return (intersectionType != NONE);
 }
 
-bool Graph::checkSnapping(const glm::vec3& end, VertexIndex source, glm::vec3& closestSnapping, EdgeIndex& edgeIndex)
+bool Graph::checkSnapping(const vml_vec2& end, VertexIndex source, vml_vec2& closestSnapping, EdgeIndex& edgeIndex)
 {
 	float closestSnappingDistance = FLT_MAX;
-	Circle snapCircle(end, snapRadius);
+	Circle2D snapCircle(end, snapRadius);
 
 	// check for snapping
 	for (int i = 0; i < lastEdgeIndex; i++)
@@ -407,10 +407,10 @@ bool Graph::checkSnapping(const glm::vec3& end, VertexIndex source, glm::vec3& c
 
 		Vertex& sourceVertex = vertices[edge.source];
 		Vertex& destinationVertex = vertices[edge.destination];
-		Line edgeLine(sourceVertex.position, destinationVertex.position);
-		glm::vec3 intersection1;
-		glm::vec3 intersection2;
-		glm::vec3 snapping;
+		Line2D edgeLine(sourceVertex.position, destinationVertex.position);
+		vml_vec2 intersection1;
+		vml_vec2 intersection2;
+		vml_vec2 snapping;
 		int intersectionMask = edgeLine.intersects(snapCircle, intersection1, intersection2);
 
 		if (intersectionMask > 0)
@@ -419,20 +419,20 @@ bool Graph::checkSnapping(const glm::vec3& end, VertexIndex source, glm::vec3& c
 
 			if (intersectionMask == 1)
 			{
-				distance = glm::distance(end, intersection1);
+				distance = vml_distance(end, intersection1);
 				snapping = intersection1;
 			}
 
 			else if (intersectionMask == 2)
 			{
-				distance = glm::distance(end, intersection2);
+				distance = vml_distance(end, intersection2);
 				snapping = intersection2;
 			}
 
 			else if (intersectionMask == 3)
 			{
-				float distance1 = glm::distance(end, intersection1);
-				float distance2 = glm::distance(end, intersection2);
+				float distance1 = vml_distance(end, intersection1);
+				float distance2 = vml_distance(end, intersection2);
 
 				if (distance1 <= distance2)
 				{
@@ -596,12 +596,12 @@ void Graph::connect(VertexIndex source, VertexIndex destination, bool highway)
 
 	destinationVertex.ins[destinationVertex.lastInIndex++] = lastEdgeIndex;
 #ifdef USE_QUADTREE
-	quadtree.insert(lastEdgeIndex, Line(sourceVertex.position, destinationVertex.position));
+	quadtree.insert(lastEdgeIndex, Line2D(sourceVertex.position, destinationVertex.position));
 #endif
 	lastEdgeIndex++;
 }
 
-VertexIndex Graph::createVertex(const glm::vec3& position)
+VertexIndex Graph::createVertex(const vml_vec2& position)
 {
 	// FIXME: checking boundaries
 	if (lastVertexIndex >= (int)maxVertices)
@@ -624,8 +624,8 @@ void Graph::splitEdge(EdgeIndex edgeIndex, VertexIndex split)
 	Vertex& destinationVertex = vertices[oldDestination];
 	Vertex& splitVertex = vertices[split];
 #ifdef USE_QUADTREE
-	quadtree.remove(edgeIndex, Line(sourceVertex.position, destinationVertex.position));
-	quadtree.insert(edgeIndex, Line(sourceVertex.position, splitVertex.position));
+	quadtree.remove(edgeIndex, Line2D(sourceVertex.position, destinationVertex.position));
+	quadtree.insert(edgeIndex, Line2D(sourceVertex.position, splitVertex.position));
 #endif
 
 	// FIXME: checking boundaries
@@ -673,7 +673,7 @@ void Graph::splitEdge(EdgeIndex edgeIndex, VertexIndex split)
 	}
 
 #ifdef USE_QUADTREE
-	quadtree.insert(lastEdgeIndex, Line(splitVertex.position, destinationVertex.position));
+	quadtree.insert(lastEdgeIndex, Line2D(splitVertex.position, destinationVertex.position));
 #endif
 	lastEdgeIndex++;
 }
@@ -790,7 +790,7 @@ unsigned int Graph::getMemoryInUse() const
 	{
 		Vertex& vertex = vertices[i];
 		// FIXME:
-		verticesBufferMemoryInUse += vertex.lastInIndex * sizeof(EdgeIndex) + vertex.lastOutIndex * sizeof(EdgeIndex) + sizeof(glm::vec3) + 2 * sizeof(unsigned int) + sizeof(bool);
+		verticesBufferMemoryInUse += vertex.lastInIndex * sizeof(EdgeIndex) + vertex.lastOutIndex * sizeof(EdgeIndex) + sizeof(vml_vec2) + 2 * sizeof(unsigned int) + sizeof(bool);
 	}
 
 	unsigned int edgesBufferMemoryInUse = lastEdgeIndex * sizeof(Vertex);

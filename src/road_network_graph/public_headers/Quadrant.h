@@ -3,7 +3,7 @@
 
 #include <Defines.h>
 
-#include <AABB.h>
+#include <Box2D.h>
 
 namespace RoadNetworkGraph
 {
@@ -11,7 +11,7 @@ namespace RoadNetworkGraph
 struct Quadrant
 {
 	unsigned int depth;
-	AABB bounds;
+	Box2D bounds;
 	QuadrantEdgesIndex edges;
 
 	Quadrant() : edges(-1) {}

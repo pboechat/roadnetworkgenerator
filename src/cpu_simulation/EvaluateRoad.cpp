@@ -1,9 +1,6 @@
 #include <EvaluateRoad.h>
 #include <InstantiateRoad.h>
 
-#include <glm/glm.hpp>
-#include <glm/gtx/quaternion.hpp>
-
 #include <exception>
 
 EvaluateRoad::EvaluateRoad()
@@ -59,7 +56,7 @@ void EvaluateRoad::evaluateLocalContraints(const Configuration& configuration, c
 		return;
 	}
 
-	glm::vec3 position = graph.getPosition(road.roadAttributes.source);
+	vml_vec2 position = graph.getPosition(road.roadAttributes.source);
 
 	// remove roads that cross world boundaries
 	if (position.x < 0 || position.x > (float)configuration.worldWidth ||
@@ -82,8 +79,15 @@ void EvaluateRoad::evaluateLocalContraints(const Configuration& configuration, c
 	evaluateBlockades(configuration, position);
 }
 
-bool EvaluateRoad::evaluateWaterBodies(const Configuration& configuration, const glm::vec3& position)
+bool EvaluateRoad::evaluateWaterBodies(const Configuration& configuration, const vml_vec2& position)
 {
+	// FIXME: checking invariants
+	if (configuration.waterBodiesMap == 0)
+	{
+		throw std::exception("configuration.waterBodiesMap == 0");
+	}
+
+	bool found = false;
 	unsigned int angleIncrement = 0;
 	unsigned int length = road.roadAttributes.length;
 
@@ -91,46 +95,45 @@ bool EvaluateRoad::evaluateWaterBodies(const Configuration& configuration, const
 	{
 		do
 		{
-			glm::vec3 direction = glm::normalize(glm::rotate(glm::quat(glm::vec3(0, 0, road.roadAttributes.angle + glm::radians((float)angleIncrement))), glm::vec3(0.0f, 1.0f, 0.0f)));
-
-			// FIXME: checking invariants
-			if (configuration.waterBodiesMap == 0)
-			{
-				throw std::exception("configuration.waterBodiesMap == 0");
-			}
+			vml_vec2 direction = vml_normalize(vml_rotate2D(vml_vec2(0.0f, 1.0f), road.roadAttributes.angle + vml_radians((float)angleIncrement)));
 
 			if (configuration.waterBodiesMap->castRay(position, direction, length, 0))
 			{
 				road.state = SUCCEED;
-				break;
+				found = true;
+				goto outside_loops;
 			}
 
 			angleIncrement++;;
 		}
 		while (angleIncrement <= configuration.maxObstacleDeviationAngle);
 
-		if (road.state == SUCCEED)
-		{
-			break;
-		}
-
 		length--;
 	}
 
-	if (road.state == UNASSIGNED)
+outside_loops:
+
+	if (!found)
 	{
 		road.state = FAILED;
 		return false;
 	}
 
 	road.roadAttributes.length = length;
-	road.roadAttributes.angle += glm::radians((float)angleIncrement);
+	road.roadAttributes.angle += vml_radians((float)angleIncrement);
 	
 	return true;
 }
 
-bool EvaluateRoad::evaluateBlockades(const Configuration& configuration, const glm::vec3& position)
+bool EvaluateRoad::evaluateBlockades(const Configuration& configuration, const vml_vec2& position)
 {
+	// FIXME: checking invariants
+	if (configuration.blockadesMap == 0)
+	{
+		throw std::exception("configuration.blockadesMap == 0");
+	}
+
+	bool found = false;
 	unsigned int angleIncrement = 0;
 	unsigned int length = road.roadAttributes.length;
 
@@ -138,40 +141,32 @@ bool EvaluateRoad::evaluateBlockades(const Configuration& configuration, const g
 	{
 		do
 		{
-			glm::vec3 direction = glm::normalize(glm::rotate(glm::quat(glm::vec3(0, 0, road.roadAttributes.angle + glm::radians((float)angleIncrement))), glm::vec3(0.0f, 1.0f, 0.0f)));
-
-			// FIXME: checking invariants
-			if (configuration.blockadesMap == 0)
-			{
-				throw std::exception("configuration.blockadesMap == 0");
-			}
+			vml_vec2 direction = vml_normalize(vml_rotate2D(vml_vec2(0.0f, 1.0f), road.roadAttributes.angle + vml_radians((float)angleIncrement)));
 
 			if (configuration.blockadesMap->castRay(position, direction, length, 0))
 			{
 				road.state = SUCCEED;
-				break;
+				found = true;
+				goto outside_loops;
 			}
 
 			angleIncrement++;;
 		}
 		while (angleIncrement <= configuration.maxObstacleDeviationAngle);
 
-		if (road.state == SUCCEED)
-		{
-			break;
-		}
-
 		length--;
 	}
 
-	if (road.state == UNASSIGNED)
+outside_loops:
+
+	if (!found)
 	{
 		road.state = FAILED;
 		return false;
 	}
 
 	road.roadAttributes.length = length;
-	road.roadAttributes.angle += glm::radians((float)angleIncrement);
+	road.roadAttributes.angle += vml_radians((float)angleIncrement);
 
 	return true;
 }

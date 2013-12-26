@@ -10,15 +10,14 @@
 
 #include <GL3/gl3w.h>
 #include <GL/utils/gl.h>
-#include <glm/glm.hpp>
 
 #include <vector>
 
 struct ImageMapRenderData
 {
 	Texture* texture;
-	glm::vec4 color1;
-	glm::vec4 color2;
+	vml_vec4 color1;
+	vml_vec4 color2;
 	bool enabled;
 
 	ImageMapRenderData() : texture(0), enabled(false)
@@ -54,7 +53,7 @@ public:
 		destroyImageMaps();
 	}
 
-	void setUpImageMaps(const AABB& worldBounds, const ImageMap* populationDensityMap, const ImageMap* waterBodiesMap, const ImageMap* blockadesMap)
+	void setUpImageMaps(const Box2D& worldBounds, const ImageMap* populationDensityMap, const ImageMap* waterBodiesMap, const ImageMap* blockadesMap)
 	{
 		destroyImageMaps();
 
@@ -73,7 +72,7 @@ public:
 			setUpImageMapRenderData(blockadesMap, blockadesMapData);
 		}
 		
-		glm::vec3 size = worldBounds.getExtents();
+		vml_vec2 size = worldBounds.getExtents();
 
 		if (worldSizedQuad != 0)
 		{
@@ -95,7 +94,7 @@ public:
 	virtual void render(double deltaTime)
 	{
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-		glm::mat4 viewProjection = camera.getProjectionMatrix() * camera.getViewMatrix();
+		vml_mat4 viewProjection = camera.getProjectionMatrix() * camera.getViewMatrix();
 
 		if (worldSizedQuad != 0)
 		{

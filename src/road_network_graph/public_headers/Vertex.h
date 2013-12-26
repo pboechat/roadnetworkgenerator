@@ -3,7 +3,7 @@
 
 #include <Defines.h>
 
-#include <glm/glm.hpp>
+#include <vector_math.h>
 
 namespace RoadNetworkGraph
 {
@@ -11,7 +11,7 @@ namespace RoadNetworkGraph
 struct Vertex
 {
 	VertexIndex index;
-	glm::vec3 position;
+	vml_vec2 position;
 	EdgeIndex ins[MAX_VERTEX_IN_CONNECTIONS];
 	EdgeIndex outs[MAX_VERTEX_OUT_CONNECTIONS];
 	unsigned int lastInIndex;

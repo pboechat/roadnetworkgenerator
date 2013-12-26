@@ -4,7 +4,7 @@
 #include <MathExtras.h>
 
 #include <FreeImage.h>
-#include <glm/glm.hpp>
+#include <vector_math.h>
 
 #include <string>
 #include <exception>
@@ -59,11 +59,11 @@ public:
 		FreeImage_Unload(image);
 	}
 
-	bool castRay(const glm::vec3& origin, const glm::vec3& direction, unsigned int length, unsigned char threshold, glm::vec3& hit) const
+	bool castRay(const vml_vec2& origin, const vml_vec2& direction, unsigned int length, unsigned char threshold, vml_vec2& hit) const
 	{
 		for (unsigned int i = 0; i <= length; i++)
 		{
-			glm::vec3 point = origin + (direction * (float)i);
+			vml_vec2 point = origin + (direction * (float)i);
 
 			if (sample(point) > threshold)
 			{
@@ -75,20 +75,20 @@ public:
 		return true;
 	}
 
-	bool castRay(const glm::vec3& origin, const glm::vec3& direction, unsigned int length, unsigned char threshold) const
+	bool castRay(const vml_vec2& origin, const vml_vec2& direction, unsigned int length, unsigned char threshold) const
 	{
-		glm::vec3 hit;
+		vml_vec2 hit;
 		return castRay(origin, direction, length, threshold, hit);
 	}
 
-	void scan(const glm::vec3& origin, const glm::vec3& direction, int minDistance, int maxDistance, unsigned char& greaterSample, int& distance) const
+	void scan(const vml_vec2& origin, const vml_vec2& direction, int minDistance, int maxDistance, unsigned char& greaterSample, int& distance) const
 	{
 		distance = maxDistance;
 		greaterSample = 0;
 
 		for (int i = minDistance; i <= maxDistance; i++)
 		{
-			glm::vec3 point = origin + (direction * (float)i);
+			vml_vec2 point = origin + (direction * (float)i);
 			unsigned char currentSample = sample(point);
 
 			if (currentSample > greaterSample)
@@ -99,9 +99,9 @@ public:
 		}
 	}
 
-	unsigned char sample(const glm::vec3& point) const
+	unsigned char sample(const vml_vec2& point) const
 	{
-		glm::vec3 position;
+		vml_vec2 position;
 		position.x = MathExtras::clamp(0.0f, (float)width, point.x);
 		position.y = MathExtras::clamp(0.0f, (float)height, point.y);
 		int i = ((int)position.y * width) + (int)position.x;
@@ -128,22 +128,22 @@ public:
 		return data;
 	}
 
-	inline glm::vec4 getColor1() const
+	inline vml_vec4 getColor1() const
 	{
 		return color1;
 	}
 
-	inline void setColor1(const glm::vec4& color)
+	inline void setColor1(const vml_vec4& color)
 	{
 		color1 = color;
 	}
 
-	inline glm::vec4 getColor2() const
+	inline vml_vec4 getColor2() const
 	{
 		return color2;
 	}
 
-	inline void setColor2(const glm::vec4& color)
+	inline void setColor2(const vml_vec4& color)
 	{
 		color2 = color;
 	}
@@ -152,8 +152,8 @@ private:
 	int width;
 	int height;
 	unsigned char* data;
-	glm::vec4 color1;
-	glm::vec4 color2;
+	vml_vec4 color1;
+	vml_vec4 color2;
 
 };
 

@@ -4,10 +4,12 @@
 #include <Defines.h>
 #include <Quadrant.h>
 #include <QuadrantEdges.h>
-#include <Line.h>
-#include <Circle.h>
-#include <AABB.h>
-#include <glm/glm.hpp>
+
+#include <Line2D.h>
+#include <Circle2D.h>
+#include <Box2D.h>
+
+#include <vector_math.h>
 
 #include <cmath>
 #include <exception>
@@ -18,7 +20,7 @@ namespace RoadNetworkGraph
 class QuadTree
 {
 public:
-	QuadTree(const AABB& worldBounds, unsigned int maxDepth, unsigned int maxResultsPerQuery) :
+	QuadTree(const Box2D& worldBounds, unsigned int maxDepth, unsigned int maxResultsPerQuery) :
 		worldBounds(worldBounds),
 		maxDepth(maxDepth),
 		quadrants(0),
@@ -70,7 +72,7 @@ public:
 		query(shape, queryResult, size, 0, 0, 1);
 	}
 
-	void remove(EdgeIndex edgeIndex, const Line& edgeLine, unsigned int index = 0, unsigned int offset = 0, unsigned int levelWidth = 1)
+	void remove(EdgeIndex edgeIndex, const Line2D& edgeLine, unsigned int index = 0, unsigned int offset = 0, unsigned int levelWidth = 1)
 	{
 		Quadrant& quadrant = quadrants[offset + index];
 
@@ -104,7 +106,7 @@ public:
 #endif
 	}
 
-	void insert(EdgeIndex edgeIndex, const Line& edgeLine, unsigned int index = 0, unsigned int offset = 0, unsigned int levelWidth = 1)
+	void insert(EdgeIndex edgeIndex, const Line2D& edgeLine, unsigned int index = 0, unsigned int offset = 0, unsigned int levelWidth = 1)
 	{
 		Quadrant& quadrant = quadrants[offset + index];
 
@@ -191,7 +193,7 @@ public:
 
 private:
 	unsigned int maxResultsPerQuery;
-	AABB worldBounds;
+	Box2D worldBounds;
 	unsigned int maxDepth;
 	Quadrant* quadrants;
 	QuadrantEdges* quadrantsEdges;
@@ -202,7 +204,7 @@ private:
 	unsigned long numCollisionChecks;
 #endif
 
-	void initializeQuadrant(const AABB& quadrantBounds, unsigned int depth = 0, unsigned int index = 0, unsigned int offset = 0, unsigned int levelWidth = 1)
+	void initializeQuadrant(const Box2D& quadrantBounds, unsigned int depth = 0, unsigned int index = 0, unsigned int offset = 0, unsigned int levelWidth = 1)
 	{
 		Quadrant& quadrant = quadrants[offset + index];
 		quadrant.depth = depth;
@@ -218,7 +220,7 @@ private:
 		unsigned int newOffset = offset + levelWidth;
 		unsigned int newLevelWidth = levelWidth * 4;
 		unsigned int newDepth = depth + 1;
-		glm::vec3 subQuadrantSize = quadrantBounds.getExtents() / 2.0f;
+		vml_vec2 subQuadrantSize = quadrantBounds.getExtents() / 2.0f;
 
 		for (unsigned int y = 0, i = 0; y < 2; y++)
 		{
@@ -226,7 +228,7 @@ private:
 
 			for (unsigned int x = 0; x < 2; x++, i++)
 			{
-				initializeQuadrant(AABB(quadrantBounds.min.x + ((float)x * subQuadrantSize.x), subQuadrantY, subQuadrantSize.x, subQuadrantSize.y), newDepth, baseIndex + i, newOffset, newLevelWidth);
+				initializeQuadrant(Box2D(quadrantBounds.min.x + ((float)x * subQuadrantSize.x), subQuadrantY, subQuadrantSize.x, subQuadrantSize.y), newDepth, baseIndex + i, newOffset, newLevelWidth);
 			}
 		}
 	}

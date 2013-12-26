@@ -1,40 +1,39 @@
-#ifndef LINE_H
-#define LINE_H
+#ifndef LINE2D_H
+#define LINE2D_H
 
-#include <Circle.h>
+#include <Circle2D.h>
 
-#include <glm/glm.hpp>
-#include <glm/gtx/projection.hpp>
+#include <vector_math.h>
 
 #include <exception>
 
 #define EPSILON 0.001f
 
-struct Line
+struct Line2D
 {
-	glm::vec3 start;
-	glm::vec3 end;
+	vml_vec2 start;
+	vml_vec2 end;
 
-	Line(const glm::vec3& start, const glm::vec3& end) : start(start), end(end) {}
-	~Line() {}
+	Line2D(const vml_vec2& start, const vml_vec2& end) : start(start), end(end) {}
+	~Line2D() {}
 
-	Line& operator = (const Line& other)
+	Line2D& operator = (const Line2D& other)
 	{
 		start = other.start;
 		end = other.end;
 		return *this;
 	}
 
-	bool intersects(const Line& line) const
+	bool intersects(const Line2D& line) const
 	{
-		glm::vec3 intersection;
+		vml_vec2 intersection;
 		return intersects(line, intersection);
 	}
 
-	inline bool onSegment(const glm::vec3& p, const glm::vec3& q, const glm::vec3& r) const
+	inline bool onSegment(const vml_vec2& p, const vml_vec2& q, const vml_vec2& r) const
 	{
 		if (q.x <= glm::max(p.x, r.x) && q.x >= glm::min(p.x, r.x) &&
-				q.y <= glm::max(p.y, r.y) && q.y >= glm::min(p.y, r.y))
+			q.y <= glm::max(p.y, r.y) && q.y >= glm::min(p.y, r.y))
 		{
 			return true;
 		}
@@ -45,7 +44,7 @@ struct Line
 	// 0 -> collinear
 	// 1 -> clockwise
 	// 2 -> counterclockwise
-	inline int orientation(const glm::vec3& p, const glm::vec3& q, const glm::vec3& r) const
+	inline int orientation(const vml_vec2& p, const vml_vec2& q, const vml_vec2& r) const
 	{
 		float val = (r.x - q.x) * (q.y - p.y) - (r.y - q.y) * (q.x - p.x);
 
@@ -57,7 +56,7 @@ struct Line
 		return (val > 0) ? 1 : 2; // clock or counterclockwise
 	}
 
-	bool intersects(const Line& line, glm::vec3& intersection) const
+	bool intersects(const Line2D& line, vml_vec2& intersection) const
 	{
 		// find the four orientations needed for general and special cases
 		int o1 = orientation(start, end, line.start);
@@ -116,7 +115,7 @@ struct Line
 		return false;
 	}
 
-	unsigned int intersects(const Circle& circle, glm::vec3& intersection1, glm::vec3& intersection2) const
+	unsigned int intersects(const Circle2D& circle, vml_vec2& intersection1, vml_vec2& intersection2) const
 	{
 		// FIXME: circle == point case
 		if (circle.radius == 0)
@@ -124,11 +123,11 @@ struct Line
 			return 0;
 		}
 
-		glm::vec3 direction = glm::normalize(end - start);
-		glm::vec3 centerToStart = start - circle.center;
-		float a = glm::dot(direction, direction);
-		float b = 2.0f * glm::dot(centerToStart, direction);
-		float c = glm::dot(centerToStart, centerToStart) - circle.radius * circle.radius;
+		vml_vec2 direction = vml_normalize(end - start);
+		vml_vec2 centerToStart = start - circle.center;
+		float a = vml_dot(direction, direction);
+		float b = 2.0f * vml_dot(centerToStart, direction);
+		float c = vml_dot(centerToStart, centerToStart) - circle.radius * circle.radius;
 		float discriminant = b * b - 4 * a * c;
 
 		if (discriminant < 0)
@@ -139,7 +138,7 @@ struct Line
 		else
 		{
 			unsigned int mask = 0;
-			discriminant = glm::sqrt(discriminant);
+			discriminant = sqrt(discriminant);
 			float t1 = (-b - discriminant) / (2.0f * a);
 			float t2 = (-b + discriminant) / (2.0f * a);
 
@@ -159,9 +158,9 @@ struct Line
 		}
 	}
 
-	bool intersects(const Circle& circle) const
+	bool intersects(const Circle2D& circle) const
 	{
-		glm::vec3 i1, i2;
+		vml_vec2 i1, i2;
 		return intersects(circle, i1, i2) > 0;
 	}
 

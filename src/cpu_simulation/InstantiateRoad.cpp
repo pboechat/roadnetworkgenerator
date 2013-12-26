@@ -1,11 +1,8 @@
 #include <InstantiateRoad.h>
 #include <EvaluateBranch.h>
 #include <EvaluateRoad.h>
-#include <Circle.h>
 #include <Pattern.h>
 #include <MathExtras.h>
-
-#include <glm/gtx/quaternion.hpp>
 
 #include <sstream>
 #include <random>
@@ -37,9 +34,9 @@ void InstantiateRoad::execute(WorkQueuesManager& manager, RoadNetworkGraph::Grap
 		throw std::exception("road.state != SUCCEED");
 	}
 
-	glm::vec3 direction = glm::rotate(glm::quat(glm::vec3(0, 0, road.roadAttributes.angle)), glm::vec3(0.0f, road.roadAttributes.length, 0.0f));
+	vml_vec2 direction = vml_rotate2D(vml_vec2(0.0f, road.roadAttributes.length), road.roadAttributes.angle);
 	RoadNetworkGraph::VertexIndex newSource;
-	glm::vec3 position;
+	vml_vec2 position;
 	bool interrupted = graph.addRoad(road.roadAttributes.source, direction, newSource, position, road.roadAttributes.highway);
 	int delays[3];
 	RoadAttributes roadAttributes[3];
@@ -62,7 +59,7 @@ void InstantiateRoad::execute(WorkQueuesManager& manager, RoadNetworkGraph::Grap
 	manager.addWorkItem(EvaluateRoad(Road(delays[2], roadAttributes[2], ruleAttributes[2], UNASSIGNED)));
 }
 
-void InstantiateRoad::evaluateGlobalGoals(const Configuration& configuration, RoadNetworkGraph::VertexIndex source, const glm::vec3& position, int* delays, RoadAttributes* roadAttributes, RuleAttributes* ruleAttributes)
+void InstantiateRoad::evaluateGlobalGoals(const Configuration& configuration, RoadNetworkGraph::VertexIndex source, const vml_vec2& position, int* delays, RoadAttributes* roadAttributes, RuleAttributes* ruleAttributes)
 {
 	if (road.roadAttributes.highway)
 	{
@@ -86,7 +83,7 @@ void InstantiateRoad::evaluateGlobalGoals(const Configuration& configuration, Ro
 
 		else
 		{
-			goalDistance = (unsigned int)glm::distance(position, road.ruleAttributes.goal);
+			goalDistance = (unsigned int)vml_distance(position, road.ruleAttributes.goal);
 		}
 
 		if (goalDistance <= configuration.goalDistanceThreshold)
@@ -182,7 +179,7 @@ void InstantiateRoad::evaluateGlobalGoals(const Configuration& configuration, Ro
 	}
 }
 
-Pattern InstantiateRoad::findUnderlyingPattern(const Configuration& configuration, const glm::vec3& position) const
+Pattern InstantiateRoad::findUnderlyingPattern(const Configuration& configuration, const vml_vec2& position) const
 {
 	unsigned char naturalPattern = 0;
 
@@ -232,7 +229,7 @@ Pattern InstantiateRoad::findUnderlyingPattern(const Configuration& configuratio
 	}
 }
 
-void InstantiateRoad::findHighestPopulationDensity(const Configuration& configuration, const glm::vec3& start, float startingAngle, glm::vec3& goal, unsigned int& distance) const
+void InstantiateRoad::findHighestPopulationDensity(const Configuration& configuration, const vml_vec2& start, float startingAngle, vml_vec2& goal, unsigned int& distance) const
 {
 	int currentAngleStep = -configuration.halfSamplingArc;
 
@@ -244,7 +241,7 @@ void InstantiateRoad::findHighestPopulationDensity(const Configuration& configur
 
 	for (unsigned int i = 0; i < configuration.samplingArc; i++, currentAngleStep++)
 	{
-		glm::vec3 direction = glm::normalize(glm::rotate(glm::quat(glm::vec3(0.0f, 0.0f, startingAngle + glm::radians((float)currentAngleStep))), glm::vec3(0.0f, 1.0f, 0.0f)));
+		vml_vec2 direction = vml_normalize(vml_rotate2D(vml_vec2(0.0f, 1.0f), startingAngle + vml_radians((float)currentAngleStep)));
 		unsigned char populationDensity;
 		int distance;
 		configuration.populationDensityMap->scan(start, direction, configuration.minSamplingRayLength, configuration.maxSamplingRayLength, populationDensity, distance);
@@ -268,9 +265,8 @@ void InstantiateRoad::findHighestPopulationDensity(const Configuration& configur
 		}
 	}
 
-	float angle = startingAngle + glm::radians(angleIncrement - (float)configuration.halfSamplingArc);
 	distance = distances[j];
-	goal = start + glm::rotate(glm::quat(glm::vec3(0.0f, 0.0f, angle)), glm::vec3(0.0f, (float)distance, 0.0f));
+	goal = start + vml_rotate2D(vml_vec2(0.0f, (float)distance), startingAngle + vml_radians(angleIncrement - (float)configuration.halfSamplingArc));
 }
 
 void InstantiateRoad::applyHighwayGoalDeviation(const Configuration& configuration, RoadAttributes& roadAttributes) const
@@ -280,26 +276,26 @@ void InstantiateRoad::applyHighwayGoalDeviation(const Configuration& configurati
 		return;
 	}
 
-	roadAttributes.angle += glm::radians((float)(rand() % configuration.halfMaxHighwayGoalDeviation) - (int)configuration.maxHighwayGoalDeviation);
+	roadAttributes.angle += vml_radians((float)(rand() % configuration.halfMaxHighwayGoalDeviation) - (int)configuration.maxHighwayGoalDeviation);
 }
 
-void InstantiateRoad::applyNaturalPatternRule(const Configuration& configuration, const glm::vec3& position, unsigned int goalDistance, int& delay, RoadAttributes& roadAttributes, RuleAttributes& ruleAttributes) const
+void InstantiateRoad::applyNaturalPatternRule(const Configuration& configuration, const vml_vec2& position, unsigned int goalDistance, int& delay, RoadAttributes& roadAttributes, RuleAttributes& ruleAttributes) const
 {
 	roadAttributes.length = MathExtras::min(goalDistance, configuration.highwayLength);
-	roadAttributes.angle = MathExtras::getOrientedAngle(glm::vec3(0.0f, 1.0f, 0.0f), ruleAttributes.goal - position);
+	roadAttributes.angle = MathExtras::getOrientedAngle(vml_vec2(0.0f, 1.0f), ruleAttributes.goal - position);
 	applyHighwayGoalDeviation(configuration, roadAttributes);
 }
 
-void InstantiateRoad::applyRadialPatternRule(const Configuration& configuration, const glm::vec3& position, unsigned int goalDistance, int& delay, RoadAttributes& roadAttributes, RuleAttributes& ruleAttributes) const
+void InstantiateRoad::applyRadialPatternRule(const Configuration& configuration, const vml_vec2& position, unsigned int goalDistance, int& delay, RoadAttributes& roadAttributes, RuleAttributes& ruleAttributes) const
 {
 	// TODO:
 }
 
-void InstantiateRoad::applyRasterPatternRule(const Configuration& configuration, const glm::vec3& position, unsigned int goalDistance, int& delay, RoadAttributes& roadAttributes, RuleAttributes& ruleAttributes) const
+void InstantiateRoad::applyRasterPatternRule(const Configuration& configuration, const vml_vec2& position, unsigned int goalDistance, int& delay, RoadAttributes& roadAttributes, RuleAttributes& ruleAttributes) const
 {
-	float angle = MathExtras::getOrientedAngle(glm::vec3(1.0f, 0.0f, 0.0f), ruleAttributes.goal - position);
-	unsigned int horizontalDistance = (unsigned int)glm::abs((float)goalDistance * glm::cos(angle));
-	unsigned int verticalDistance = (unsigned int)glm::abs((float)goalDistance * glm::sin(angle));
+	float angle = MathExtras::getOrientedAngle(vml_vec2(1.0f, 0.0f), ruleAttributes.goal - position);
+	unsigned int horizontalDistance = (unsigned int)abs((float)goalDistance * cos(angle));
+	unsigned int verticalDistance = (unsigned int)abs((float)goalDistance * sin(angle));
 	bool canMoveHorizontally = horizontalDistance >= configuration.minRoadLength;
 	bool canMoveVertically = verticalDistance >= configuration.minRoadLength;
 	bool moveHorizontally;

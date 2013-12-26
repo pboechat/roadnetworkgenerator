@@ -1,5 +1,5 @@
-#ifndef TEXTURE_H_
-#define TEXTURE_H_
+#ifndef TEXTURE_H
+#define TEXTURE_H
 
 #include <GL3/gl3w.h>
 #include <FreeImage.h>

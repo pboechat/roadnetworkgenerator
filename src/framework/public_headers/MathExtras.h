@@ -1,7 +1,7 @@
-#ifndef MATHF_H
-#define MATHF_H
+#ifndef MATHEXTRAS_H
+#define MATHEXTRAS_H
 
-#include <glm/glm.hpp>
+#include <vector_math.h>
 
 namespace MathExtras
 {
@@ -16,10 +16,30 @@ inline static T max(T a, T b)
 	return (a > b) ? a : b;
 }
 
+inline static vml_vec2 max(vml_vec2 a, vml_vec2 b)
+{
+	return vml_vec2(max(a.x, b.x), max(a.y, b.y));
+}
+
+inline static vml_vec3 max(vml_vec3 a, vml_vec3 b)
+{
+	return vml_vec3(max(a.x, b.x), max(a.y, b.y), max(a.z, b.z));
+}
+
 template<typename T>
 inline static T min(T a, T b)
 {
 	return (a < b) ? a : b;
+}
+
+inline static vml_vec2 min(vml_vec2 a, vml_vec2 b)
+{
+	return vml_vec2(min(a.x, b.x), min(a.y, b.y));
+}
+
+inline static vml_vec3 min(vml_vec3 a, vml_vec3 b)
+{
+	return vml_vec3(min(a.x, b.x), min(a.y, b.y), min(a.z, b.z));
 }
 
 template<typename T>
@@ -28,11 +48,25 @@ inline static T clamp(T min, T max, T x)
 	return ((x < min) ? min : ((x > max) ? max : x));
 }
 
-static float getOrientedAngle(const glm::vec3& a, const glm::vec3& b)
+template<typename T>
+inline static vml_vec2 clamp(T min, T max, vml_vec2 a)
 {
-	float angle = acos(glm::dot(a, b) / (glm::length(a) * glm::length(b)));
+	return vml_vec2(clamp(min, max, a.x), clamp(min, max, a.y));
+}
 
-	if (glm::cross(a, b).z > 0)
+template<typename T>
+inline static vml_vec3 clamp(T min, T max, vml_vec3 a)
+{
+	return vml_vec3(clamp(min, max, a.x), clamp(min, max, a.y), clamp(min, max, a.z));
+}
+
+static float getOrientedAngle(const vml_vec2& a, const vml_vec2& b)
+{
+	float angle = acos(vml_dot(a, b) / (vml_length(a) * vml_length(b)));
+
+	vml_vec3 e1(a.x, a.y, 0.0f);
+	vml_vec3 e2(b.x, b.y, 0.0f);
+	if (vml_cross(e1, e2).z > 0)
 	{
 		return angle;
 	}

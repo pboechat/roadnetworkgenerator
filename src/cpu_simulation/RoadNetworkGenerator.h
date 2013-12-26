@@ -13,7 +13,7 @@
 #include <Graph.h>
 #include <MathExtras.h>
 
-#include <glm/glm.hpp>
+#include <vector_math.h>
 
 #define NUM_WORK_QUEUES 3
 
@@ -34,7 +34,7 @@ public:
 
 		for (unsigned int i = 0; i < configuration.numSpawnPoints; i++)
 		{
-			glm::vec3 spawnPoint = configuration.spawnPoints[i];
+			vml_vec2 spawnPoint = configuration.spawnPoints[i];
 			RoadNetworkGraph::VertexIndex source = graph.createVertex(spawnPoint);
 			frontBuffer->addWorkItem(EvaluateRoad(Road(0, RoadAttributes(source, configuration.highwayLength, 0, true), RuleAttributes(), UNASSIGNED)));
 			frontBuffer->addWorkItem(EvaluateRoad(Road(0, RoadAttributes(source, configuration.highwayLength, -MathExtras::HALF_PI, true), RuleAttributes(), UNASSIGNED)));
