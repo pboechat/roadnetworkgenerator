@@ -528,12 +528,13 @@ void Graph::removeDeadEndRoads()
 		for (int i = 0; i < lastVertexIndex; i++)
 		{
 			Vertex& vertex = vertices[i];
-			unsigned int valency = getValency(vertex);
 
 			if (vertex.removed)
 			{
 				continue;
 			}
+
+			unsigned int valency = getValency(vertex);
 
 			if (valency == 1)
 			{
