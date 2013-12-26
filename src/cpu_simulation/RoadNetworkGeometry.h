@@ -2,7 +2,7 @@
 #define ROADNETWORKGEOMETRY_H
 
 #include <Geometry.h>
-#include <Configuration.h>
+#include <Globals.h>
 #include <GraphTraversal.h>
 
 #include <vector_math.h>
@@ -52,7 +52,7 @@ public:
 		}
 	}
 
-	void build(const RoadNetworkGraph::Graph& roadNetworkGraph, const vml_vec4& highwayColor, const vml_vec4& streetColor)
+	void build()
 	{
 		if (!built)
 		{
@@ -63,7 +63,7 @@ public:
 		std::vector<vml_vec4> vertices;
 		std::vector<vml_vec4> colors;
 		std::vector<unsigned int> indices;
-		roadNetworkGraph.traverse(GeometryCreationTraversal(vertices, colors, indices, highwayColor, streetColor));
+		graph->traverse(GeometryCreationTraversal(vertices, colors, indices, configuration->highwayColor, configuration->streetColor));
 		glBindBuffer(GL_ARRAY_BUFFER, buffers[0]);
 		glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(vml_vec4), (void*)&vertices[0], GL_STATIC_DRAW);
 		glBindBuffer(GL_ARRAY_BUFFER, 0);

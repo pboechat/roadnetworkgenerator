@@ -1,14 +1,22 @@
 #ifndef PROCEDURE_H
 #define PROCEDURE_H
 
-#include <WorkItem.h>
-#include <WorkQueuesManager.h>
+#include <WorkQueues.h>
 #include <Configuration.h>
 #include <Graph.h>
 
-struct Procedure : public WorkItem
+template<typename SubType, typename ArgType, int code>
+struct Procedure
 {
-	virtual void execute(WorkQueuesManager& manager, RoadNetworkGraph::Graph& graph, const Configuration& configuration) = 0;
+	inline static int getCode() const
+	{
+		return code;
+	}
+
+	static void execute(ArgType& item, WorkQueues& queues, RoadNetworkGraph::Graph& graph, const Configuration& configuration)
+	{
+		SubType::execute(item, queues, graph, configuration);
+	}
 
 };
 

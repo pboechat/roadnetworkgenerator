@@ -4,18 +4,9 @@
 #include <Procedure.h>
 #include <Branch.h>
 
-#define EVALUATE_BRANCH_CODE 1
-
-struct EvaluateBranch : public Procedure
+struct EvaluateBranch : public Procedure<EvaluateBranch, Branch>
 {
-	EvaluateBranch();
-	EvaluateBranch(const Branch& branch);
-
-	virtual unsigned int getCode() const;
-	virtual void execute(WorkQueuesManager& manager, RoadNetworkGraph::Graph& graph, const Configuration& configuration);
-
-private:
-	Branch branch;
+	static void execute(Branch& branch, WorkQueues& queues, RoadNetworkGraph::Graph& graph, const Configuration& configuration);
 
 };
 

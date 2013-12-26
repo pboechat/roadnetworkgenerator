@@ -1,17 +1,17 @@
-#ifndef STATIC_ALLOC_QUEUE_H
-#define STATIC_ALLOC_QUEUE_H
+#ifndef GENERICQUEUE_H
+#define GENERICQUEUE_H
 
 #include <exception>
 
-class static_alloc_queue
+class GenericQueue
 {
 public:
-	static_alloc_queue(unsigned int capacity, unsigned int itemSize) : capacity(capacity), itemSize(itemSize), counter(0), head(0), tail(0), buffer(0)
+	GenericQueue(unsigned int capacity, unsigned int itemSize) : capacity(capacity), itemSize(itemSize), counter(0), head(0), tail(0), buffer(0)
 	{
 		buffer = new unsigned char[capacity * itemSize];
 	}
 
-	~static_alloc_queue()
+	~GenericQueue()
 	{
 		if (buffer != 0)
 		{

@@ -1,27 +1,24 @@
 #ifndef EVALUATEROAD_H
 #define EVALUATEROAD_H
 
-#include <Procedure.h>
+#include <Procedures.h>
 #include <Road.h>
 
 #include <vector_math.h>
 
-#define EVALUATE_ROAD_CODE 2
-
-struct EvaluateRoad : public Procedure
+struct EvaluateRoad : public Procedure<EvaluateRoad, Road>
 {
-	EvaluateRoad();
-	EvaluateRoad(const Road& road);
+	static void getCode()
+	{
+		return 1;
+	}
 
-	virtual unsigned int getCode() const;
-	virtual void execute(WorkQueuesManager& manager, RoadNetworkGraph::Graph& graph, const Configuration& configuration);
+	static void execute(Road& road, WorkQueues& queues, RoadNetworkGraph::Graph& graph, const Configuration& configuration);
 
 private:
-	Road road;
-
-	void evaluateLocalContraints(const Configuration& configuration, const RoadNetworkGraph::Graph& roadNetworkGraph);
-	bool evaluateWaterBodies(const Configuration& configuration, const vml_vec2& position);
-	bool evaluateBlockades(const Configuration& configuration, const vml_vec2& position);
+	static void evaluateLocalContraints(Road& road, const Configuration& configuration, const RoadNetworkGraph::Graph& roadNetworkGraph);
+	static bool evaluateWaterBodies(Road& road, const Configuration& configuration, const vml_vec2& position);
+	static bool evaluateBlockades(Road& road, const Configuration& configuration, const vml_vec2& position);
 
 
 };

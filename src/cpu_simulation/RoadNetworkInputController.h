@@ -1,6 +1,7 @@
 #ifndef ROADNETWORKINPUTCONTROLLER_H
 #define ROADNETWORKINPUTCONTROLLER_H
 
+#include <Application.h>
 #include <InputController.h>
 #include <SceneRenderer.h>
 #include <Configuration.h>
@@ -56,7 +57,6 @@ public:
 		else if (getKey(VK_DOWN) || getKey(83))
 		{
 			moveCameraDown((float)deltaTime);
-			\
 		}
 
 		if (getKey(81) || getKey(33))

@@ -1,15 +1,15 @@
 // memory leak detection
 //#include <vld.h>
 
-#include <Application.h>
-#include <Camera.h>
 #include <RoadNetworkInputController.h>
 #include <SceneRenderer.h>
 #include <RoadNetworkGeometry.h>
-#include <Configuration.h>
 #include <RoadNetworkGenerator.h>
+#include <Globals.h>
+
+#include <Application.h>
+#include <Camera.h>
 #include <Box2D.h>
-#include <Graph.h>
 #include <Timer.h>
 #include <MathExtras.h>
 
@@ -36,51 +36,65 @@ void printUsage()
 
 void generateAndDisplay(const std::string& configurationFile, SceneRenderer& renderer, RoadNetworkGeometry& geometry, Camera& camera)
 {
-	Configuration configuration;
-	configuration.loadFromFile(configurationFile);
-	Box2D worldBounds(0.0f, 0.0f, (float)configuration.worldWidth, (float)configuration.worldHeight);
-	renderer.setUpImageMaps(worldBounds, configuration.populationDensityMap, configuration.waterBodiesMap, configuration.blockadesMap);
+	if (configuration != 0)
+	{
+		delete configuration;
+	}
+	configuration = new Configuration();
+	configuration->loadFromFile(configurationFile);
+
+	Box2D worldBounds(0.0f, 0.0f, (float)configuration->worldWidth, (float)configuration->worldHeight);
+
+	renderer.setUpImageMaps(worldBounds, configuration->populationDensityMap, configuration->waterBodiesMap, configuration->blockadesMap);
+
+	if (graph != 0)
+	{
+		delete graph;
+	}
 #ifdef USE_QUADTREE
-	RoadNetworkGraph::Graph graph(worldBounds, configuration.quadtreeDepth, configuration.snapRadius, configuration.maxVertices, configuration.maxEdges, configuration.maxResultsPerQuery);
+	graph = new RoadNetworkGraph::Graph(worldBounds, configuration->quadtreeDepth, configuration->snapRadius, configuration->maxVertices, configuration->maxEdges, configuration->maxResultsPerQuery);
 #else
-	RoadNetworkGraph::Graph graph(worldBounds, configuration.snapRadius, configuration.maxVertices, configuration.maxEdges, configuration.maxResultsPerQuery);
+	graph = new RoadNetworkGraph::Graph(worldBounds, configuration->snapRadius, configuration->maxVertices, configuration->maxEdges, configuration->maxResultsPerQuery);
 #endif
-	RoadNetworkGenerator generator(configuration.maxWorkQueueCapacity);
+
+	RoadNetworkGenerator generator(configuration->maxWorkQueueCapacity);
 #ifdef _DEBUG
 	Timer timer;
 	timer.start();
 #endif
-	generator.execute(configuration, graph);
+	generator.execute();
+
 #ifdef _DEBUG
 	timer.end();
 	std::cout << "*****************************" << std::endl;
 	std::cout << "	DETAILS:				   " << std::endl;
 	std::cout << "*****************************" << std::endl;
 #ifdef _DEBUG
-	std::cout << "seed: " << configuration.seed << std::endl;
+	std::cout << "seed: " << configuration->seed << std::endl;
 #endif
 	std::cout << "generation time: " << timer.elapsedTime() << " seconds" << std::endl;
-	std::cout << "steps (max./real): " << configuration.maxDerivations << " / " << generator.getLastStep() << std::endl;
+	std::cout << "steps (max./real): " << configuration->maxDerivations << " / " << generator.getLastStep() << std::endl;
 	std::cout << "work queue capacity (max/max. in use): " << generator.getMaxWorkQueueCapacity() << " / " << generator.getMaxWorkQueueCapacityUsed() << std::endl;
-	std::cout << "memory (allocated/in use): " << toMegabytes(graph.getAllocatedMemory()) << " MB / " << toMegabytes(graph.getMemoryInUse()) << " MB" << std::endl;
-	std::cout << "vertices (allocated/in use): " << graph.getAllocatedVertices() << " / " << graph.getVerticesInUse() << std::endl;
-	std::cout << "edges (allocated/in use): " << graph.getAllocatedEdges() << " / " << graph.getEdgesInUse() << std::endl;
-	std::cout << "vertex in connections (max./max. in use): " << graph.getMaxVertexInConnections() << " / " << graph.getMaxVertexInConnectionsInUse() << std::endl;
-	std::cout << "vertex out connections (max./max. in use): " << graph.getMaxVertexOutConnections() << " / " << graph.getMaxVertexOutConnectionsInUse() << std::endl;
-	std::cout << "avg. vertex in connections in use: " << graph.getAverageVertexInConnectionsInUse() << std::endl;
-	std::cout << "avg. vertex out connections in use: " << graph.getAverageVertexOutConnectionsInUse() << std::endl;
+	std::cout << "memory (allocated/in use): " << toMegabytes(graph->getAllocatedMemory()) << " MB / " << toMegabytes(graph->getMemoryInUse()) << " MB" << std::endl;
+	std::cout << "vertices (allocated/in use): " << graph->getAllocatedVertices() << " / " << graph->getVerticesInUse() << std::endl;
+	std::cout << "edges (allocated/in use): " << graph->getAllocatedEdges() << " / " << graph->getEdgesInUse() << std::endl;
+	std::cout << "vertex in connections (max./max. in use): " << graph->getMaxVertexInConnections() << " / " << graph->getMaxVertexInConnectionsInUse() << std::endl;
+	std::cout << "vertex out connections (max./max. in use): " << graph->getMaxVertexOutConnections() << " / " << graph->getMaxVertexOutConnectionsInUse() << std::endl;
+	std::cout << "avg. vertex in connections in use: " << graph->getAverageVertexInConnectionsInUse() << std::endl;
+	std::cout << "avg. vertex out connections in use: " << graph->getAverageVertexOutConnectionsInUse() << std::endl;
 #ifdef USE_QUADTREE
-	std::cout << "edges per quadrant (max./max. in use): " << graph.getMaxEdgesPerQuadrant() << " / " << graph.getMaxEdgesPerQuadrantInUse() << std::endl;
+	std::cout << "edges per quadrant (max./max. in use): " << graph->getMaxEdgesPerQuadrant() << " / " << graph->getMaxEdgesPerQuadrantInUse() << std::endl;
 #endif
-	std::cout << "num. collision checks: " << graph.getNumCollisionChecks() << std::endl;
+	std::cout << "num. collision checks: " << graph->getNumCollisionChecks() << std::endl;
 	std::cout  << std::endl << std::endl;
 #endif
-	geometry.build(graph, configuration.highwayColor, configuration.streetColor);
+	geometry.build();
 	camera.centerOnTarget(worldBounds);
 }
 
 int main(int argc, char** argv)
 {
+	int returnValue = -1;
 	try
 	{
 		if (argc < 4)
@@ -114,7 +128,7 @@ int main(int argc, char** argv)
 		application.setRenderer(renderer);
 		application.setInputController(inputController);
 		generateAndDisplay(configurationFile, renderer, geometry, camera);
-		return application.run();
+		returnValue = application.run();
 	}
 
 	catch (std::exception& e)
@@ -127,7 +141,17 @@ int main(int argc, char** argv)
 		std::cout << std::endl << "Unknown error" << std::endl << std::endl;
 	}
 
+	if (configuration != 0)
+	{
+		delete configuration;
+	}
+
+	if (graph != 0)
+	{
+		delete graph;
+	}
+
 	// DEBUG:
 	system("pause");
-	return -1;
+	return returnValue;
 }
