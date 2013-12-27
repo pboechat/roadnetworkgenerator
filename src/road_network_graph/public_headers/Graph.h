@@ -4,7 +4,6 @@
 #include <Defines.h>
 #include <Vertex.h>
 #include <Edge.h>
-#include <QuadTree.h>
 
 #include <Box2D.h>
 #include <Line2D.h>
@@ -12,96 +11,95 @@
 
 #include <vector_math.h>
 
-#include <vector>
-#include <exception>
-
 namespace RoadNetworkGraph
 {
 
+//////////////////////////////////////////////////////////////////////////
+struct QuadTree;
+//////////////////////////////////////////////////////////////////////////
 struct GraphTraversal;
 
-class Graph
+//////////////////////////////////////////////////////////////////////////
+enum IntersectionType
 {
-public:
-#ifdef USE_QUADTREE
-	Graph(const Box2D& worldBounds, unsigned int quadtreeDepth, float snapRadius, unsigned int maxVertices, unsigned int maxEdges, unsigned int maxResultsPerQuery);
-#else
-	Graph(const Box2D& worldBounds, float snapRadius, unsigned int maxVertices, unsigned int maxEdges, unsigned int maxResultsPerQuery);
-#endif
-	~Graph();
+	NONE,
+	SOURCE,
+	DESTINATION,
+	EDGE
+};
 
-	inline vml_vec2 getPosition(VertexIndex vertexIndex) const
-	{
-		// FIXME: checking invariants
-		if (vertexIndex >= lastVertexIndex)
-		{
-			throw std::exception("invalid vertexIndex");
-		}
-
-		return vertices[vertexIndex].position;
-	}
-
-	VertexIndex createVertex(const vml_vec2& position);
-	bool addRoad(VertexIndex source, const vml_vec2& direction, VertexIndex& newVertex, vml_vec2& end, bool highway);
-	void removeDeadEndRoads();
-	void traverse(GraphTraversal& traversal) const;
-#ifdef _DEBUG
-	unsigned int getAllocatedVertices() const;
-	unsigned int getVerticesInUse() const;
-	unsigned int getAllocatedEdges() const;
-	unsigned int getEdgesInUse() const;
-	unsigned int getMaxVertexInConnections() const;
-	unsigned int getMaxVertexInConnectionsInUse() const;
-	unsigned int getMaxVertexOutConnections() const;
-	unsigned int getMaxVertexOutConnectionsInUse() const;
-	unsigned int getAverageVertexInConnectionsInUse() const;
-	unsigned int getAverageVertexOutConnectionsInUse() const;
-	unsigned int getAllocatedMemory() const;
-	unsigned int getMemoryInUse() const;
-	unsigned long getNumCollisionChecks() const;
-#ifdef USE_QUADTREE
-	unsigned int getMaxEdgesPerQuadrant() const;
-	unsigned int getMaxEdgesPerQuadrantInUse() const;
-#endif
-#endif
-
-private:
+//////////////////////////////////////////////////////////////////////////
+struct Graph
+{
 	unsigned int maxVertices;
 	unsigned int maxEdges;
 	unsigned int maxResultsPerQuery;
+	VertexIndex numVertices;
+	EdgeIndex numEdges;
 	Vertex* vertices;
 	Edge* edges;
-	VertexIndex lastVertexIndex;
-	EdgeIndex lastEdgeIndex;
 	float snapRadius;
 #ifdef _DEBUG
 	unsigned long numCollisionChecks;
 #endif
 #ifdef USE_QUADTREE
-	QuadTree quadtree;
+	QuadTree* quadtree;
 	EdgeIndex* queryResult;
 #endif
 
-	enum IntersectionType
-	{
-		NONE,
-		SOURCE,
-		DESTINATION,
-		EDGE
-	};
-
-	void connect(VertexIndex source, VertexIndex destination, bool highway);
-	void splitEdge(EdgeIndex edge, VertexIndex vertex);
-#ifdef USE_QUADTREE
-	bool checkIntersection(const Line2D& newEdgeLine, unsigned int querySize, VertexIndex source, EdgeIndex& edgeIndex, vml_vec2& closestIntersection, IntersectionType& intersectionType);
-	bool checkSnapping(const Circle2D& snapCircle, unsigned int querySize, VertexIndex source, vml_vec2& closestSnapping, EdgeIndex& edgeIndex);
-#else
-	bool checkIntersection(const vml_vec2& start, const vml_vec2& end, VertexIndex source, EdgeIndex& edgeIndex, vml_vec2& closestIntersection, IntersectionType& intersectionType);
-	bool checkSnapping(const vml_vec2& end, VertexIndex source, vml_vec2& closestSnapping, EdgeIndex& edgeIndex);
-#endif
-	unsigned int getValency(const Vertex& vertex) const;
-
 };
+
+//////////////////////////////////////////////////////////////////////////
+#ifdef USE_QUADTREE
+void initializeGraph(Graph* graph, float snapRadius, unsigned int maxVertices, unsigned int maxEdges, Vertex* vertices, Edge* edges, QuadTree* quadtree, unsigned int maxResultsPerQuery, EdgeIndex* queryResult);
+#else
+void initializeGraph(Graph* graph, float snapRadius, unsigned int maxVertices, unsigned int maxEdges, Vertex* vertices, Edge* edges);
+#endif
+//////////////////////////////////////////////////////////////////////////
+vml_vec2 getPosition(Graph* graph, VertexIndex vertexIndex);
+//////////////////////////////////////////////////////////////////////////
+VertexIndex createVertex(Graph* graph, const vml_vec2& position);
+//////////////////////////////////////////////////////////////////////////
+bool addRoad(Graph* graph, VertexIndex sourceIndex, const vml_vec2& direction, VertexIndex& newVertexIndex, vml_vec2& end, bool highway);
+//////////////////////////////////////////////////////////////////////////
+void removeDeadEndRoads(Graph* graph);
+//////////////////////////////////////////////////////////////////////////
+void traverse(const Graph* graph, GraphTraversal& traversal);
+
+#ifdef _DEBUG
+//////////////////////////////////////////////////////////////////////////
+unsigned int getAllocatedVertices(Graph* graph);
+//////////////////////////////////////////////////////////////////////////
+unsigned int getVerticesInUse(Graph* graph);
+//////////////////////////////////////////////////////////////////////////
+unsigned int getAllocatedEdges(Graph* graph);
+//////////////////////////////////////////////////////////////////////////
+unsigned int getEdgesInUse(Graph* graph);
+//////////////////////////////////////////////////////////////////////////
+unsigned int getMaxVertexInConnections(Graph* graph);
+//////////////////////////////////////////////////////////////////////////
+unsigned int getMaxVertexInConnectionsInUse(Graph* graph);
+//////////////////////////////////////////////////////////////////////////
+unsigned int getMaxVertexOutConnections(Graph* graph);
+//////////////////////////////////////////////////////////////////////////
+unsigned int getMaxVertexOutConnectionsInUse(Graph* graph);
+//////////////////////////////////////////////////////////////////////////
+unsigned int getAverageVertexInConnectionsInUse(Graph* graph);
+//////////////////////////////////////////////////////////////////////////
+unsigned int getAverageVertexOutConnectionsInUse(Graph* graph);
+//////////////////////////////////////////////////////////////////////////
+unsigned int getAllocatedMemory(Graph* graph);
+//////////////////////////////////////////////////////////////////////////
+unsigned int getMemoryInUse(Graph* graph);
+//////////////////////////////////////////////////////////////////////////
+unsigned long getNumCollisionChecks(Graph* graph);
+#ifdef USE_QUADTREE
+//////////////////////////////////////////////////////////////////////////
+unsigned int getMaxEdgesPerQuadrant(Graph* graph);
+//////////////////////////////////////////////////////////////////////////
+unsigned int getMaxEdgesPerQuadrantInUse(Graph* graph);
+#endif
+#endif
 
 }
 

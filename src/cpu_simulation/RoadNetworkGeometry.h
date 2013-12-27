@@ -63,7 +63,7 @@ public:
 		std::vector<vml_vec4> vertices;
 		std::vector<vml_vec4> colors;
 		std::vector<unsigned int> indices;
-		graph->traverse(GeometryCreationTraversal(vertices, colors, indices, configuration->highwayColor, configuration->streetColor));
+		traverse(g_graph, GeometryCreationTraversal(vertices, colors, indices, g_configuration->highwayColor, g_configuration->streetColor));
 		glBindBuffer(GL_ARRAY_BUFFER, buffers[0]);
 		glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(vml_vec4), (void*)&vertices[0], GL_STATIC_DRAW);
 		glBindBuffer(GL_ARRAY_BUFFER, 0);

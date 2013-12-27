@@ -1,104 +1,280 @@
 #include <Graph.h>
+#include <QuadTree.h>
 #include <GraphTraversal.h>
 
 #include <cfloat>
+#include <exception>
 
 namespace RoadNetworkGraph
 {
 
+//////////////////////////////////////////////////////////////////////////
+void connect(Graph* graph, VertexIndex source, VertexIndex destination, bool highway);
+//////////////////////////////////////////////////////////////////////////
+void splitEdge(Graph* graph, EdgeIndex edge, VertexIndex vertex);
+//////////////////////////////////////////////////////////////////////////
+bool checkIntersection(Graph* graph, const Line2D& newEdgeLine, unsigned int querySize, VertexIndex source, EdgeIndex& edgeIndex, vml_vec2& closestIntersection, IntersectionType& intersectionType);
+//////////////////////////////////////////////////////////////////////////
+bool checkSnapping(Graph* graph, const Circle2D& snapCircle, unsigned int querySize, VertexIndex source, vml_vec2& closestSnapping, EdgeIndex& edgeIndex);
+//////////////////////////////////////////////////////////////////////////
+unsigned int getValency(Graph* graph, const Vertex& vertex);
+
 #ifdef USE_QUADTREE
-Graph::Graph(const Box2D& worldBounds, unsigned int quadtreeDepth, float snapRadius, unsigned int maxVertices, unsigned int maxEdges, unsigned int maxResultsPerQuery) :
-	vertices(0),
-	edges(0),
-	lastVertexIndex(0),
-	lastEdgeIndex(0),
-	snapRadius(snapRadius),
-	maxVertices(maxVertices),
-	maxEdges(maxEdges),
-	maxResultsPerQuery(maxResultsPerQuery),
-	quadtree(worldBounds, quadtreeDepth, maxResultsPerQuery),
-	queryResult(0)
-#ifdef _DEBUG
-	, numCollisionChecks(0)
-#endif
+//////////////////////////////////////////////////////////////////////////
+void initializeGraph(Graph* graph, float snapRadius, unsigned int maxVertices, unsigned int maxEdges, Vertex* vertices, Edge* edges, QuadTree* quadtree, unsigned int maxResultsPerQuery, EdgeIndex* queryResult)
 {
-	vertices = new Vertex[maxVertices];
-	edges = new Edge[maxEdges];
-	queryResult = new EdgeIndex[maxResultsPerQuery];
+	graph->maxVertices = maxVertices;
+	graph->maxEdges = maxEdges;
+	graph->maxResultsPerQuery = maxResultsPerQuery;
+	graph->numVertices = 0;
+	graph->numEdges = 0;
+	graph->snapRadius = snapRadius;
+	graph->vertices = vertices;
+	graph->edges = edges;
+	graph->quadtree = quadtree;
+	graph->queryResult = queryResult;
+#ifdef _DEBUG
+	graph->numCollisionChecks = 0;
+#endif
 }
 #else
-Graph::Graph(const Box2D& worldBounds, float snapRadius, unsigned int maxVertices, unsigned int maxEdges, unsigned int maxResultsPerQuery) :
-	vertices(0),
-	edges(0),
-	lastVertexIndex(0),
-	lastEdgeIndex(0),
-	snapRadius(snapRadius),
-	maxVertices(maxVertices),
-	maxEdges(maxEdges),
-	maxResultsPerQuery(maxResultsPerQuery)
+//////////////////////////////////////////////////////////////////////////
+void initializeGraph(Graph* graph, float snapRadius, unsigned int maxVertices, unsigned int maxEdges, Vertex* vertices, Edge* edges)
+{
+	graph->maxVertices = maxVertices;
+	graph->maxEdges = maxEdges;
+	graph->maxResultsPerQuery = maxResultsPerQuery;
+	graph->numVertices = 0;
+	graph->numEdges = 0;
+	graph->snapRadius = snapRadius;
+	graph->vertices = vertices;
+	graph->edges = edges;
 #ifdef _DEBUG
-	, numCollisionChecks(0)
-#endif
-{
-	vertices = new Vertex[maxVertices];
-	edges = new Edge[maxEdges];
-}
-#endif
-
-Graph::~Graph()
-{
-	if (vertices != 0)
-	{
-		delete [] vertices;
-	}
-
-	if (edges != 0)
-	{
-		delete[] edges;
-	}
-
-#ifdef USE_QUADTREE
-
-	if (queryResult != 0)
-	{
-		delete[] queryResult;
-	}
-
+	graph->numCollisionChecks = 0;
 #endif
 }
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+vml_vec2 getPosition(Graph* graph, VertexIndex vertexIndex)
+{
+	// FIXME: checking invariants
+	if (vertexIndex >= graph->numVertices)
+	{
+		throw std::exception("invalid vertexIndex");
+	}
+
+	return graph->vertices[vertexIndex].position;
+}
+
+//////////////////////////////////////////////////////////////////////////
+VertexIndex createVertex(Graph* graph, const vml_vec2& position)
+{
+	// FIXME: checking boundaries
+	if (graph->numVertices >= (int)graph->maxVertices)
+	{
+		throw std::exception("max. vertices overflow");
+	}
+
+	Vertex& newVertex = graph->vertices[graph->numVertices];
+	newVertex.index = graph->numVertices;
+	newVertex.position = position;
+	return graph->numVertices++;
+}
+
+//////////////////////////////////////////////////////////////////////////
+void removeDeadEndRoads(Graph* graph)
+{
+	bool changed;
+
+	do
+	{
+		changed = false;
+
+		for (int i = 0; i < graph->numVertices; i++)
+		{
+			Vertex& vertex = graph->vertices[i];
+
+			if (vertex.removed)
+			{
+				continue;
+			}
+
+			unsigned int valency = getValency(graph, vertex);
+
+			if (valency == 1)
+			{
+				vertex.removed = true;
+				changed = true;
+			}
+		}
+	}
+	while (changed);
+}
+
+//////////////////////////////////////////////////////////////////////////
+void traverse(const Graph* graph, GraphTraversal& traversal)
+{
+	for (int i = 0; i < graph->numEdges; i++)
+	{
+		const Edge& edge = graph->edges[i];
+		const Vertex& sourceVertex = graph->vertices[edge.source];
+		const Vertex& destinationVertex = graph->vertices[edge.destination];
+
+		if (destinationVertex.removed || destinationVertex.removed)
+		{
+			continue;
+		}
+
+		if (!traversal(sourceVertex.position, destinationVertex.position, edge.highway))
+		{
+			break;
+		}
+	}
+}
+
+//////////////////////////////////////////////////////////////////////////
+void connect(Graph* graph, VertexIndex sourceIndex, VertexIndex destinationIndex, bool highway)
+{
+	// FIXME: checking boundaries
+	if (graph->numEdges >= (int)graph->maxEdges)
+	{
+		throw std::exception("max. edges overflow");
+	}
+
+	Edge& newEdge = graph->edges[graph->numEdges];
+	newEdge.source = sourceIndex;
+	newEdge.destination = destinationIndex;
+	newEdge.highway = highway;
+
+	Vertex& sourceVertex = graph->vertices[sourceIndex];
+	Vertex& destinationVertex = graph->vertices[destinationIndex];
+
+	// FIXME: checking boundaries
+	if (sourceVertex.numOuts >= MAX_VERTEX_OUT_CONNECTIONS)
+	{
+		throw std::exception("max. vertex connections (out) overflow");
+	}
+
+	sourceVertex.outs[sourceVertex.numOuts++] = graph->numEdges;
+
+	// FIXME: checking boundaries
+	if (destinationVertex.numIns >= MAX_VERTEX_IN_CONNECTIONS)
+	{
+		throw std::exception("max. vertex connections (in) overflow");
+	}
+
+	destinationVertex.ins[destinationVertex.numIns++] = graph->numEdges;
+
+	if (graph->quadtree != 0)
+	{
+		insert(graph->quadtree, graph->numEdges, Line2D(sourceVertex.position, destinationVertex.position));
+	}
+
+	graph->numEdges++;
+}
+
+//////////////////////////////////////////////////////////////////////////
+void splitEdge(Graph* graph, EdgeIndex edgeIndex, VertexIndex splitVertexIndex)
+{
+	Edge& edge = graph->edges[edgeIndex];
+	VertexIndex oldDestinationVertexIndex = edge.destination;
+	edge.destination = splitVertexIndex;
+	Vertex& sourceVertex = graph->vertices[edge.source];
+	Vertex& oldDestinationVertex = graph->vertices[oldDestinationVertexIndex];
+	Vertex& splitVertex = graph->vertices[splitVertexIndex];
+
+	if (graph->quadtree != 0)
+	{
+		remove(graph->quadtree, edgeIndex, Line2D(sourceVertex.position, oldDestinationVertex.position));
+		insert(graph->quadtree, edgeIndex, Line2D(sourceVertex.position, splitVertex.position));
+	}
+
+	// FIXME: checking boundaries
+	if (splitVertex.numIns >= MAX_VERTEX_IN_CONNECTIONS)
+	{
+		throw std::exception("max. vertex connections (in) overflow");
+	}
+
+	splitVertex.ins[splitVertex.numIns++] = edgeIndex;
+
+	// FIXME: checking boundaries
+	if (graph->numEdges >= (int)graph->maxEdges)
+	{
+		throw std::exception("max. edges overflow");
+	}
+
+	Edge& newEdge = graph->edges[graph->numEdges];
+	newEdge.source = splitVertexIndex;
+	newEdge.destination = oldDestinationVertexIndex;
+	newEdge.highway = edge.highway;
+
+	// FIXME: checking boundaries
+	if (splitVertex.numOuts >= MAX_VERTEX_OUT_CONNECTIONS)
+	{
+		throw std::exception("max. vertex connections (out) overflow");
+	}
+
+	splitVertex.outs[splitVertex.numOuts++] = graph->numEdges;
+	bool found = false;
+
+	for (unsigned int i = 0; i < oldDestinationVertex.numIns; i++)
+	{
+		if (oldDestinationVertex.ins[i] == edgeIndex)
+		{
+			oldDestinationVertex.ins[i] = graph->numEdges;
+			found = true;
+			break;
+		}
+	}
+
+	// FIXME: checking invariants
+	if (!found)
+	{
+		throw std::exception("!found");
+	}
+
+	if (graph->quadtree != 0)
+	{
+		insert(graph->quadtree, graph->numEdges, Line2D(splitVertex.position, oldDestinationVertex.position));
+	}
+
+	graph->numEdges++;
+}
 
 #ifdef USE_QUADTREE
-bool Graph::addRoad(VertexIndex source, const vml_vec2& direction, VertexIndex& newVertex, vml_vec2& end, bool highway)
+//////////////////////////////////////////////////////////////////////////
+bool addRoad(Graph* graph, VertexIndex sourceIndex, const vml_vec2& direction, VertexIndex& newVertexIndex, vml_vec2& end, bool highway)
 {
-	vml_vec2 start = getPosition(source);
+	vml_vec2 start = getPosition(graph, sourceIndex);
 	end = start + direction;
 	Line2D newEdgeLine(start, end);
 	Box2D newEdgeBounds(newEdgeLine);
 	unsigned int querySize;
-	quadtree.query(newEdgeBounds, queryResult, querySize);
+	query(graph->quadtree, newEdgeBounds, graph->queryResult, querySize);
 	EdgeIndex edgeIndex;
 	vml_vec2 snapping;
 	vml_vec2 intersection;
 	IntersectionType intersectionType;
 
-	if (checkIntersection(newEdgeLine, querySize, source, edgeIndex, intersection, intersectionType))
+	if (checkIntersection(graph, newEdgeLine, querySize, sourceIndex, edgeIndex, intersection, intersectionType))
 	{
 		end = intersection;
 
 		if (intersectionType == SOURCE)
 		{
-			newVertex = edges[edgeIndex].source;
+			newVertexIndex = graph->edges[edgeIndex].source;
 		}
 
 		else if (intersectionType == DESTINATION)
 		{
-			newVertex = edges[edgeIndex].destination;
+			newVertexIndex = graph->edges[edgeIndex].destination;
 		}
 
 		else if (intersectionType == EDGE)
 		{
-			newVertex = createVertex(end);
-			splitEdge(edgeIndex, newVertex);
+			newVertexIndex = createVertex(graph, end);
+			splitEdge(graph, edgeIndex, newVertexIndex);
 		}
 
 		else
@@ -107,34 +283,35 @@ bool Graph::addRoad(VertexIndex source, const vml_vec2& direction, VertexIndex& 
 			throw std::exception("unknown intersection type");
 		}
 
-		connect(source, newVertex, highway);
+		connect(graph, sourceIndex, newVertexIndex, highway);
 		return true;
 	}
 
 	else
 	{
-		Circle2D snapCircle(end, snapRadius);
-		quadtree.query(snapCircle, queryResult, querySize);
+		Circle2D snapCircle(end, graph->snapRadius);
+		query(graph->quadtree, snapCircle, graph->queryResult, querySize);
 
-		if (checkSnapping(snapCircle, querySize, source, snapping, edgeIndex))
+		if (checkSnapping(graph, snapCircle, querySize, sourceIndex, snapping, edgeIndex))
 		{
 			end = snapping;
-			newVertex = createVertex(end);
-			splitEdge(edgeIndex, newVertex);
-			connect(source, newVertex, highway);
+			newVertexIndex = createVertex(graph, end);
+			splitEdge(graph, edgeIndex, newVertexIndex);
+			connect(graph, sourceIndex, newVertexIndex, highway);
 			return true;
 		}
 
 		else
 		{
-			newVertex = createVertex(end);
-			connect(source, newVertex, highway);
+			newVertexIndex = createVertex(graph, end);
+			connect(graph, sourceIndex, newVertexIndex, highway);
 			return false;
 		}
 	}
 }
 
-bool Graph::checkIntersection(const Line2D& newEdgeLine, unsigned int querySize, VertexIndex source, EdgeIndex& edgeIndex, vml_vec2& closestIntersection, IntersectionType& intersectionType)
+//////////////////////////////////////////////////////////////////////////
+bool checkIntersection(Graph* graph, const Line2D& newEdgeLine, unsigned int querySize, VertexIndex sourceIndex, EdgeIndex& edgeIndex, vml_vec2& closestIntersection, IntersectionType& intersectionType)
 {
 	float closestIntersectionDistance = FLT_MAX;
 	edgeIndex = -1;
@@ -142,17 +319,17 @@ bool Graph::checkIntersection(const Line2D& newEdgeLine, unsigned int querySize,
 
 	for (unsigned int i = 0; i < querySize; i++)
 	{
-		EdgeIndex queryEdgeIndex = queryResult[i];
-		Edge& edge = edges[queryEdgeIndex];
+		EdgeIndex queryEdgeIndex = graph->queryResult[i];
+		Edge& edge = graph->edges[queryEdgeIndex];
 
 		// avoid intersecting parent or sibling
-		if (edge.destination == source || edge.source == source)
+		if (edge.destination == sourceIndex || edge.source == sourceIndex)
 		{
 			continue;
 		}
 
-		Vertex& sourceVertex = vertices[edge.source];
-		Vertex& destinationVertex = vertices[edge.destination];
+		Vertex& sourceVertex = graph->vertices[edge.source];
+		Vertex& destinationVertex = graph->vertices[edge.destination];
 		vml_vec2 intersection;
 		Line2D edgeLine(sourceVertex.position, destinationVertex.position);
 
@@ -162,12 +339,12 @@ bool Graph::checkIntersection(const Line2D& newEdgeLine, unsigned int querySize,
 
 			if (distance < closestIntersectionDistance)
 			{
-				if (vml_distance(sourceVertex.position, intersection) <= snapRadius)
+				if (vml_distance(sourceVertex.position, intersection) <= graph->snapRadius)
 				{
 					intersectionType = SOURCE;
 				}
 
-				else if (vml_distance(destinationVertex.position, intersection) <= snapRadius)
+				else if (vml_distance(destinationVertex.position, intersection) <= graph->snapRadius)
 				{
 					intersectionType = DESTINATION;
 				}
@@ -184,14 +361,15 @@ bool Graph::checkIntersection(const Line2D& newEdgeLine, unsigned int querySize,
 		}
 
 #ifdef _DEBUG
-		numCollisionChecks++;
+		graph->numCollisionChecks++;
 #endif
 	}
 
 	return (intersectionType != NONE);
 }
 
-bool Graph::checkSnapping(const Circle2D& snapCircle, unsigned int querySize, VertexIndex source, vml_vec2& closestSnapping, EdgeIndex& edgeIndex)
+//////////////////////////////////////////////////////////////////////////
+bool checkSnapping(Graph* graph, const Circle2D& snapCircle, unsigned int querySize, VertexIndex sourceIndex, vml_vec2& closestSnapping, EdgeIndex& edgeIndex)
 {
 	edgeIndex = -1;
 	float closestSnappingDistance = FLT_MAX;
@@ -199,17 +377,17 @@ bool Graph::checkSnapping(const Circle2D& snapCircle, unsigned int querySize, Ve
 	// check for snapping
 	for (unsigned int i = 0; i < querySize; i++)
 	{
-		EdgeIndex queryEdgeIndex = queryResult[i];
-		Edge& edge = edges[queryEdgeIndex];
+		EdgeIndex queryEdgeIndex = graph->queryResult[i];
+		Edge& edge = graph->edges[queryEdgeIndex];
 
 		// avoid snapping parent or sibling
-		if (edge.destination == source || edge.source == source)
+		if (edge.destination == sourceIndex || edge.source == sourceIndex)
 		{
 			continue;
 		}
 
-		Vertex& sourceVertex = vertices[edge.source];
-		Vertex& destinationVertex = vertices[edge.destination];
+		Vertex& sourceVertex = graph->vertices[edge.source];
+		Vertex& destinationVertex = graph->vertices[edge.destination];
 		Line2D edgeLine(sourceVertex.position, destinationVertex.position);
 		vml_vec2 intersection1;
 		vml_vec2 intersection2;
@@ -265,41 +443,41 @@ bool Graph::checkSnapping(const Circle2D& snapCircle, unsigned int querySize, Ve
 		}
 
 #ifdef _DEBUG
-		numCollisionChecks++;
+		graph->numCollisionChecks++;
 #endif
 	}
 
 	return (edgeIndex != -1);
 }
 #else
-bool Graph::addRoad(VertexIndex source, const vml_vec2& direction, VertexIndex& newVertex, vml_vec2& end, float& length, bool highway)
+//////////////////////////////////////////////////////////////////////////
+bool addRoad(Graph* graph, VertexIndex sourceIndex, const vml_vec2& direction, VertexIndex& newVertexIndex, vml_vec2& end, bool highway)
 {
-	vml_vec2 start = getPosition(source);
+	vml_vec2 start = getPosition(graph, sourceIndex);
 	end = start + direction;
 	EdgeIndex edgeIndex;
 	vml_vec2 snapping;
 	vml_vec2 intersection;
 	IntersectionType intersectionType;
 
-	if (checkIntersection(start, end, source, edgeIndex, intersection, intersectionType))
+	if (checkIntersection(graph, start, end, sourceIndex, edgeIndex, intersection, intersectionType))
 	{
 		end = intersection;
-		length = vml_distance(start, end);
 
 		if (intersectionType == SOURCE)
 		{
-			newVertex = edges[edgeIndex].source;
+			newVertexIndex = graph->edges[edgeIndex].source;
 		}
 
 		else if (intersectionType == DESTINATION)
 		{
-			newVertex = edges[edgeIndex].destination;
+			newVertexIndex = graph->edges[edgeIndex].destination;
 		}
 
 		else if (intersectionType == EDGE)
 		{
-			newVertex = createVertex(end);
-			splitEdge(edgeIndex, newVertex);
+			newVertexIndex = createVertex(graph, end);
+			splitEdge(graph, edgeIndex, newVertexIndex);
 		}
 
 		else
@@ -308,30 +486,33 @@ bool Graph::addRoad(VertexIndex source, const vml_vec2& direction, VertexIndex& 
 			throw std::exception("unknown intersection type");
 		}
 
-		connect(source, newVertex, highway);
-		return true;
-	}
-
-	else if (checkSnapping(end, source, snapping, edgeIndex))
-	{
-		end = snapping;
-		length = vml_distance(start, end);
-		newVertex = createVertex(end);
-		splitEdge(edgeIndex, newVertex);
-		connect(source, newVertex, highway);
+		connect(graph, sourceIndex, newVertexIndex, highway);
 		return true;
 	}
 
 	else
 	{
-		length = vml_distance(start, end);
-		newVertex = createVertex(end);
-		connect(source, newVertex, highway);
-		return false;
+		Circle2D snapCircle(end, graph->snapRadius);
+		if (checkSnapping(graph, snapCircle, sourceIndex, snapping, edgeIndex))
+		{
+			end = snapping;
+			newVertexIndex = createVertex(graph, end);
+			splitEdge(graph, edgeIndex, newVertexIndex);
+			connect(graph, sourceIndex, newVertexIndex, highway);
+			return true;
+		}
+
+		else
+		{
+			newVertexIndex = createVertex(graph, end);
+			connect(graph, sourceIndex, newVertexIndex, highway);
+			return false;
+		}
 	}
 }
 
-bool Graph::checkIntersection(const vml_vec2& start, const vml_vec2& end, VertexIndex source, EdgeIndex& edgeIndex, vml_vec2& closestIntersection, IntersectionType& intersectionType)
+//////////////////////////////////////////////////////////////////////////
+bool checkIntersection(Graph* graph, const vml_vec2& start, const vml_vec2& end, VertexIndex sourceIndex, EdgeIndex& edgeIndex, vml_vec2& closestIntersection, IntersectionType& intersectionType)
 {
 	// check for intersections
 	float closestIntersectionDistance = FLT_MAX;
@@ -339,18 +520,18 @@ bool Graph::checkIntersection(const vml_vec2& start, const vml_vec2& end, Vertex
 	intersectionType = NONE;
 	Line2D newEdgeLine(start, end);
 
-	for (int i = 0; i < lastEdgeIndex; i++)
+	for (int i = 0; i < graph->numEdges; i++)
 	{
-		Edge& edge = edges[i];
+		Edge& edge = graph->edges[i];
 
 		// avoid intersecting parent or sibling
-		if (edge.destination == source || edge.source == source)
+		if (edge.destination == sourceIndex || edge.source == sourceIndex)
 		{
 			continue;
 		}
 
-		Vertex& sourceVertex = vertices[edge.source];
-		Vertex& destinationVertex = vertices[edge.destination];
+		Vertex& sourceVertex = graph->vertices[edge.source];
+		Vertex& destinationVertex = graph->vertices[edge.destination];
 		vml_vec2 intersection;
 		Line2D edgeLine(sourceVertex.position, destinationVertex.position);
 
@@ -360,12 +541,12 @@ bool Graph::checkIntersection(const vml_vec2& start, const vml_vec2& end, Vertex
 
 			if (distance < closestIntersectionDistance)
 			{
-				if (vml_distance(sourceVertex.position, intersection) <= snapRadius)
+				if (vml_distance(sourceVertex.position, intersection) <= graph->snapRadius)
 				{
 					intersectionType = SOURCE;
 				}
 
-				else if (vml_distance(destinationVertex.position, intersection) <= snapRadius)
+				else if (vml_distance(destinationVertex.position, intersection) <= graph->snapRadius)
 				{
 					intersectionType = DESTINATION;
 				}
@@ -382,31 +563,32 @@ bool Graph::checkIntersection(const vml_vec2& start, const vml_vec2& end, Vertex
 		}
 
 #ifdef _DEBUG
-		numCollisionChecks++;
+		graph->numCollisionChecks++;
 #endif
 	}
 
 	return (intersectionType != NONE);
 }
 
-bool Graph::checkSnapping(const vml_vec2& end, VertexIndex source, vml_vec2& closestSnapping, EdgeIndex& edgeIndex)
+//////////////////////////////////////////////////////////////////////////
+bool checkSnapping(Graph* graph, const Circle2D& snapCircle, VertexIndex sourceIndex, vml_vec2& closestSnapping, EdgeIndex& edgeIndex)
 {
+	edgeIndex = -1;
 	float closestSnappingDistance = FLT_MAX;
-	Circle2D snapCircle(end, snapRadius);
 
 	// check for snapping
-	for (int i = 0; i < lastEdgeIndex; i++)
+	for (int i = 0; i < graph->numEdges; i++)
 	{
-		Edge& edge = edges[i];
+		Edge& edge = graph->edges[i];
 
 		// avoid snapping parent or sibling
-		if (edge.destination == source || edge.source == source)
+		if (edge.destination == sourceIndex || edge.source == sourceIndex)
 		{
 			continue;
 		}
 
-		Vertex& sourceVertex = vertices[edge.source];
-		Vertex& destinationVertex = vertices[edge.destination];
+		Vertex& sourceVertex = graph->vertices[edge.source];
+		Vertex& destinationVertex = graph->vertices[edge.destination];
 		Line2D edgeLine(sourceVertex.position, destinationVertex.position);
 		vml_vec2 intersection1;
 		vml_vec2 intersection2;
@@ -419,20 +601,20 @@ bool Graph::checkSnapping(const vml_vec2& end, VertexIndex source, vml_vec2& clo
 
 			if (intersectionMask == 1)
 			{
-				distance = vml_distance(end, intersection1);
+				distance = vml_distance(snapCircle.center, intersection1);
 				snapping = intersection1;
 			}
 
 			else if (intersectionMask == 2)
 			{
-				distance = vml_distance(end, intersection2);
+				distance = vml_distance(snapCircle.center, intersection2);
 				snapping = intersection2;
 			}
 
 			else if (intersectionMask == 3)
 			{
-				float distance1 = vml_distance(end, intersection1);
-				float distance2 = vml_distance(end, intersection2);
+				float distance1 = vml_distance(snapCircle.center, intersection1);
+				float distance2 = vml_distance(snapCircle.center, intersection2);
 
 				if (distance1 <= distance2)
 				{
@@ -462,7 +644,7 @@ bool Graph::checkSnapping(const vml_vec2& end, VertexIndex source, vml_vec2& clo
 		}
 
 #ifdef _DEBUG
-		numCollisionChecks++;
+		graph->numCollisionChecks++;
 #endif
 	}
 
@@ -470,13 +652,14 @@ bool Graph::checkSnapping(const vml_vec2& end, VertexIndex source, vml_vec2& clo
 }
 #endif
 
-unsigned int Graph::getValency(const Vertex& vertex) const
+//////////////////////////////////////////////////////////////////////////
+unsigned int getValency(Graph* graph, const Vertex& vertex)
 {
 	unsigned int valency = 0;
 
-	for (unsigned int i = 0; i < vertex.lastInIndex; i++)
+	for (unsigned int i = 0; i < vertex.numIns; i++)
 	{
-		const Edge& edge = edges[vertex.ins[i]];
+		const Edge& edge = graph->edges[vertex.ins[i]];
 
 		// FIXME: checking invariants
 		if (edge.destination != vertex.index)
@@ -484,7 +667,7 @@ unsigned int Graph::getValency(const Vertex& vertex) const
 			throw std::exception("edge.destination != vertex.index");
 		}
 
-		const Vertex& source = vertices[edge.source];
+		const Vertex& source = graph->vertices[edge.source];
 
 		if (source.removed)
 		{
@@ -494,9 +677,9 @@ unsigned int Graph::getValency(const Vertex& vertex) const
 		valency++;
 	}
 
-	for (unsigned int i = 0; i < vertex.lastOutIndex; i++)
+	for (unsigned int i = 0; i < vertex.numOuts; i++)
 	{
-		const Edge& edge = edges[vertex.outs[i]];
+		const Edge& edge = graph->edges[vertex.outs[i]];
 
 		// FIXME: checking invariants
 		if (edge.source != vertex.index)
@@ -504,7 +687,7 @@ unsigned int Graph::getValency(const Vertex& vertex) const
 			throw std::exception("edge.source != vertex.index");
 		}
 
-		const Vertex& destination = vertices[edge.destination];
+		const Vertex& destination = graph->vertices[edge.destination];
 
 		if (destination.removed)
 		{
@@ -517,315 +700,165 @@ unsigned int Graph::getValency(const Vertex& vertex) const
 	return valency;
 }
 
-void Graph::removeDeadEndRoads()
-{
-	bool changed;
-
-	do
-	{
-		changed = false;
-
-		for (int i = 0; i < lastVertexIndex; i++)
-		{
-			Vertex& vertex = vertices[i];
-
-			if (vertex.removed)
-			{
-				continue;
-			}
-
-			unsigned int valency = getValency(vertex);
-
-			if (valency == 1)
-			{
-				vertex.removed = true;
-				changed = true;
-			}
-		}
-	}
-	while (changed);
-}
-
-void Graph::traverse(GraphTraversal& traversal) const
-{
-	for (int i = 0; i < lastEdgeIndex; i++)
-	{
-		const Edge& edge = edges[i];
-		const Vertex& sourceVertex = vertices[edge.source];
-		const Vertex& destinationVertex = vertices[edge.destination];
-
-		if (destinationVertex.removed || destinationVertex.removed)
-		{
-			continue;
-		}
-
-		if (!traversal(sourceVertex.position, destinationVertex.position, edge.highway))
-		{
-			break;
-		}
-	}
-}
-
-void Graph::connect(VertexIndex source, VertexIndex destination, bool highway)
-{
-	// FIXME: checking boundaries
-	if (lastEdgeIndex >= (int)maxEdges)
-	{
-		throw std::exception("max. edges overflow");
-	}
-
-	Edge& newEdge = edges[lastEdgeIndex];
-	newEdge.source = source;
-	newEdge.destination = destination;
-	newEdge.highway = highway;
-	Vertex& sourceVertex = vertices[source];
-	Vertex& destinationVertex = vertices[destination];
-
-	// FIXME: checking boundaries
-	if (sourceVertex.lastOutIndex >= MAX_VERTEX_OUT_CONNECTIONS)
-	{
-		throw std::exception("max. vertex connections (out) overflow");
-	}
-
-	sourceVertex.outs[sourceVertex.lastOutIndex++] = lastEdgeIndex;
-
-	// FIXME: checking boundaries
-	if (destinationVertex.lastInIndex >= MAX_VERTEX_IN_CONNECTIONS)
-	{
-		throw std::exception("max. vertex connections (in) overflow");
-	}
-
-	destinationVertex.ins[destinationVertex.lastInIndex++] = lastEdgeIndex;
-#ifdef USE_QUADTREE
-	quadtree.insert(lastEdgeIndex, Line2D(sourceVertex.position, destinationVertex.position));
-#endif
-	lastEdgeIndex++;
-}
-
-VertexIndex Graph::createVertex(const vml_vec2& position)
-{
-	// FIXME: checking boundaries
-	if (lastVertexIndex >= (int)maxVertices)
-	{
-		throw std::exception("max. vertices overflow");
-	}
-
-	Vertex& newVertex = vertices[lastVertexIndex];
-	newVertex.index = lastVertexIndex;
-	newVertex.position = position;
-	return lastVertexIndex++;
-}
-
-void Graph::splitEdge(EdgeIndex edgeIndex, VertexIndex split)
-{
-	Edge& splitEdge = edges[edgeIndex];
-	VertexIndex oldDestination = splitEdge.destination;
-	splitEdge.destination = split;
-	Vertex& sourceVertex = vertices[splitEdge.source];
-	Vertex& destinationVertex = vertices[oldDestination];
-	Vertex& splitVertex = vertices[split];
-#ifdef USE_QUADTREE
-	quadtree.remove(edgeIndex, Line2D(sourceVertex.position, destinationVertex.position));
-	quadtree.insert(edgeIndex, Line2D(sourceVertex.position, splitVertex.position));
-#endif
-
-	// FIXME: checking boundaries
-	if (splitVertex.lastInIndex >= MAX_VERTEX_IN_CONNECTIONS)
-	{
-		throw std::exception("max. vertex connections (in) overflow");
-	}
-
-	splitVertex.ins[splitVertex.lastInIndex++] = edgeIndex;
-
-	// FIXME: checking boundaries
-	if (lastEdgeIndex >= (int)maxEdges)
-	{
-		throw std::exception("max. edges overflow");
-	}
-
-	Edge& newEdge = edges[lastEdgeIndex];
-	newEdge.source = split;
-	newEdge.destination = oldDestination;
-	newEdge.highway = splitEdge.highway;
-
-	// FIXME: checking boundaries
-	if (splitVertex.lastOutIndex >= MAX_VERTEX_OUT_CONNECTIONS)
-	{
-		throw std::exception("max. vertex connections (out) overflow");
-	}
-
-	splitVertex.outs[splitVertex.lastOutIndex++] = lastEdgeIndex;
-	bool found = false;
-
-	for (unsigned int i = 0; i < destinationVertex.lastInIndex; i++)
-	{
-		if (destinationVertex.ins[i] == edgeIndex)
-		{
-			destinationVertex.ins[i] = lastEdgeIndex;
-			found = true;
-			break;
-		}
-	}
-
-	// FIXME: checking invariants
-	if (!found)
-	{
-		throw std::exception("!found");
-	}
-
-#ifdef USE_QUADTREE
-	quadtree.insert(lastEdgeIndex, Line2D(splitVertex.position, destinationVertex.position));
-#endif
-	lastEdgeIndex++;
-}
-
 #ifdef _DEBUG
-unsigned int Graph::getAllocatedVertices() const
+//////////////////////////////////////////////////////////////////////////
+unsigned int getAllocatedVertices(Graph* graph)
 {
-	return maxVertices;
+	return graph->maxVertices;
 }
 
-unsigned int Graph::getVerticesInUse() const
+//////////////////////////////////////////////////////////////////////////
+unsigned int getVerticesInUse(Graph* graph)
 {
-	return lastVertexIndex;
+	return graph->numVertices;
 }
 
-unsigned int Graph::getAllocatedEdges() const
+//////////////////////////////////////////////////////////////////////////
+unsigned int getAllocatedEdges(Graph* graph)
 {
-	return maxEdges;
+	return graph->maxEdges;
 }
 
-unsigned int Graph::getEdgesInUse() const
+//////////////////////////////////////////////////////////////////////////
+unsigned int getEdgesInUse(Graph* graph)
 {
-	return lastEdgeIndex;
+	return graph->numEdges;
 }
 
-unsigned int Graph::getMaxVertexInConnections() const
+//////////////////////////////////////////////////////////////////////////
+unsigned int getMaxVertexInConnections(Graph* graph)
 {
 	return MAX_VERTEX_IN_CONNECTIONS;
 }
 
-unsigned int Graph::getMaxVertexInConnectionsInUse() const
+//////////////////////////////////////////////////////////////////////////
+unsigned int getMaxVertexInConnectionsInUse(Graph* graph)
 {
 	unsigned int maxVerticesInConnectionsInUse = 0;
 
-	for (int i = 0; i < lastVertexIndex; i++)
+	for (int i = 0; i < graph->numVertices; i++)
 	{
-		Vertex& vertex = vertices[i];
+		Vertex& vertex = graph->vertices[i];
 
-		if (vertex.lastInIndex > maxVerticesInConnectionsInUse)
+		if (vertex.numIns > maxVerticesInConnectionsInUse)
 		{
-			maxVerticesInConnectionsInUse = vertex.lastInIndex;
+			maxVerticesInConnectionsInUse = vertex.numIns;
 		}
 	}
 
 	return maxVerticesInConnectionsInUse;
 }
 
-unsigned int  Graph::getMaxVertexOutConnections() const
+//////////////////////////////////////////////////////////////////////////
+unsigned int getMaxVertexOutConnections(Graph* graph)
 {
 	return MAX_VERTEX_OUT_CONNECTIONS;
 }
 
-unsigned int  Graph::getMaxVertexOutConnectionsInUse() const
+//////////////////////////////////////////////////////////////////////////
+unsigned int getMaxVertexOutConnectionsInUse(Graph* graph)
 {
 	unsigned int maxVerticesOutConnectionsInUse = 0;
 
-	for (int i = 0; i < lastVertexIndex; i++)
+	for (int i = 0; i < graph->numVertices; i++)
 	{
-		Vertex& vertex = vertices[i];
+		Vertex& vertex = graph->vertices[i];
 
-		if (vertex.lastOutIndex > maxVerticesOutConnectionsInUse)
+		if (vertex.numOuts > maxVerticesOutConnectionsInUse)
 		{
-			maxVerticesOutConnectionsInUse = vertex.lastOutIndex;
+			maxVerticesOutConnectionsInUse = vertex.numOuts;
 		}
 	}
 
 	return maxVerticesOutConnectionsInUse;
 }
 
-unsigned int Graph::getAverageVertexInConnectionsInUse() const
+//////////////////////////////////////////////////////////////////////////
+unsigned int getAverageVertexInConnectionsInUse(Graph* graph)
 {
 	unsigned int totalVerticesInConnections = 0;
 
-	for (int i = 0; i < lastVertexIndex; i++)
+	for (int i = 0; i < graph->numVertices; i++)
 	{
-		Vertex& vertex = vertices[i];
-		totalVerticesInConnections += vertex.lastInIndex;
+		Vertex& vertex = graph->vertices[i];
+		totalVerticesInConnections += vertex.numIns;
 	}
 
-	return totalVerticesInConnections / lastVertexIndex;
+	return totalVerticesInConnections / graph->numVertices;
 }
 
-unsigned int Graph::getAverageVertexOutConnectionsInUse() const
+//////////////////////////////////////////////////////////////////////////
+unsigned int getAverageVertexOutConnectionsInUse(Graph* graph)
 {
 	unsigned int totalVerticesOutConnections = 0;
 
-	for (int i = 0; i < lastVertexIndex; i++)
+	for (int i = 0; i < graph->numVertices; i++)
 	{
-		Vertex& vertex = vertices[i];
-		totalVerticesOutConnections += vertex.lastInIndex;
+		Vertex& vertex = graph->vertices[i];
+		totalVerticesOutConnections += vertex.numIns;
 	}
 
-	return totalVerticesOutConnections / lastVertexIndex;
+	return totalVerticesOutConnections / graph->numVertices;
 }
 
-unsigned int Graph::getAllocatedMemory() const
+//////////////////////////////////////////////////////////////////////////
+unsigned int getAllocatedMemory(Graph* graph)
 {
-	unsigned int verticesBufferMemory = maxVertices * sizeof(Vertex);
-	unsigned int edgesBufferMemory = maxEdges * sizeof(Vertex);
+	unsigned int verticesBufferMemory = graph->maxVertices * sizeof(Vertex);
+	unsigned int edgesBufferMemory = graph->maxEdges * sizeof(Vertex);
 #ifdef USE_QUADTREE
-	unsigned int queryResultBufferMemory = maxResultsPerQuery * sizeof(EdgeIndex);
-	unsigned int quadtreeMemory = quadtree.getAllocatedMemory();
-	return (verticesBufferMemory + edgesBufferMemory + queryResultBufferMemory + quadtreeMemory);
+		unsigned int queryResultBufferMemory = graph->maxResultsPerQuery * sizeof(EdgeIndex);
+		return (verticesBufferMemory + edgesBufferMemory + queryResultBufferMemory + getAllocatedMemory(graph->quadtree));
 #else
-	return (verticesBufferMemory + edgesBufferMemory);
+		return (verticesBufferMemory + edgesBufferMemory);
 #endif
 }
 
-unsigned int Graph::getMemoryInUse() const
+//////////////////////////////////////////////////////////////////////////
+unsigned int getMemoryInUse(Graph* graph)
 {
 	unsigned int verticesBufferMemoryInUse = 0;
 
-	for (int i = 0; i < lastVertexIndex; i++)
+	for (int i = 0; i < graph->numVertices; i++)
 	{
-		Vertex& vertex = vertices[i];
+		Vertex& vertex = graph->vertices[i];
 		// FIXME:
-		verticesBufferMemoryInUse += vertex.lastInIndex * sizeof(EdgeIndex) + vertex.lastOutIndex * sizeof(EdgeIndex) + sizeof(vml_vec2) + 2 * sizeof(unsigned int) + sizeof(bool);
+		verticesBufferMemoryInUse += vertex.numIns * sizeof(EdgeIndex) + vertex.numOuts * sizeof(EdgeIndex) + sizeof(vml_vec2) + 2 * sizeof(unsigned int) + sizeof(bool);
 	}
 
-	unsigned int edgesBufferMemoryInUse = lastEdgeIndex * sizeof(Vertex);
+	unsigned int edgesBufferMemoryInUse = graph->numEdges * sizeof(Vertex);
 #ifdef USE_QUADTREE
-	unsigned int queryResultBufferMemory = maxResultsPerQuery * sizeof(EdgeIndex);
-	unsigned int quadtreeMemoryInUse = quadtree.getMemoryInUse();
-	return (verticesBufferMemoryInUse + edgesBufferMemoryInUse + queryResultBufferMemory + quadtreeMemoryInUse);
+		unsigned int queryResultBufferMemory = graph->maxResultsPerQuery * sizeof(EdgeIndex);
+		return (verticesBufferMemoryInUse + edgesBufferMemoryInUse + queryResultBufferMemory + getMemoryInUse(graph->quadtree));
 #else
-	return (verticesBufferMemoryInUse + edgesBufferMemoryInUse);
+		return (verticesBufferMemoryInUse + edgesBufferMemoryInUse);
 #endif
 }
 
-unsigned long Graph::getNumCollisionChecks() const
+//////////////////////////////////////////////////////////////////////////
+unsigned long getNumCollisionChecks(Graph* graph)
 {
 #ifdef USE_QUADTREE
-	return numCollisionChecks + quadtree.getNumCollisionChecks();
+	return graph->numCollisionChecks + getNumCollisionChecks(graph->quadtree);
 #else
-	return numCollisionChecks;
+	return graph->numCollisionChecks;
 #endif
 }
 
 #ifdef USE_QUADTREE
-unsigned int Graph::getMaxEdgesPerQuadrant() const
+//////////////////////////////////////////////////////////////////////////
+unsigned int getMaxEdgesPerQuadrant(Graph* graph)
 {
 	return MAX_EDGES_PER_QUADRANT;
 }
 
-unsigned int Graph::getMaxEdgesPerQuadrantInUse() const
+//////////////////////////////////////////////////////////////////////////
+unsigned int getMaxEdgesPerQuadrantInUse(Graph* graph)
 {
-	return quadtree.getMaxEdgesPerQuadrantInUse();
+	return getMaxEdgesPerQuadrantInUse(graph->quadtree);
 }
 #endif
 
 #endif
 
 }
-

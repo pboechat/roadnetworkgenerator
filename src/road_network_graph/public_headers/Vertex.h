@@ -14,11 +14,11 @@ struct Vertex
 	vml_vec2 position;
 	EdgeIndex ins[MAX_VERTEX_IN_CONNECTIONS];
 	EdgeIndex outs[MAX_VERTEX_OUT_CONNECTIONS];
-	unsigned int lastInIndex;
-	unsigned int lastOutIndex;
+	unsigned int numIns;
+	unsigned int numOuts;
 	bool removed;
 
-	Vertex() : removed(false), lastInIndex(0), lastOutIndex(0) {}
+	Vertex() : removed(false), numIns(0), numOuts(0) {}
 
 };
 

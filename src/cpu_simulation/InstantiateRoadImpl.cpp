@@ -33,7 +33,7 @@ void InstantiateRoad::execute(Road& road, WorkQueues* backQueues)
 	vml_vec2 direction = vml_rotate2D(vml_vec2(0.0f, road.roadAttributes.length), road.roadAttributes.angle);
 	RoadNetworkGraph::VertexIndex newSource;
 	vml_vec2 position;
-	bool interrupted = graph->addRoad(road.roadAttributes.source, direction, newSource, position, road.roadAttributes.highway);
+	bool interrupted = addRoad(g_graph, road.roadAttributes.source, direction, newSource, position, road.roadAttributes.highway);
 	int delays[3];
 	RoadAttributes roadAttributes[3];
 	RuleAttributes ruleAttributes[3];
@@ -60,8 +60,8 @@ void evaluateGlobalGoals(Road& road, RoadNetworkGraph::VertexIndex source, const
 {
 	if (road.roadAttributes.highway)
 	{
-		bool doPureHighwayBranch = (road.ruleAttributes.pureHighwayBranchingDistance == configuration->minPureHighwayBranchingDistance);
-		bool doRegularBranch = (road.ruleAttributes.highwayBranchingDistance == configuration->minHighwayBranchingDistance);
+		bool doPureHighwayBranch = (road.ruleAttributes.pureHighwayBranchingDistance == g_configuration->minPureHighwayBranchingDistance);
+		bool doRegularBranch = (road.ruleAttributes.highwayBranchingDistance == g_configuration->minHighwayBranchingDistance);
 		// highway continuation
 		delays[2] = 0;
 		roadAttributes[2].source = source;
@@ -83,7 +83,7 @@ void evaluateGlobalGoals(Road& road, RoadNetworkGraph::VertexIndex source, const
 			goalDistance = (unsigned int)vml_distance(position, road.ruleAttributes.goal);
 		}
 
-		if (goalDistance <= configuration->goalDistanceThreshold)
+		if (goalDistance <= g_configuration->goalDistanceThreshold)
 		{
 			delays[2] = -1; // remove highway
 		}
@@ -119,13 +119,13 @@ void evaluateGlobalGoals(Road& road, RoadNetworkGraph::VertexIndex source, const
 			// new highway branch left
 			delays[0] = 0;
 			roadAttributes[0].source = source;
-			roadAttributes[0].length = configuration->highwayLength;
+			roadAttributes[0].length = g_configuration->highwayLength;
 			roadAttributes[0].angle = roadAttributes[2].angle - MathExtras::HALF_PI;
 			roadAttributes[0].highway = true;
 			// new highway branch right
 			delays[1] = 0;
 			roadAttributes[1].source = source;
-			roadAttributes[1].length = configuration->highwayLength;
+			roadAttributes[1].length = g_configuration->highwayLength;
 			roadAttributes[1].angle = roadAttributes[2].angle + MathExtras::HALF_PI;
 			roadAttributes[1].highway = true;
 		}
@@ -133,15 +133,15 @@ void evaluateGlobalGoals(Road& road, RoadNetworkGraph::VertexIndex source, const
 		else
 		{
 			// new street branch left
-			delays[0] = (doRegularBranch) ? configuration->highwayBranchingDelay : -1;
+			delays[0] = (doRegularBranch) ? g_configuration->highwayBranchingDelay : -1;
 			roadAttributes[0].source = source;
-			roadAttributes[0].length = configuration->streetLength;
+			roadAttributes[0].length = g_configuration->streetLength;
 			roadAttributes[0].angle = roadAttributes[2].angle - MathExtras::HALF_PI;
 			roadAttributes[0].highway = false;
 			// new street branch right
-			delays[1] = (doRegularBranch) ? configuration->highwayBranchingDelay : -1;
+			delays[1] = (doRegularBranch) ? g_configuration->highwayBranchingDelay : -1;
 			roadAttributes[1].source = source;
-			roadAttributes[1].length = configuration->streetLength;
+			roadAttributes[1].length = g_configuration->streetLength;
 			roadAttributes[1].angle = roadAttributes[2].angle + MathExtras::HALF_PI;
 			roadAttributes[1].highway = false;
 		}
@@ -151,23 +151,23 @@ void evaluateGlobalGoals(Road& road, RoadNetworkGraph::VertexIndex source, const
 	{
 		unsigned int newStreetDepth = road.ruleAttributes.streetBranchDepth + 1;
 		// street branch left
-		delays[0] = configuration->streetBranchingDelay;
+		delays[0] = g_configuration->streetBranchingDelay;
 		roadAttributes[0].source = source;
-		roadAttributes[0].length = configuration->streetLength;
+		roadAttributes[0].length = g_configuration->streetLength;
 		roadAttributes[0].angle = road.roadAttributes.angle - MathExtras::HALF_PI;
 		roadAttributes[0].highway = false;
 		ruleAttributes[0].streetBranchDepth = newStreetDepth;
 		// street branch right
-		delays[1] = configuration->streetBranchingDelay;
+		delays[1] = g_configuration->streetBranchingDelay;
 		roadAttributes[1].source = source;
-		roadAttributes[1].length = configuration->streetLength;
+		roadAttributes[1].length = g_configuration->streetLength;
 		roadAttributes[1].angle = road.roadAttributes.angle + MathExtras::HALF_PI;
 		roadAttributes[1].highway = false;
 		ruleAttributes[1].streetBranchDepth = newStreetDepth;
 		// street continuation
 		delays[2] = 0;
 		roadAttributes[2].source = source;
-		roadAttributes[2].length = configuration->streetLength;
+		roadAttributes[2].length = g_configuration->streetLength;
 		roadAttributes[2].angle = road.roadAttributes.angle;
 		roadAttributes[2].highway = false;
 		ruleAttributes[2].streetBranchDepth = newStreetDepth;
@@ -179,23 +179,23 @@ Pattern findUnderlyingPattern(const vml_vec2& position)
 {
 	unsigned char naturalPattern = 0;
 
-	if (configuration->naturalPatternMap != 0)
+	if (g_configuration->naturalPatternMap != 0)
 	{
-		naturalPattern = configuration->naturalPatternMap->sample(position);
+		naturalPattern = g_configuration->naturalPatternMap->sample(position);
 	}
 
 	unsigned char radialPattern = 0;
 
-	if (configuration->radialPatternMap != 0)
+	if (g_configuration->radialPatternMap != 0)
 	{
-		radialPattern = configuration->radialPatternMap->sample(position);
+		radialPattern = g_configuration->radialPatternMap->sample(position);
 	}
 
 	unsigned char rasterPattern = 0;
 
-	if (configuration->rasterPatternMap != 0)
+	if (g_configuration->rasterPatternMap != 0)
 	{
-		rasterPattern = configuration->rasterPatternMap->sample(position);
+		rasterPattern = g_configuration->rasterPatternMap->sample(position);
 	}
 
 	if (rasterPattern > radialPattern)
@@ -228,31 +228,31 @@ Pattern findUnderlyingPattern(const vml_vec2& position)
 //////////////////////////////////////////////////////////////////////////
 void findHighestPopulationDensity(const vml_vec2& start, float startingAngle, vml_vec2& goal, unsigned int& distance)
 {
-	int currentAngleStep = -configuration->halfSamplingArc;
+	int currentAngleStep = -g_configuration->halfSamplingArc;
 
 	// FIXME: checking invariants
-	if (configuration->populationDensityMap == 0)
+	if (g_configuration->populationDensityMap == 0)
 	{
 		throw std::exception("configuration->populationDensityMap == 0");
 	}
 
-	for (unsigned int i = 0; i < configuration->samplingArc; i++, currentAngleStep++)
+	for (unsigned int i = 0; i < g_configuration->samplingArc; i++, currentAngleStep++)
 	{
 		vml_vec2 direction = vml_normalize(vml_rotate2D(vml_vec2(0.0f, 1.0f), startingAngle + vml_radians((float)currentAngleStep)));
 		unsigned char populationDensity;
 		int distance;
-		configuration->populationDensityMap->scan(start, direction, configuration->minSamplingRayLength, configuration->maxSamplingRayLength, populationDensity, distance);
-		populationDensitiesSamplingBuffer[i] = populationDensity;
-		distancesSamplingBuffer[i] = distance;
+		g_configuration->populationDensityMap->scan(start, direction, g_configuration->minSamplingRayLength, g_configuration->maxSamplingRayLength, populationDensity, distance);
+		g_populationDensitiesSamplingBuffer[i] = populationDensity;
+		g_distancesSamplingBuffer[i] = distance;
 	}
 
 	unsigned int highestWeight = 0;
 	unsigned int j = 0;
 	float angleIncrement = 0.0f;
 
-	for (unsigned int i = 0; i < configuration->samplingArc; i++)
+	for (unsigned int i = 0; i < g_configuration->samplingArc; i++)
 	{
-		unsigned int weight = populationDensitiesSamplingBuffer[i] * distancesSamplingBuffer[i];
+		unsigned int weight = g_populationDensitiesSamplingBuffer[i] * g_distancesSamplingBuffer[i];
 
 		if (weight > highestWeight)
 		{
@@ -262,25 +262,25 @@ void findHighestPopulationDensity(const vml_vec2& start, float startingAngle, vm
 		}
 	}
 
-	distance = distancesSamplingBuffer[j];
-	goal = start + vml_rotate2D(vml_vec2(0.0f, (float)distance), startingAngle + vml_radians(angleIncrement - (float)configuration->halfSamplingArc));
+	distance = g_distancesSamplingBuffer[j];
+	goal = start + vml_rotate2D(vml_vec2(0.0f, (float)distance), startingAngle + vml_radians(angleIncrement - (float)g_configuration->halfSamplingArc));
 }
 
 //////////////////////////////////////////////////////////////////////////
 void applyHighwayGoalDeviation(RoadAttributes& roadAttributes)
 {
-	if (configuration->maxHighwayGoalDeviation == 0)
+	if (g_configuration->maxHighwayGoalDeviation == 0)
 	{
 		return;
 	}
 
-	roadAttributes.angle += vml_radians((float)(rand() % configuration->halfMaxHighwayGoalDeviation) - (int)configuration->maxHighwayGoalDeviation);
+	roadAttributes.angle += vml_radians((float)(rand() % g_configuration->halfMaxHighwayGoalDeviation) - (int)g_configuration->maxHighwayGoalDeviation);
 }
 
 //////////////////////////////////////////////////////////////////////////
 void applyNaturalPatternRule(const vml_vec2& position, unsigned int goalDistance, int& delay, RoadAttributes& roadAttributes, RuleAttributes& ruleAttributes)
 {
-	roadAttributes.length = MathExtras::min(goalDistance, configuration->highwayLength);
+	roadAttributes.length = MathExtras::min(goalDistance, g_configuration->highwayLength);
 	roadAttributes.angle = MathExtras::getOrientedAngle(vml_vec2(0.0f, 1.0f), ruleAttributes.goal - position);
 	applyHighwayGoalDeviation(roadAttributes);
 }
@@ -297,8 +297,8 @@ void applyRasterPatternRule(const vml_vec2& position, unsigned int goalDistance,
 	float angle = MathExtras::getOrientedAngle(vml_vec2(1.0f, 0.0f), ruleAttributes.goal - position);
 	unsigned int horizontalDistance = (unsigned int)abs((float)goalDistance * cos(angle));
 	unsigned int verticalDistance = (unsigned int)abs((float)goalDistance * sin(angle));
-	bool canMoveHorizontally = horizontalDistance >= configuration->minRoadLength;
-	bool canMoveVertically = verticalDistance >= configuration->minRoadLength;
+	bool canMoveHorizontally = horizontalDistance >= g_configuration->minRoadLength;
+	bool canMoveVertically = verticalDistance >= g_configuration->minRoadLength;
 	bool moveHorizontally;
 
 	if (!canMoveHorizontally && !canMoveVertically)
@@ -322,7 +322,7 @@ void applyRasterPatternRule(const vml_vec2& position, unsigned int goalDistance,
 		moveHorizontally = (rand() % 99) < 50;
 	}
 
-	unsigned int length = (rand() % (configuration->highwayLength - configuration->minRoadLength)) + configuration->minRoadLength;
+	unsigned int length = (rand() % (g_configuration->highwayLength - g_configuration->minRoadLength)) + g_configuration->minRoadLength;
 
 	if (moveHorizontally)
 	{

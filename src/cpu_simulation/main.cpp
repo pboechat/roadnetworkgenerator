@@ -1,10 +1,13 @@
 // memory leak detection
-//#include <vld.h>
+#include <vld.h>
 
 #include <RoadNetworkInputController.h>
 #include <SceneRenderer.h>
 #include <RoadNetworkGeometry.h>
 #include <RoadNetworkGenerator.h>
+#include <Configuration.h>
+#include <Graph.h>
+#include <QuadTree.h>
 #include <Globals.h>
 
 #include <Application.h>
@@ -36,28 +39,43 @@ void printUsage()
 
 void generateAndDisplay(const std::string& configurationFile, SceneRenderer& renderer, RoadNetworkGeometry& geometry, Camera& camera)
 {
-	if (configuration != 0)
+	if (g_configuration != 0)
 	{
-		delete configuration;
+		delete g_configuration;
 	}
-	configuration = new Configuration();
-	configuration->loadFromFile(configurationFile);
+	g_configuration = new Configuration();
+	g_configuration->loadFromFile(configurationFile);
 
-	Box2D worldBounds(0.0f, 0.0f, (float)configuration->worldWidth, (float)configuration->worldHeight);
+	initializeSamplingBuffers();
 
-	renderer.setUpImageMaps(worldBounds, configuration->populationDensityMap, configuration->waterBodiesMap, configuration->blockadesMap);
+	Box2D worldBounds(0.0f, 0.0f, (float)g_configuration->worldWidth, (float)g_configuration->worldHeight);
 
-	if (graph != 0)
+	renderer.setUpImageMaps(worldBounds, g_configuration->populationDensityMap, g_configuration->waterBodiesMap, g_configuration->blockadesMap);
+
+	if (g_graph != 0)
 	{
-		delete graph;
+		delete g_graph;
 	}
+
+	g_graph = new RoadNetworkGraph::Graph();
+
+	initializeGraphBuffers();
 #ifdef USE_QUADTREE
-	graph = new RoadNetworkGraph::Graph(worldBounds, configuration->quadtreeDepth, configuration->snapRadius, configuration->maxVertices, configuration->maxEdges, configuration->maxResultsPerQuery);
+	if (g_quadtree != 0)
+	{
+		delete g_quadtree;
+	}
+	g_quadtree = new RoadNetworkGraph::QuadTree();
+
+	initializeQuadtreeBuffers();
+
+	RoadNetworkGraph::initializeQuadtree(g_quadtree, worldBounds, g_configuration->quadtreeDepth, g_configuration->maxResultsPerQuery, g_quadrants, g_quadrantsEdges);
+	RoadNetworkGraph::initializeGraph(g_graph, g_configuration->snapRadius, g_configuration->maxVertices, g_configuration->maxEdges, g_vertices, g_edges, g_quadtree, g_configuration->maxResultsPerQuery, g_queryResults);
 #else
-	graph = new RoadNetworkGraph::Graph(worldBounds, configuration->snapRadius, configuration->maxVertices, configuration->maxEdges, configuration->maxResultsPerQuery);
+	RoadNetworkGraph::initializeGraph(g_graph, g_configuration->snapRadius, g_configuration->maxVertices, g_configuration->maxEdges, g_vertices, g_edges);
 #endif
 
-	RoadNetworkGenerator generator(configuration->maxWorkQueueCapacity);
+	RoadNetworkGenerator generator(g_configuration->maxWorkQueueCapacity);
 #ifdef _DEBUG
 	Timer timer;
 	timer.start();
@@ -70,22 +88,22 @@ void generateAndDisplay(const std::string& configurationFile, SceneRenderer& ren
 	std::cout << "	DETAILS:				   " << std::endl;
 	std::cout << "*****************************" << std::endl;
 #ifdef _DEBUG
-	std::cout << "seed: " << configuration->seed << std::endl;
+	std::cout << "seed: " << g_configuration->seed << std::endl;
 #endif
 	std::cout << "generation time: " << timer.elapsedTime() << " seconds" << std::endl;
-	std::cout << "steps (max./real): " << configuration->maxDerivations << " / " << generator.getLastStep() << std::endl;
+	std::cout << "steps (max./real): " << g_configuration->maxDerivations << " / " << generator.getLastStep() << std::endl;
 	std::cout << "work queue capacity (max/max. in use): " << generator.getMaxWorkQueueCapacity() << " / " << generator.getMaxWorkQueueCapacityUsed() << std::endl;
-	std::cout << "memory (allocated/in use): " << toMegabytes(graph->getAllocatedMemory()) << " MB / " << toMegabytes(graph->getMemoryInUse()) << " MB" << std::endl;
-	std::cout << "vertices (allocated/in use): " << graph->getAllocatedVertices() << " / " << graph->getVerticesInUse() << std::endl;
-	std::cout << "edges (allocated/in use): " << graph->getAllocatedEdges() << " / " << graph->getEdgesInUse() << std::endl;
-	std::cout << "vertex in connections (max./max. in use): " << graph->getMaxVertexInConnections() << " / " << graph->getMaxVertexInConnectionsInUse() << std::endl;
-	std::cout << "vertex out connections (max./max. in use): " << graph->getMaxVertexOutConnections() << " / " << graph->getMaxVertexOutConnectionsInUse() << std::endl;
-	std::cout << "avg. vertex in connections in use: " << graph->getAverageVertexInConnectionsInUse() << std::endl;
-	std::cout << "avg. vertex out connections in use: " << graph->getAverageVertexOutConnectionsInUse() << std::endl;
+	std::cout << "memory (allocated/in use): " << toMegabytes(getAllocatedMemory(g_graph)) << " MB / " << toMegabytes(getMemoryInUse(g_graph)) << " MB" << std::endl;
+	std::cout << "vertices (allocated/in use): " << getAllocatedVertices(g_graph) << " / " << getVerticesInUse(g_graph) << std::endl;
+	std::cout << "edges (allocated/in use): " << getAllocatedEdges(g_graph) << " / " << getEdgesInUse(g_graph) << std::endl;
+	std::cout << "vertex in connections (max./max. in use): " << getMaxVertexInConnections(g_graph) << " / " << getMaxVertexInConnectionsInUse(g_graph) << std::endl;
+	std::cout << "vertex out connections (max./max. in use): " << getMaxVertexOutConnections(g_graph) << " / " << getMaxVertexOutConnectionsInUse(g_graph) << std::endl;
+	std::cout << "avg. vertex in connections in use: " << getAverageVertexInConnectionsInUse(g_graph) << std::endl;
+	std::cout << "avg. vertex out connections in use: " << getAverageVertexOutConnectionsInUse(g_graph) << std::endl;
 #ifdef USE_QUADTREE
-	std::cout << "edges per quadrant (max./max. in use): " << graph->getMaxEdgesPerQuadrant() << " / " << graph->getMaxEdgesPerQuadrantInUse() << std::endl;
+	std::cout << "edges per quadrant (max./max. in use): " << getMaxEdgesPerQuadrant(g_graph) << " / " << getMaxEdgesPerQuadrantInUse(g_graph) << std::endl;
 #endif
-	std::cout << "num. collision checks: " << graph->getNumCollisionChecks() << std::endl;
+	std::cout << "num. collision checks: " << getNumCollisionChecks(g_graph) << std::endl;
 	std::cout  << std::endl << std::endl;
 #endif
 	geometry.build();
@@ -141,15 +159,26 @@ int main(int argc, char** argv)
 		std::cout << std::endl << "Unknown error" << std::endl << std::endl;
 	}
 
-	if (configuration != 0)
+	if (g_configuration != 0)
 	{
-		delete configuration;
+		delete g_configuration;
 	}
 
-	if (graph != 0)
+	if (g_graph != 0)
 	{
-		delete graph;
+		delete g_graph;
 	}
+
+	disposeSamplingBuffers();
+	disposeGraphBuffers();
+#ifdef USE_QUADTREE
+	if (g_quadtree != 0)
+	{
+		delete g_quadtree;
+	}
+
+	disposeQuadtreeBuffers();
+#endif
 
 	// DEBUG:
 	system("pause");

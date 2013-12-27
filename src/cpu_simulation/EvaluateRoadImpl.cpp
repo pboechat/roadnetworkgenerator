@@ -43,17 +43,17 @@ void EvaluateRoad::execute(Road& road, WorkQueues* backQueues)
 void evaluateLocalContraints(Road& road)
 {
 	// remove streets that have exceeded max street branch depth
-	if (!road.roadAttributes.highway && road.ruleAttributes.streetBranchDepth > configuration->maxStreetBranchDepth)
+	if (!road.roadAttributes.highway && road.ruleAttributes.streetBranchDepth > g_configuration->maxStreetBranchDepth)
 	{
 		road.state = FAILED;
 		return;
 	}
 
-	vml_vec2 position = graph->getPosition(road.roadAttributes.source);
+	vml_vec2 position = getPosition(g_graph, road.roadAttributes.source);
 
 	// remove roads that cross world boundaries
-	if (position.x < 0 || position.x > (float)configuration->worldWidth ||
-		position.y < 0 || position.y > (float)configuration->worldHeight)
+	if (position.x < 0 || position.x > (float)g_configuration->worldWidth ||
+		position.y < 0 || position.y > (float)g_configuration->worldHeight)
 	{
 		road.state = FAILED;
 		return;
@@ -64,7 +64,7 @@ void evaluateLocalContraints(Road& road)
 		return;
 	}
 
-	if (configuration->blockadesMap == 0)
+	if (g_configuration->blockadesMap == 0)
 	{
 		return;
 	}
@@ -76,7 +76,7 @@ void evaluateLocalContraints(Road& road)
 bool evaluateWaterBodies(Road& road, const vml_vec2& position)
 {
 	// FIXME: checking invariants
-	if (configuration->waterBodiesMap == 0)
+	if (g_configuration->waterBodiesMap == 0)
 	{
 		throw std::exception("configuration->waterBodiesMap == 0");
 	}
@@ -85,13 +85,13 @@ bool evaluateWaterBodies(Road& road, const vml_vec2& position)
 	unsigned int angleIncrement = 0;
 	unsigned int length = road.roadAttributes.length;
 
-	while (length >= configuration->minRoadLength)
+	while (length >= g_configuration->minRoadLength)
 	{
 		do
 		{
 			vml_vec2 direction = vml_normalize(vml_rotate2D(vml_vec2(0.0f, 1.0f), road.roadAttributes.angle + vml_radians((float)angleIncrement)));
 
-			if (configuration->waterBodiesMap->castRay(position, direction, length, 0))
+			if (g_configuration->waterBodiesMap->castRay(position, direction, length, 0))
 			{
 				road.state = SUCCEED;
 				found = true;
@@ -100,7 +100,7 @@ bool evaluateWaterBodies(Road& road, const vml_vec2& position)
 
 			angleIncrement++;;
 		}
-		while (angleIncrement <= configuration->maxObstacleDeviationAngle);
+		while (angleIncrement <= g_configuration->maxObstacleDeviationAngle);
 
 		length--;
 	}
@@ -123,7 +123,7 @@ outside_loops:
 bool evaluateBlockades(Road& road, const vml_vec2& position)
 {
 	// FIXME: checking invariants
-	if (configuration->blockadesMap == 0)
+	if (g_configuration->blockadesMap == 0)
 	{
 		throw std::exception("configuration->blockadesMap == 0");
 	}
@@ -132,13 +132,13 @@ bool evaluateBlockades(Road& road, const vml_vec2& position)
 	unsigned int angleIncrement = 0;
 	unsigned int length = road.roadAttributes.length;
 
-	while (length >= configuration->minRoadLength)
+	while (length >= g_configuration->minRoadLength)
 	{
 		do
 		{
 			vml_vec2 direction = vml_normalize(vml_rotate2D(vml_vec2(0.0f, 1.0f), road.roadAttributes.angle + vml_radians((float)angleIncrement)));
 
-			if (configuration->blockadesMap->castRay(position, direction, length, 0))
+			if (g_configuration->blockadesMap->castRay(position, direction, length, 0))
 			{
 				road.state = SUCCEED;
 				found = true;
@@ -147,7 +147,7 @@ bool evaluateBlockades(Road& road, const vml_vec2& position)
 
 			angleIncrement++;;
 		}
-		while (angleIncrement <= configuration->maxObstacleDeviationAngle);
+		while (angleIncrement <= g_configuration->maxObstacleDeviationAngle);
 
 		length--;
 	}

@@ -26,22 +26,19 @@ public:
 		WorkQueues* frontBuffer = &buffer1;
 		WorkQueues* backBuffer = &buffer2;
 
-		for (unsigned int i = 0; i < configuration->numSpawnPoints; i++)
+		for (unsigned int i = 0; i < g_configuration->numSpawnPoints; i++)
 		{
-			vml_vec2 spawnPoint = configuration->spawnPoints[i];
-			RoadNetworkGraph::VertexIndex source = graph->createVertex(spawnPoint);
-			frontBuffer->addWorkItem(EVALUATE_ROAD, Road(0, RoadAttributes(source, configuration->highwayLength, 0, true), RuleAttributes(), UNASSIGNED));
-			frontBuffer->addWorkItem(EVALUATE_ROAD, Road(0, RoadAttributes(source, configuration->highwayLength, -MathExtras::HALF_PI, true), RuleAttributes(), UNASSIGNED));
-			frontBuffer->addWorkItem(EVALUATE_ROAD, Road(0, RoadAttributes(source, configuration->highwayLength, MathExtras::HALF_PI, true), RuleAttributes(), UNASSIGNED));
-			frontBuffer->addWorkItem(EVALUATE_ROAD, Road(0, RoadAttributes(source, configuration->highwayLength, MathExtras::PI, true), RuleAttributes(), UNASSIGNED));
+			vml_vec2 spawnPoint = g_configuration->spawnPoints[i];
+			RoadNetworkGraph::VertexIndex source = RoadNetworkGraph::createVertex(g_graph, spawnPoint);
+			frontBuffer->addWorkItem(EVALUATE_ROAD, Road(0, RoadAttributes(source, g_configuration->highwayLength, 0, true), RuleAttributes(), UNASSIGNED));
+			frontBuffer->addWorkItem(EVALUATE_ROAD, Road(0, RoadAttributes(source, g_configuration->highwayLength, -MathExtras::HALF_PI, true), RuleAttributes(), UNASSIGNED));
+			frontBuffer->addWorkItem(EVALUATE_ROAD, Road(0, RoadAttributes(source, g_configuration->highwayLength, MathExtras::HALF_PI, true), RuleAttributes(), UNASSIGNED));
+			frontBuffer->addWorkItem(EVALUATE_ROAD, Road(0, RoadAttributes(source, g_configuration->highwayLength, MathExtras::PI, true), RuleAttributes(), UNASSIGNED));
 		}
 
-		// TODO: improve design
-		//InstantiateRoad::initialize(configuration);
-		initializeSamplingBuffers();
 		lastDerivation = 0;
 
-		while (frontBuffer->notEmpty() && lastDerivation++ < configuration->maxDerivations)
+		while (frontBuffer->notEmpty() && lastDerivation++ < g_configuration->maxDerivations)
 		{
 #ifdef _DEBUG
 			if (frontBuffer->getNumWorkItems() > maxWorkQueueCapacityUsed)
@@ -53,14 +50,10 @@ public:
 			std::swap(frontBuffer, backBuffer);
 		}
 
-		if (configuration->removeDeadEndRoads)
+		if (g_configuration->removeDeadEndRoads)
 		{
-			graph->removeDeadEndRoads();
+			RoadNetworkGraph::removeDeadEndRoads(g_graph);
 		}
-
-		// TODO: improve design
-		//InstantiateRoad::dispose();
-		disposeSamplingBuffers();
 	}
 
 #ifdef _DEBUG
