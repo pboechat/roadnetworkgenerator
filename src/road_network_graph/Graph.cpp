@@ -134,7 +134,7 @@ void traverse(const Graph* graph, GraphTraversal& traversal)
 }
 
 //////////////////////////////////////////////////////////////////////////
-void connect(Graph* graph, VertexIndex sourceIndex, VertexIndex destinationIndex, bool highway)
+void connect(Graph* graph, VertexIndex sourceVertexIndex, VertexIndex destinationVertexIndex, bool highway)
 {
 	// FIXME: checking boundaries
 	if (graph->numEdges >= (int)graph->maxEdges)
@@ -143,12 +143,12 @@ void connect(Graph* graph, VertexIndex sourceIndex, VertexIndex destinationIndex
 	}
 
 	Edge& newEdge = graph->edges[graph->numEdges];
-	newEdge.source = sourceIndex;
-	newEdge.destination = destinationIndex;
+	newEdge.source = sourceVertexIndex;
+	newEdge.destination = destinationVertexIndex;
 	newEdge.highway = highway;
 
-	Vertex& sourceVertex = graph->vertices[sourceIndex];
-	Vertex& destinationVertex = graph->vertices[destinationIndex];
+	Vertex& sourceVertex = graph->vertices[sourceVertexIndex];
+	Vertex& destinationVertex = graph->vertices[destinationVertexIndex];
 
 	// FIXME: checking boundaries
 	if (sourceVertex.numOuts >= MAX_VERTEX_OUT_CONNECTIONS)
@@ -159,6 +159,14 @@ void connect(Graph* graph, VertexIndex sourceIndex, VertexIndex destinationIndex
 	sourceVertex.outs[sourceVertex.numOuts++] = graph->numEdges;
 
 	// FIXME: checking boundaries
+	if (sourceVertex.numAdjacencies >= MAX_VERTEX_ADJACENCIES)
+	{
+		throw std::exception("max. vertex adjacencies overflow");
+	}
+
+	sourceVertex.adjacencies[sourceVertex.numAdjacencies++] = destinationVertexIndex;
+
+	// FIXME: checking boundaries
 	if (destinationVertex.numIns >= MAX_VERTEX_IN_CONNECTIONS)
 	{
 		throw std::exception("max. vertex connections (in) overflow");
@@ -166,10 +174,17 @@ void connect(Graph* graph, VertexIndex sourceIndex, VertexIndex destinationIndex
 
 	destinationVertex.ins[destinationVertex.numIns++] = graph->numEdges;
 
-	if (graph->quadtree != 0)
+	// FIXME: checking boundaries
+	if (destinationVertex.numAdjacencies >= MAX_VERTEX_ADJACENCIES)
 	{
-		insert(graph->quadtree, graph->numEdges, Line2D(sourceVertex.position, destinationVertex.position));
+		throw std::exception("max. vertex adjacencies overflow");
 	}
+
+	destinationVertex.adjacencies[destinationVertex.numAdjacencies++] = sourceVertexIndex;
+
+#ifdef USE_QUADTREE
+	insert(graph->quadtree, graph->numEdges, Line2D(sourceVertex.position, destinationVertex.position));
+#endif
 
 	graph->numEdges++;
 }
@@ -180,15 +195,17 @@ void splitEdge(Graph* graph, EdgeIndex edgeIndex, VertexIndex splitVertexIndex)
 	Edge& edge = graph->edges[edgeIndex];
 	VertexIndex oldDestinationVertexIndex = edge.destination;
 	edge.destination = splitVertexIndex;
+
 	Vertex& sourceVertex = graph->vertices[edge.source];
 	Vertex& oldDestinationVertex = graph->vertices[oldDestinationVertexIndex];
 	Vertex& splitVertex = graph->vertices[splitVertexIndex];
 
-	if (graph->quadtree != 0)
-	{
-		remove(graph->quadtree, edgeIndex, Line2D(sourceVertex.position, oldDestinationVertex.position));
-		insert(graph->quadtree, edgeIndex, Line2D(sourceVertex.position, splitVertex.position));
-	}
+#ifdef USE_QUADTREE
+	remove(graph->quadtree, edgeIndex, Line2D(sourceVertex.position, oldDestinationVertex.position));
+	insert(graph->quadtree, edgeIndex, Line2D(sourceVertex.position, splitVertex.position));
+#endif
+
+	replaceAdjacency(sourceVertex, oldDestinationVertexIndex, splitVertexIndex);
 
 	// FIXME: checking boundaries
 	if (splitVertex.numIns >= MAX_VERTEX_IN_CONNECTIONS)
@@ -197,6 +214,14 @@ void splitEdge(Graph* graph, EdgeIndex edgeIndex, VertexIndex splitVertexIndex)
 	}
 
 	splitVertex.ins[splitVertex.numIns++] = edgeIndex;
+
+	// FIXME: checking boundaries
+	if (splitVertex.numAdjacencies >= MAX_VERTEX_ADJACENCIES)
+	{
+		throw std::exception("max. vertex adjacencies overflow");
+	}
+
+	splitVertex.adjacencies[splitVertex.numAdjacencies++] = edge.source;
 
 	// FIXME: checking boundaries
 	if (graph->numEdges >= (int)graph->maxEdges)
@@ -209,6 +234,9 @@ void splitEdge(Graph* graph, EdgeIndex edgeIndex, VertexIndex splitVertexIndex)
 	newEdge.destination = oldDestinationVertexIndex;
 	newEdge.highway = edge.highway;
 
+	replaceAdjacency(oldDestinationVertex, edge.source, splitVertexIndex);
+	replaceInEdge(oldDestinationVertex, edgeIndex, graph->numEdges);
+
 	// FIXME: checking boundaries
 	if (splitVertex.numOuts >= MAX_VERTEX_OUT_CONNECTIONS)
 	{
@@ -216,28 +244,18 @@ void splitEdge(Graph* graph, EdgeIndex edgeIndex, VertexIndex splitVertexIndex)
 	}
 
 	splitVertex.outs[splitVertex.numOuts++] = graph->numEdges;
-	bool found = false;
 
-	for (unsigned int i = 0; i < oldDestinationVertex.numIns; i++)
+	// FIXME: checking boundaries
+	if (splitVertex.numAdjacencies >= MAX_VERTEX_ADJACENCIES)
 	{
-		if (oldDestinationVertex.ins[i] == edgeIndex)
-		{
-			oldDestinationVertex.ins[i] = graph->numEdges;
-			found = true;
-			break;
-		}
+		throw std::exception("max. vertex adjacencies overflow");
 	}
 
-	// FIXME: checking invariants
-	if (!found)
-	{
-		throw std::exception("!found");
-	}
+	splitVertex.adjacencies[splitVertex.numAdjacencies++] = oldDestinationVertexIndex;
 
-	if (graph->quadtree != 0)
-	{
-		insert(graph->quadtree, graph->numEdges, Line2D(splitVertex.position, oldDestinationVertex.position));
-	}
+#ifdef USE_QUADTREE
+	insert(graph->quadtree, graph->numEdges, Line2D(splitVertex.position, oldDestinationVertex.position));
+#endif
 
 	graph->numEdges++;
 }

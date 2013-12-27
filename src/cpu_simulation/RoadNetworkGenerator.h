@@ -14,7 +14,7 @@
 class RoadNetworkGenerator
 {
 public:
-	RoadNetworkGenerator(unsigned int maxWorkQueueCapacity) : maxWorkQueueCapacity(maxWorkQueueCapacity), buffer1(maxWorkQueueCapacity), buffer2(maxWorkQueueCapacity), lastDerivation(0)
+	RoadNetworkGenerator(unsigned int maxWorkQueueCapacity) : maxWorkQueueCapacity(maxWorkQueueCapacity), buffer1(g_workQueues1, NUM_PROCEDURES), buffer2(g_workQueues2, NUM_PROCEDURES), lastDerivation(0)
 #ifdef _DEBUG
 		, maxWorkQueueCapacityUsed(0)
 #endif

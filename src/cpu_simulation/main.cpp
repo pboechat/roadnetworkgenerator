@@ -46,6 +46,7 @@ void generateAndDisplay(const std::string& configurationFile, SceneRenderer& ren
 	g_configuration = new Configuration();
 	g_configuration->loadFromFile(configurationFile);
 
+	initializeWorkQueues();
 	initializeSamplingBuffers();
 
 	Box2D worldBounds(0.0f, 0.0f, (float)g_configuration->worldWidth, (float)g_configuration->worldHeight);
@@ -169,8 +170,6 @@ int main(int argc, char** argv)
 		delete g_graph;
 	}
 
-	disposeSamplingBuffers();
-	disposeGraphBuffers();
 #ifdef USE_QUADTREE
 	if (g_quadtree != 0)
 	{
@@ -179,6 +178,9 @@ int main(int argc, char** argv)
 
 	disposeQuadtreeBuffers();
 #endif
+	disposeGraphBuffers();
+	disposeSamplingBuffers();
+	disposeWorkQueues();
 
 	// DEBUG:
 	system("pause");

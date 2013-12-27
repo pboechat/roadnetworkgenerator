@@ -1,14 +1,16 @@
 #ifndef WORKQUEUES_H
 #define WORKQUEUES_H
 
-#include <GenericQueue.h>
+#include <StaticMarshallingQueue.h>
 #include <MathExtras.h>
+
+#include <exception>
 
 class WorkQueues
 {
 public:
-	WorkQueues(unsigned int workQueuesCapacity);
-	~WorkQueues();
+	WorkQueues(StaticMarshallingQueue** queues, unsigned int numQueues) : queues(queues), numQueues(numQueues), numWorkItems(0) {}
+	~WorkQueues() {}
 
 	inline unsigned int getNumWorkItems() const
 	{
@@ -21,20 +23,27 @@ public:
 	}
 
 	template<typename WorkItemType>
-	void addWorkItem(int operationCode, WorkItemType& workItem)
+	void addWorkItem(unsigned int operationCode, WorkItemType& workItem)
 	{
-		mQueues[operationCode]->enqueue(workItem);
+		// FIXME: checking invariants
+		if (operationCode >= numQueues)
+		{
+			throw std::exception("operationCode >= numQueues");
+		}
+
+		queues[operationCode]->enqueue(workItem);
 		numWorkItems++;
 	}
 
 	void executeAllWorkItems(WorkQueues* backQueues);
 
 private:
-	GenericQueue** mQueues;
+	StaticMarshallingQueue** queues;
+	unsigned int numQueues;
 	unsigned int numWorkItems;
 
 	template<typename ProcedureType, typename WorkItemType>
-	void executeAllWorkItemsInQueue(GenericQueue* queue, WorkQueues* backQueues)
+	void executeAllWorkItemsInQueue(StaticMarshallingQueue* queue, WorkQueues* backQueues)
 	{
 		WorkItemType workItem;
 		while (queue->dequeue(workItem))

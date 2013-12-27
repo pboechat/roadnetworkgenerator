@@ -1,22 +1,13 @@
-#ifndef GENERICQUEUE_H
-#define GENERICQUEUE_H
+#ifndef STATICMARSHALLINGQUEUE_H
+#define STATICMARSHALLINGQUEUE_H
 
 #include <exception>
 
-class GenericQueue
+class StaticMarshallingQueue
 {
 public:
-	GenericQueue(unsigned int capacity, unsigned int itemSize) : capacity(capacity), itemSize(itemSize), counter(0), head(0), tail(0), buffer(0)
+	StaticMarshallingQueue(unsigned char* buffer, unsigned int capacity, unsigned int itemSize) : buffer(buffer), capacity(capacity), itemSize(itemSize), counter(0), head(0), tail(0)
 	{
-		buffer = new unsigned char[capacity * itemSize];
-	}
-
-	~GenericQueue()
-	{
-		if (buffer != 0)
-		{
-			delete[] buffer;
-		}
 	}
 
 	template<typename T>

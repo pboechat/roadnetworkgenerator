@@ -2,37 +2,12 @@
 #include <Globals.h>
 #include <Procedures.h>
 
-WorkQueues::WorkQueues(unsigned int workQueuesCapacity) : mQueues(0), numWorkItems(0)
-{
-	unsigned int itemSize = MathExtras::max(sizeof(Road), sizeof(Branch));
-	mQueues = new GenericQueue*[NUM_PROCEDURES];
-	for (unsigned int i = 0; i < NUM_PROCEDURES; i++)
-	{
-		mQueues[i] = new GenericQueue(workQueuesCapacity, itemSize);
-	}
-}
-
-WorkQueues::~WorkQueues()
-{
-	{
-		if (mQueues != 0)
-		{
-			for (unsigned int i = 0; i < NUM_PROCEDURES; i++)
-			{
-				delete mQueues[i];
-			}
-
-			delete[] mQueues;
-		}
-	}
-}
-
 void WorkQueues::executeAllWorkItems(WorkQueues* backQueues)
 {
 	unsigned int i = 0;
-	while (i < NUM_PROCEDURES)
+	while (i < numQueues)
 	{
-		GenericQueue* queue = mQueues[i];
+		StaticMarshallingQueue* queue = queues[i];
 
 		switch (i)
 		{
