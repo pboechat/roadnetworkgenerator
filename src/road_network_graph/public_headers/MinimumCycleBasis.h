@@ -6,6 +6,7 @@
 #include <Edge.h>
 #include <Graph.h>
 #include <Primitive.h>
+#include <StaticHeap.h>
 
 #include <vector_math.h>
 
@@ -13,7 +14,7 @@ namespace RoadNetworkGraph
 {
 	
 //////////////////////////////////////////////////////////////////////////
-void extractPrimitives(Vertex* heap, unsigned int heapSize, Primitive* primitives, unsigned int primitivesSize);
+void extractPrimitives(StaticHeap<Vertex>& heap, Primitive* primitives, unsigned int primitivesSize);
 
 }
 

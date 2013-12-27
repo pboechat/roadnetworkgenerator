@@ -1,5 +1,5 @@
 // memory leak detection
-#include <vld.h>
+//#include <vld.h>
 
 #include <RoadNetworkInputController.h>
 #include <SceneRenderer.h>

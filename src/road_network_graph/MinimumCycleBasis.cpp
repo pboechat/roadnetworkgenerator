@@ -4,32 +4,32 @@ namespace RoadNetworkGraph
 {
 
 //////////////////////////////////////////////////////////////////////////
-void extractIsolatedVertex(Vertex& v0, Vertex* heap, Primitive* primitives);
+void extractIsolatedVertex(Vertex& v0, StaticHeap<Vertex>& heap, Primitive* primitives);
 //////////////////////////////////////////////////////////////////////////
-void extractFilament(Vertex& v0, Vertex& v1, Vertex* heap, Primitive* primitives);
+void extractFilament(Vertex& v0, Vertex& v1, StaticHeap<Vertex>& heap, Primitive* primitives);
 //////////////////////////////////////////////////////////////////////////
-void extractPrimitive(Vertex& v0, Vertex* heap, Primitive* primitives);
+void extractPrimitive(Vertex& v0, StaticHeap<Vertex>& heap, Primitive* primitives);
 
 //////////////////////////////////////////////////////////////////////////
-void extractPrimitives(Vertex* heap, unsigned int heapSize, Primitive* primitives, unsigned int primitivesSize)
+void extractPrimitives(StaticHeap<Vertex>& heap, Primitive* primitives, unsigned int primitivesSize)
 {
 
 }
 
 //////////////////////////////////////////////////////////////////////////
-void extractIsolatedVertex(Vertex& v0, Vertex* heap, Primitive* primitives)
+void extractIsolatedVertex(Vertex& v0, StaticHeap<Vertex>& heap, Primitive* primitives)
 {
 
 }
 
 //////////////////////////////////////////////////////////////////////////
-void extractFilament(Vertex& v0, Vertex& v1, Vertex* heap, Primitive* primitives)
+void extractFilament(Vertex& v0, Vertex& v1, StaticHeap<Vertex>& heap, Primitive* primitives)
 {
 
 }
 
 //////////////////////////////////////////////////////////////////////////
-void extractPrimitive(Vertex& v0, Vertex* heap, Primitive* primitives)
+void extractPrimitive(Vertex& v0, StaticHeap<Vertex>& heap, Primitive* primitives)
 {
 
 }
