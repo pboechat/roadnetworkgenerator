@@ -1,4 +1,6 @@
-#include <Procedures.h>
+#include <ProceduresDeclarations.h>
+#include <ProceduresCodes.h>
+#include <Globals.h>
 
 //////////////////////////////////////////////////////////////////////////
 void evaluateLocalContraints(Road& road);
@@ -8,7 +10,7 @@ bool evaluateWaterBodies(Road& road, const vml_vec2& position);
 bool evaluateBlockades(Road& road, const vml_vec2& position);
 
 //////////////////////////////////////////////////////////////////////////
-void EvaluateRoad::execute(Road& road, WorkQueues* backQueues)
+void EvaluateRoad::execute(Road& road, WorkQueuesSet* backQueues)
 {
 	// p1, p3 and p6
 	if (road.delay < 0 || road.state == FAILED)
@@ -64,7 +66,7 @@ void evaluateLocalContraints(Road& road)
 		return;
 	}
 
-	if (g_configuration->blockadesMap == 0)
+	if (g_blockadesMap == 0)
 	{
 		return;
 	}
@@ -76,9 +78,9 @@ void evaluateLocalContraints(Road& road)
 bool evaluateWaterBodies(Road& road, const vml_vec2& position)
 {
 	// FIXME: checking invariants
-	if (g_configuration->waterBodiesMap == 0)
+	if (g_waterBodiesMap == 0)
 	{
-		throw std::exception("configuration->waterBodiesMap == 0");
+		throw std::exception("g_waterBodiesMap == 0");
 	}
 
 	bool found = false;
@@ -91,7 +93,7 @@ bool evaluateWaterBodies(Road& road, const vml_vec2& position)
 		{
 			vml_vec2 direction = vml_normalize(vml_rotate2D(vml_vec2(0.0f, 1.0f), road.roadAttributes.angle + vml_radians((float)angleIncrement)));
 
-			if (g_configuration->waterBodiesMap->castRay(position, direction, length, 0))
+			if (g_waterBodiesMap->castRay(position, direction, length, 0))
 			{
 				road.state = SUCCEED;
 				found = true;
@@ -123,9 +125,9 @@ outside_loops:
 bool evaluateBlockades(Road& road, const vml_vec2& position)
 {
 	// FIXME: checking invariants
-	if (g_configuration->blockadesMap == 0)
+	if (g_blockadesMap == 0)
 	{
-		throw std::exception("configuration->blockadesMap == 0");
+		throw std::exception("g_blockadesMap == 0");
 	}
 
 	bool found = false;
@@ -138,7 +140,7 @@ bool evaluateBlockades(Road& road, const vml_vec2& position)
 		{
 			vml_vec2 direction = vml_normalize(vml_rotate2D(vml_vec2(0.0f, 1.0f), road.roadAttributes.angle + vml_radians((float)angleIncrement)));
 
-			if (g_configuration->blockadesMap->castRay(position, direction, length, 0))
+			if (g_blockadesMap->castRay(position, direction, length, 0))
 			{
 				road.state = SUCCEED;
 				found = true;

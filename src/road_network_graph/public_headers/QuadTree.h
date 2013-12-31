@@ -1,7 +1,7 @@
 #ifndef ROADNETWORKGRAPH_QUADREE_H
 #define ROADNETWORKGRAPH_QUADREE_H
 
-#include <Defines.h>
+#include "Defines.h"
 #include <Quadrant.h>
 #include <QuadrantEdges.h>
 

@@ -1,7 +1,7 @@
 #ifndef ROADNETWORKGRAPH_PRIMITIVE_H
 #define ROADNETWORKGRAPH_PRIMITIVE_H
 
-#include <Defines.h>
+#include "Defines.h"
 
 #include <vector_math.h>
 

@@ -1,7 +1,7 @@
 #ifndef ROADNETWORKGRAPH_EDGE_H
 #define ROADNETWORKGRAPH_EDGE_H
 
-#include <Defines.h>
+#include "Defines.h"
 
 namespace RoadNetworkGraph
 {

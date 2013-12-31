@@ -1,13 +1,13 @@
-#include <WorkQueues.h>
-#include <Globals.h>
-#include <Procedures.h>
+#include <WorkQueuesSet.h>
+#include <ProceduresDeclarations.h>
+#include <ProceduresCodes.h>
 
-void WorkQueues::executeAllWorkItems(WorkQueues* backQueues)
+void WorkQueuesSet::executeAllWorkItems(WorkQueuesSet* backQueues)
 {
 	unsigned int i = 0;
-	while (i < numQueues)
+	while (i < numWorkQueues)
 	{
-		StaticMarshallingQueue* queue = queues[i];
+		StaticMarshallingQueue& queue = workQueues[i];
 
 		switch (i)
 		{

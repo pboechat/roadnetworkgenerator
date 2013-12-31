@@ -1,7 +1,8 @@
-#include <Procedures.h>
+#include <ProceduresDeclarations.h>
+#include <ProceduresCodes.h>
+#include <Globals.h>
 #include <Pattern.h>
 
-#include <sstream>
 #include <random>
 
 //////////////////////////////////////////////////////////////////////////
@@ -20,7 +21,7 @@ void applyRadialPatternRule(const vml_vec2& position, unsigned int goalDistance,
 void applyRasterPatternRule(const vml_vec2& position, unsigned int goalDistance, int& delay, RoadAttributes& roadAttributes, RuleAttributes& ruleAttributes);
 
 //////////////////////////////////////////////////////////////////////////
-void InstantiateRoad::execute(Road& road, WorkQueues* backQueues)
+void InstantiateRoad::execute(Road& road, WorkQueuesSet* backQueues)
 {
 	// p2
 
@@ -179,23 +180,23 @@ Pattern findUnderlyingPattern(const vml_vec2& position)
 {
 	unsigned char naturalPattern = 0;
 
-	if (g_configuration->naturalPatternMap != 0)
+	if (g_naturalPatternMap != 0)
 	{
-		naturalPattern = g_configuration->naturalPatternMap->sample(position);
+		naturalPattern = g_naturalPatternMap->sample(position);
 	}
 
 	unsigned char radialPattern = 0;
 
-	if (g_configuration->radialPatternMap != 0)
+	if (g_radialPatternMap != 0)
 	{
-		radialPattern = g_configuration->radialPatternMap->sample(position);
+		radialPattern = g_radialPatternMap->sample(position);
 	}
 
 	unsigned char rasterPattern = 0;
 
-	if (g_configuration->rasterPatternMap != 0)
+	if (g_rasterPatternMap != 0)
 	{
-		rasterPattern = g_configuration->rasterPatternMap->sample(position);
+		rasterPattern = g_rasterPatternMap->sample(position);
 	}
 
 	if (rasterPattern > radialPattern)
@@ -231,7 +232,7 @@ void findHighestPopulationDensity(const vml_vec2& start, float startingAngle, vm
 	int currentAngleStep = -g_configuration->halfSamplingArc;
 
 	// FIXME: checking invariants
-	if (g_configuration->populationDensityMap == 0)
+	if (g_populationDensityMap == 0)
 	{
 		throw std::exception("configuration->populationDensityMap == 0");
 	}
@@ -241,7 +242,7 @@ void findHighestPopulationDensity(const vml_vec2& start, float startingAngle, vm
 		vml_vec2 direction = vml_normalize(vml_rotate2D(vml_vec2(0.0f, 1.0f), startingAngle + vml_radians((float)currentAngleStep)));
 		unsigned char populationDensity;
 		int distance;
-		g_configuration->populationDensityMap->scan(start, direction, g_configuration->minSamplingRayLength, g_configuration->maxSamplingRayLength, populationDensity, distance);
+		g_populationDensityMap->scan(start, direction, g_configuration->minSamplingRayLength, g_configuration->maxSamplingRayLength, populationDensity, distance);
 		g_populationDensitiesSamplingBuffer[i] = populationDensity;
 		g_distancesSamplingBuffer[i] = distance;
 	}

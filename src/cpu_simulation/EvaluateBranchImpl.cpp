@@ -1,7 +1,8 @@
-#include <Procedures.h>
+#include <ProceduresDeclarations.h>
+#include <ProceduresCodes.h>
 
 //////////////////////////////////////////////////////////////////////////
-void EvaluateBranch::execute(Branch& branch, WorkQueues* backQueues)
+void EvaluateBranch::execute(Branch& branch, WorkQueuesSet* backQueues)
 {
 	// p6
 	if (branch.delay < 0)

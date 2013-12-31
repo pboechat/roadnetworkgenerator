@@ -1,6 +1,7 @@
 #ifndef CONFIGURATION_H
 #define CONFIGURATION_H
 
+#include "Defines.h"
 #include <ImageMap.h>
 #include <FileReader.h>
 #include <StringUtils.h>
@@ -16,12 +17,9 @@
 #include <random>
 #include <regex>
 
-#define MAX_SPAWN_POINTS 100
-#define VEC2_VECTOR_PATTERN "(\\([^\\)]+\\)\\,?)"
-
 struct Configuration
 {
-	std::string name;
+	char name[MAX_CONFIGURATION_STRING_SIZE];
 	int seed;
 	unsigned int worldWidth;
 	unsigned int worldHeight;
@@ -48,12 +46,18 @@ struct Configuration
 	int halfSamplingArc; // degrees
 	unsigned int quadtreeDepth;
 	float snapRadius;
-	ImageMap* populationDensityMap;
+	char populationDensityMapFilePath[MAX_CONFIGURATION_STRING_SIZE];
+	char waterBodiesMapFilePath[MAX_CONFIGURATION_STRING_SIZE];
+	char blockadesMapFilePath[MAX_CONFIGURATION_STRING_SIZE];
+	char naturalPatternMapFilePath[MAX_CONFIGURATION_STRING_SIZE];
+	char radialPatternMapFilePath[MAX_CONFIGURATION_STRING_SIZE];
+	char rasterPatternMapFilePath[MAX_CONFIGURATION_STRING_SIZE];
+	/*ImageMap* populationDensityMap;
 	ImageMap* waterBodiesMap;
 	ImageMap* blockadesMap;
 	ImageMap* naturalPatternMap;
 	ImageMap* radialPatternMap;
-	ImageMap* rasterPatternMap;
+	ImageMap* rasterPatternMap;*/
 	vml_vec4 highwayColor;
 	vml_vec4 streetColor;
 	vml_vec4 quadtreeColor;
@@ -61,9 +65,9 @@ struct Configuration
 	unsigned int numSpawnPoints;
 	vml_vec2 spawnPoints[MAX_SPAWN_POINTS];
 
-	Configuration() : populationDensityMap(0), waterBodiesMap(0), blockadesMap(0), naturalPatternMap(0), radialPatternMap(0), rasterPatternMap(0) {}
-	~Configuration()
-	{
+	Configuration() {} // : populationDensityMap(0), waterBodiesMap(0), blockadesMap(0), naturalPatternMap(0), radialPatternMap(0), rasterPatternMap(0) {}
+	~Configuration() {}
+	/*{
 		if (populationDensityMap != 0)
 		{
 			delete populationDensityMap;
@@ -93,7 +97,7 @@ struct Configuration
 		{
 			delete rasterPatternMap;
 		}
-	}
+	}*/
 
 	void loadFromFile(const std::string& filePath)
 	{
@@ -132,7 +136,8 @@ struct Configuration
 			properties.insert(std::make_pair(key, value));
 		}
 
-		name = getProperty(properties, "name");
+		//name = getProperty(properties, "name");
+		copyProperty(properties, "name", name, MAX_CONFIGURATION_STRING_SIZE);
 		seed = getPropertyAsInt(properties, "seed");
 
 		if (seed < 0)
@@ -169,14 +174,20 @@ struct Configuration
 		highwayColor = getPropertyAsVec4(properties, "highway_color");
 		streetColor = getPropertyAsVec4(properties, "street_color");
 		quadtreeColor = getPropertyAsVec4(properties, "quadtree_color");
-		populationDensityMap = createAndImportImageMap(properties, "population_density_map", worldWidth, worldHeight);
+		/*populationDensityMap = createAndImportImageMap(properties, "population_density_map", worldWidth, worldHeight);
 		waterBodiesMap = createAndImportImageMap(properties, "water_bodies_map", worldWidth, worldHeight);
 		blockadesMap = createAndImportImageMap(properties, "blockades_map", worldWidth, worldHeight);
 		naturalPatternMap = createAndImportImageMap(properties, "natural_pattern_map", worldWidth, worldHeight);
 		radialPatternMap = createAndImportImageMap(properties, "radial_pattern_map", worldWidth, worldHeight);
-		rasterPatternMap = createAndImportImageMap(properties, "raster_pattern_map", worldWidth, worldHeight);
+		rasterPatternMap = createAndImportImageMap(properties, "raster_pattern_map", worldWidth, worldHeight);*/
 		removeDeadEndRoads = getPropertyAsBool(properties, "remove_dead_end_roads");
 		getPropertyAsVec2Array(properties, "spawn_points", spawnPoints, numSpawnPoints, MAX_SPAWN_POINTS);
+		copyProperty(properties, "population_density_map", populationDensityMapFilePath, MAX_CONFIGURATION_STRING_SIZE);
+		copyProperty(properties, "water_bodies_map", waterBodiesMapFilePath, MAX_CONFIGURATION_STRING_SIZE);
+		copyProperty(properties, "blockades_map", blockadesMapFilePath, MAX_CONFIGURATION_STRING_SIZE);
+		copyProperty(properties, "natural_pattern_map", naturalPatternMapFilePath, MAX_CONFIGURATION_STRING_SIZE);
+		copyProperty(properties, "radial_pattern_map", radialPatternMapFilePath, MAX_CONFIGURATION_STRING_SIZE);
+		copyProperty(properties, "raster_pattern_map", rasterPatternMapFilePath, MAX_CONFIGURATION_STRING_SIZE);
 	}
 
 private:
@@ -257,7 +268,26 @@ private:
 		}
 	}
 
-	static ImageMap* createAndImportImageMap(const std::map<std::string, std::string>& properties, const std::string& propertyName, unsigned int width, unsigned int height)
+	static void copyProperty(const std::map<std::string, std::string>& properties, const std::string& propertyName, char* dstBuffer, unsigned int bufferSize)
+	{
+		std::string value;
+		if (hasProperty(properties, propertyName)) 
+		{
+			value = getProperty(properties, propertyName);
+			if (value.size() >= bufferSize)
+			{
+				throw std::exception("copyProperty: property size is greater than buffer size");
+			}
+			strncpy(dstBuffer, value.c_str(), value.size());
+			dstBuffer[value.size()] = '\0';
+		}
+		else
+		{
+			dstBuffer[0] = '\0';
+		}
+	}
+
+	/*static ImageMap* createAndImportImageMap(const std::map<std::string, std::string>& properties, const std::string& propertyName, unsigned int width, unsigned int height)
 	{
 		if (!hasProperty(properties, propertyName))
 		{
@@ -272,7 +302,7 @@ private:
 		imageMap->setColor1(color1);
 		imageMap->setColor2(color2);
 		return imageMap;
-	}
+	}*/
 
 };
 

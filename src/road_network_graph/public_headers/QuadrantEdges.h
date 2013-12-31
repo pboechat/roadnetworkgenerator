@@ -1,7 +1,7 @@
 #ifndef ROADNETWORKGRAPH_QUADRANTEDGES_H
 #define ROADNETWORKGRAPH_QUADRANTEDGES_H
 
-#include <Defines.h>
+#include "Defines.h"
 
 namespace RoadNetworkGraph
 {

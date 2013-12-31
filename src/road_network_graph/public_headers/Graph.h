@@ -1,7 +1,7 @@
 #ifndef ROADNETWORKGRAPH_GRAPH_H
 #define ROADNETWORKGRAPH_GRAPH_H
 
-#include <Defines.h>
+#include "Defines.h"
 #include <Vertex.h>
 #include <Edge.h>
 

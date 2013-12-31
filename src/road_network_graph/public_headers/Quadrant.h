@@ -1,7 +1,7 @@
 #ifndef ROADNETWORKGRAPH_QUADRANT_H
 #define ROADNETWORKGRAPH_QUADRANT_H
 
-#include <Defines.h>
+#include "Defines.h"
 
 #include <Box2D.h>
 

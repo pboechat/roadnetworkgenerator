@@ -1,7 +1,7 @@
 #ifndef ROADNETWORKGRAPH_MINIMUMCYCLEBASIS_H
 #define ROADNETWORKGRAPH_MINIMUMCYCLEBASIS_H
 
-#include <Defines.h>
+#include "Defines.h"
 #include <Vertex.h>
 #include <Edge.h>
 #include <Graph.h>

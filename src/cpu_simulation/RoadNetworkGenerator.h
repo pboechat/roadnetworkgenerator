@@ -1,9 +1,11 @@
 #ifndef ROADNETWORKGENERATOR_H
 #define ROADNETWORKGENERATOR_H
 
+#include "Defines.h"
 #include <RoadNetworkGeometry.h>
 #include <Globals.h>
-#include <Procedures.h>
+#include <ProceduresCodes.h>
+#include <WorkQueuesSet.h>
 #include <Road.h>
 #include <RoadAttributes.h>
 #include <RuleAttributes.h>
@@ -23,8 +25,8 @@ public:
 
 	void execute()
 	{
-		WorkQueues* frontBuffer = &buffer1;
-		WorkQueues* backBuffer = &buffer2;
+		WorkQueuesSet* frontBuffer = &buffer1;
+		WorkQueuesSet* backBuffer = &buffer2;
 
 		for (unsigned int i = 0; i < g_configuration->numSpawnPoints; i++)
 		{
@@ -74,8 +76,8 @@ public:
 #endif
 
 private:
-	WorkQueues buffer1;
-	WorkQueues buffer2;
+	WorkQueuesSet buffer1;
+	WorkQueuesSet buffer2;
 	unsigned int maxWorkQueueCapacity;
 	unsigned int lastDerivation;
 #ifdef _DEBUG

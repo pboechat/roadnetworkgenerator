@@ -6,8 +6,19 @@
 class StaticMarshallingQueue
 {
 public:
-	StaticMarshallingQueue(unsigned char* buffer, unsigned int capacity, unsigned int itemSize) : buffer(buffer), capacity(capacity), itemSize(itemSize), counter(0), head(0), tail(0)
+	StaticMarshallingQueue() : buffer(0), capacity(0), itemSize(0), counter(0), head(0), tail(0)
 	{
+	}
+
+	void setBuffer(unsigned char* buffer, unsigned int capacity)
+	{
+		this->buffer = buffer;
+		this->capacity = capacity;
+	}
+
+	void setItemSize(unsigned int itemSize)
+	{
+		this->itemSize = itemSize;
 	}
 
 	template<typename T>

@@ -1,6 +1,7 @@
 // memory leak detection
 //#include <vld.h>
 
+#include "Defines.h"
 #include <RoadNetworkInputController.h>
 #include <SceneRenderer.h>
 #include <RoadNetworkGeometry.h>
@@ -23,15 +24,6 @@
 #include <io.h>
 #include <iomanip>
 
-#define ZNEAR 10.0f
-#define ZFAR 10000.0f
-#define FOVY_DEG 60.0f
-
-#ifdef _DEBUG
-#define toKilobytes(a) (a / 1024)
-#define toMegabytes(a) (a / 1048576)
-#endif
-
 void printUsage()
 {
 	std::cerr << "Command line options: <width> <height> <configuration file>";
@@ -39,20 +31,35 @@ void printUsage()
 
 void generateAndDisplay(const std::string& configurationFile, SceneRenderer& renderer, RoadNetworkGeometry& geometry, Camera& camera)
 {
+	//////////////////////////////////////////////////////////////////////////
+	//	ALLOCATE CONFIGURATION
+	//////////////////////////////////////////////////////////////////////////
 	if (g_configuration != 0)
 	{
-		delete g_configuration;
+		free(g_configuration);
 	}
-	g_configuration = new Configuration();
+	g_configuration = (Configuration*)malloc(sizeof(Configuration));
+
 	g_configuration->loadFromFile(configurationFile);
 
-	initializeWorkQueues();
-	initializeSamplingBuffers();
+	allocateAndInitializeImageMaps(g_configuration->populationDensityMapFilePath, 
+								   g_configuration->waterBodiesMapFilePath, 
+								   g_configuration->blockadesMapFilePath, 
+								   g_configuration->naturalPatternMapFilePath, 
+								   g_configuration->radialPatternMapFilePath, 
+								   g_configuration->rasterPatternMapFilePath,
+								   g_configuration->worldWidth,
+								   g_configuration->worldHeight);
+	allocateSamplingBuffers(g_configuration->samplingArc);
+	allocateWorkQueues(g_configuration->maxWorkQueueCapacity);
 
 	Box2D worldBounds(0.0f, 0.0f, (float)g_configuration->worldWidth, (float)g_configuration->worldHeight);
 
-	renderer.setUpImageMaps(worldBounds, g_configuration->populationDensityMap, g_configuration->waterBodiesMap, g_configuration->blockadesMap);
+	renderer.setUpImageMaps(worldBounds, g_populationDensityMap, g_waterBodiesMap, g_blockadesMap);
 
+	//////////////////////////////////////////////////////////////////////////
+	//	ALLOCATE GRAPH
+	//////////////////////////////////////////////////////////////////////////
 	if (g_graph != 0)
 	{
 		delete g_graph;
@@ -60,15 +67,19 @@ void generateAndDisplay(const std::string& configurationFile, SceneRenderer& ren
 
 	g_graph = new RoadNetworkGraph::Graph();
 
-	initializeGraphBuffers();
+	allocateGraphBuffers(g_configuration->maxVertices, g_configuration->maxEdges);
 #ifdef USE_QUADTREE
+	//////////////////////////////////////////////////////////////////////////
+	//	ALLOCATE QUADTREE
+	//////////////////////////////////////////////////////////////////////////
+
 	if (g_quadtree != 0)
 	{
 		delete g_quadtree;
 	}
 	g_quadtree = new RoadNetworkGraph::QuadTree();
 
-	initializeQuadtreeBuffers();
+	allocateQuadtreeBuffers(g_configuration->maxResultsPerQuery);
 
 	RoadNetworkGraph::initializeQuadtree(g_quadtree, worldBounds, g_configuration->quadtreeDepth, g_configuration->maxResultsPerQuery, g_quadrants, g_quadrantsEdges);
 	RoadNetworkGraph::initializeGraph(g_graph, g_configuration->snapRadius, g_configuration->maxVertices, g_configuration->maxEdges, g_vertices, g_edges, g_quadtree, g_configuration->maxResultsPerQuery, g_queryResults);
@@ -146,7 +157,11 @@ int main(int argc, char** argv)
 		application.setCamera(camera);
 		application.setRenderer(renderer);
 		application.setInputController(inputController);
+
+		initializeWorkQueues();
+
 		generateAndDisplay(configurationFile, renderer, geometry, camera);
+
 		returnValue = application.run();
 	}
 
@@ -176,11 +191,12 @@ int main(int argc, char** argv)
 		delete g_quadtree;
 	}
 
-	disposeQuadtreeBuffers();
+	freeQuadtreeBuffers();
 #endif
-	disposeGraphBuffers();
-	disposeSamplingBuffers();
-	disposeWorkQueues();
+	freeGraphBuffers();
+	freeImageMaps();
+	freeSamplingBuffers();
+	freeWorkQueues();
 
 	// DEBUG:
 	system("pause");

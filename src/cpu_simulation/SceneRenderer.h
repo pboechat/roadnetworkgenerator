@@ -59,17 +59,17 @@ public:
 
 		if ((populationDensityMapData.enabled = (populationDensityMap != 0)))
 		{
-			setUpImageMapRenderData(populationDensityMap, populationDensityMapData);
+			setUpImageMapRenderData(populationDensityMap, populationDensityMapData, BLACK_COLOR, WHITE_COLOR);
 		}
 
 		if ((waterBodiesMapData.enabled = (waterBodiesMap != 0)))
 		{
-			setUpImageMapRenderData(waterBodiesMap, waterBodiesMapData);
+			setUpImageMapRenderData(waterBodiesMap, waterBodiesMapData, vml_vec4(0.0f, 0.0f, 0.0f, 0.0f), WATER_COLOR);
 		}
 
 		if ((blockadesMapData.enabled = (blockadesMap != 0)))
 		{
-			setUpImageMapRenderData(blockadesMap, blockadesMapData);
+			setUpImageMapRenderData(blockadesMap, blockadesMapData, vml_vec4(0.0f, 0.0f, 0.0f, 0.0f), GRASS_COLOR);
 		}
 		
 		vml_vec2 size = worldBounds.getExtents();
@@ -159,11 +159,11 @@ private:
 	ImageMapRenderData waterBodiesMapData;
 	ImageMapRenderData blockadesMapData;
 
-	void setUpImageMapRenderData(const ImageMap* imageMap, ImageMapRenderData& imageMapData)
+	void setUpImageMapRenderData(const ImageMap* imageMap, ImageMapRenderData& imageMapData, const vml_vec4& color1, const vml_vec4& color2)
 	{
-		imageMapData.texture = new Texture(imageMap->getWidth(), imageMap->getHeight(), GL_RED, GL_R8, GL_UNSIGNED_BYTE, GL_NEAREST, GL_CLAMP_TO_EDGE, (void*)imageMap->getData());
-		imageMapData.color1 = imageMap->getColor1();
-		imageMapData.color2 = imageMap->getColor2();
+		imageMapData.texture = new Texture(imageMap->width, imageMap->height, GL_RED, GL_R8, GL_UNSIGNED_BYTE, GL_NEAREST, GL_CLAMP_TO_EDGE, (void*)imageMap->data);
+		imageMapData.color1 = color1;
+		imageMapData.color2 = color2;
 	}
 
 	void destroyImageMaps()

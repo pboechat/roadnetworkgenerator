@@ -3,25 +3,26 @@
 
 #include <MathExtras.h>
 
-#include <FreeImage.h>
 #include <vector_math.h>
 
-#include <string>
-#include <exception>
-
-class ImageMap
+struct ImageMap
 {
-public:
+	unsigned int width;
+	unsigned int height;
+	const unsigned char* data;
+	vml_vec4 color1;
+	vml_vec4 color2;
+
 	ImageMap() : width(0), height(0), data(0), color1(0.0f, 0.0f, 0.0f, 1.0f), color2(1.0f, 1.0f, 1.0f, 1.0f) {}
-	~ImageMap()
-	{
+	~ImageMap() {}
+	/*{
 		if (data != 0)
 		{
 			delete[] data;
 		}
-	}
+	}*/
 
-	void import(const std::string& filePath, int desiredWidth, int desiredHeight)
+	/*void import(const std::string& filePath, int desiredWidth, int desiredHeight)
 	{
 		if (data != 0)
 		{
@@ -57,7 +58,7 @@ public:
 		}
 
 		FreeImage_Unload(image);
-	}
+	}*/
 
 	bool castRay(const vml_vec2& origin, const vml_vec2& direction, unsigned int length, unsigned char threshold, vml_vec2& hit) const
 	{
@@ -107,53 +108,6 @@ public:
 		int i = ((int)position.y * width) + (int)position.x;
 		return data[i];
 	}
-
-	inline int getWidth() const
-	{
-		return width;
-	}
-
-	inline int getHeight() const
-	{
-		return height;
-	}
-
-	inline const unsigned char* getData() const
-	{
-		return data;
-	}
-
-	inline unsigned char* getData()
-	{
-		return data;
-	}
-
-	inline vml_vec4 getColor1() const
-	{
-		return color1;
-	}
-
-	inline void setColor1(const vml_vec4& color)
-	{
-		color1 = color;
-	}
-
-	inline vml_vec4 getColor2() const
-	{
-		return color2;
-	}
-
-	inline void setColor2(const vml_vec4& color)
-	{
-		color2 = color;
-	}
-
-private:
-	int width;
-	int height;
-	unsigned char* data;
-	vml_vec4 color1;
-	vml_vec4 color2;
 
 };
 
