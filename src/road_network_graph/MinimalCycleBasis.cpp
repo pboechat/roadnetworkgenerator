@@ -1,4 +1,4 @@
-#include <MinimumCycleBasis.h>
+#include <MinimalCycleBasis.h>
 
 namespace RoadNetworkGraph
 {
@@ -106,7 +106,7 @@ void extractPrimitives(Graph* graph)
 }
 
 //////////////////////////////////////////////////////////////////////////
-void extractIsolatedVertex(Heap<Vertex>& heap, Array<Primitive>& primitives, Vertex& v0)
+void extractIsolatedVertex(Heap<VertexIndex>& heap, Array<Primitive>& primitives, Vertex& v0)
 {
 	Primitive primitive;
 	primitive.type = ISOLATED_VERTEX;
@@ -117,7 +117,7 @@ void extractIsolatedVertex(Heap<Vertex>& heap, Array<Primitive>& primitives, Ver
 }
 
 //////////////////////////////////////////////////////////////////////////
-void extractFilament(Graph* graph, Heap<Vertex>& heap, Array<Primitive>& primitives, Vertex& v0, Vertex& v1, EdgeIndex edgeIndex)
+void extractFilament(Graph* graph, Heap<VertexIndex>& heap, Array<Primitive>& primitives, Vertex& v0, Vertex& v1, EdgeIndex edgeIndex)
 {
 	Edge& edge = graph->edges[edgeIndex];
 
@@ -141,7 +141,7 @@ void extractFilament(Graph* graph, Heap<Vertex>& heap, Array<Primitive>& primiti
 			edge = graph->edges[edgeIndex];
 			if (edge.attr2 == 1)
 			{
-				heap.remove(v0);
+				heap.remove(v0.index);
 				removeEdge(graph, edgeIndex);
 				//vertices.remove(v0);
 				v0 = v1;
@@ -154,7 +154,7 @@ void extractFilament(Graph* graph, Heap<Vertex>& heap, Array<Primitive>& primiti
 
 		if (v0.numAdjacencies == 0)
 		{
-			heap.remove(v0);
+			heap.remove(v0.index);
 			//vertices.remove(v0);
 		}
 	}
@@ -178,7 +178,7 @@ void extractFilament(Graph* graph, Heap<Vertex>& heap, Array<Primitive>& primiti
 		{
 			insert(primitive, v0.position);
 			v1 = graph->vertices[v0.adjacencies[0]];
-			heap.remove(v0);
+			heap.remove(v0.index);
 			removeEdge(graph, v0, v1);
 			//vertices.remove(v0);
 			v0 = v1;
@@ -187,7 +187,7 @@ void extractFilament(Graph* graph, Heap<Vertex>& heap, Array<Primitive>& primiti
 		insert(primitive, v0.position);
 		if (v0.numAdjacencies == 0)
 		{
-			heap.remove(v0);
+			heap.remove(v0.index);
 			removeEdge(graph, v0, v1);
 			//vertices.remove(v0);
 		}
@@ -197,7 +197,7 @@ void extractFilament(Graph* graph, Heap<Vertex>& heap, Array<Primitive>& primiti
 }
 
 //////////////////////////////////////////////////////////////////////////
-void extractPrimitive(Graph* graph, Heap<Vertex>& heap, Array<Primitive>& primitives, Vertex& v0)
+void extractPrimitive(Graph* graph, Heap<VertexIndex>& heap, Array<Primitive>& primitives, Vertex& v0)
 {
 	Array<VertexIndex> visited(g_visitedBuffer, g_visitedBufferSize);
 	Array<EdgeIndex> sequence(g_sequenceBuffer, g_sequenceBufferSize);
