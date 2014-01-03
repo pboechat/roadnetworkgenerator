@@ -83,10 +83,96 @@ VertexIndex createVertex(Graph* graph, const vml_vec2& position)
 }
 
 //////////////////////////////////////////////////////////////////////////
+EdgeIndex findEdge(Graph* graph, Vertex& v0, Vertex& v1)
+{
+	for (unsigned int i = 0; i < v0.numOuts; i++)
+	{
+		EdgeIndex edgeIndex = v0.outs[i];
+		Edge& edge = graph->edges[edgeIndex];
+		if (edge.destination == v1.index)
+		{
+			return edgeIndex;
+		}
+	}
+
+	for (unsigned int i = 0; i < v0.numIns; i++)
+	{
+		EdgeIndex edgeIndex = v0.ins[i];
+		Edge& edge = graph->edges[edgeIndex];
+		if (edge.source == v1.index)
+		{
+			return edgeIndex;
+		}
+	}
+
+	// FIXME: checking invariants
+	throw std::exception("edge not found");
+}
+
+//////////////////////////////////////////////////////////////////////////
+EdgeIndex findEdge(Graph* graph, Vertex& v0, VertexIndex v1)
+{
+	for (unsigned int i = 0; i < v0.numOuts; i++)
+	{
+		EdgeIndex edgeIndex = v0.outs[i];
+		Edge& edge = graph->edges[edgeIndex];
+		if (edge.destination == v1)
+		{
+			return edgeIndex;
+		}
+	}
+
+	for (unsigned int i = 0; i < v0.numIns; i++)
+	{
+		EdgeIndex edgeIndex = v0.ins[i];
+		Edge& edge = graph->edges[edgeIndex];
+		if (edge.source == v1)
+		{
+			return edgeIndex;
+		}
+	}
+
+	// FIXME: checking invariants
+	throw std::exception("edge not found");
+}
+
+//////////////////////////////////////////////////////////////////////////
+void removeEdge(Graph* graph, EdgeIndex edgeIndex)
+{
+	Edge& edge = graph->edges[edgeIndex];
+	for (EdgeIndex e = edgeIndex; e < graph->numEdges; e++)
+	{
+		graph->edges[e] = graph->edges[e + 1];
+	}
+
+	Vertex& sourceVertex = graph->vertices[edge.source];
+	Vertex& destinationVertex = graph->vertices[edge.destination];
+
+	removeAdjacency(sourceVertex, destinationVertex.index);
+	removeAdjacency(destinationVertex, sourceVertex.index);
+
+	removeOutEdge(sourceVertex, edgeIndex);
+	removeInEdge(destinationVertex, edgeIndex);
+
+	graph->numEdges--;
+}
+
+//////////////////////////////////////////////////////////////////////////
+void removeEdge(Graph* graph, Vertex& v0, Vertex& v1)
+{
+	removeEdge(graph, findEdge(graph, v0, v1.index));
+}
+
+//////////////////////////////////////////////////////////////////////////
+void removeEdge(Graph* graph, VertexIndex v0, VertexIndex v1)
+{
+	removeEdge(graph, findEdge(graph, graph->vertices[v0], v1));
+}
+
+//////////////////////////////////////////////////////////////////////////
 void removeDeadEndRoads(Graph* graph)
 {
 	bool changed;
-
 	do
 	{
 		changed = false;
@@ -126,7 +212,7 @@ void traverse(const Graph* graph, GraphTraversal& traversal)
 			continue;
 		}
 
-		if (!traversal(sourceVertex.position, destinationVertex.position, edge.highway))
+		if (!traversal(sourceVertex.position, destinationVertex.position, edge.attr1 != 0))
 		{
 			break;
 		}
@@ -145,7 +231,7 @@ void connect(Graph* graph, VertexIndex sourceVertexIndex, VertexIndex destinatio
 	Edge& newEdge = graph->edges[graph->numEdges];
 	newEdge.source = sourceVertexIndex;
 	newEdge.destination = destinationVertexIndex;
-	newEdge.highway = highway;
+	newEdge.attr1 = (highway) ? 0 : 1;
 
 	Vertex& sourceVertex = graph->vertices[sourceVertexIndex];
 	Vertex& destinationVertex = graph->vertices[destinationVertexIndex];
@@ -232,7 +318,7 @@ void splitEdge(Graph* graph, EdgeIndex edgeIndex, VertexIndex splitVertexIndex)
 	Edge& newEdge = graph->edges[graph->numEdges];
 	newEdge.source = splitVertexIndex;
 	newEdge.destination = oldDestinationVertexIndex;
-	newEdge.highway = edge.highway;
+	newEdge.attr1 = edge.attr1;
 
 	replaceAdjacency(oldDestinationVertex, edge.source, splitVertexIndex);
 	replaceInEdge(oldDestinationVertex, edgeIndex, graph->numEdges);

@@ -6,15 +6,21 @@
 #include <Edge.h>
 #include <Graph.h>
 #include <Primitive.h>
-#include <StaticHeap.h>
+
+#include <Heap.h>
+#include <Array.h>
 
 #include <vector_math.h>
 
 namespace RoadNetworkGraph
 {
-	
+
 //////////////////////////////////////////////////////////////////////////
-void extractPrimitives(StaticHeap<Vertex>& heap, Primitive* primitives, unsigned int primitivesSize);
+void allocateExtractionBuffers(unsigned int heapBufferSize, unsigned int primitivesBufferSize, unsigned int sequenceBufferSize, unsigned int visitedBufferSize);
+//////////////////////////////////////////////////////////////////////////
+void freeExtractionBuffers();
+//////////////////////////////////////////////////////////////////////////
+void extractPrimitives(Graph* graph);
 
 }
 

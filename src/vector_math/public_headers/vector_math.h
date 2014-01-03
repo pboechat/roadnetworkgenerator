@@ -20,6 +20,11 @@ inline static glm::vec2 rotate2D(const glm::vec2& vec, float rad)
 	return glm::vec2((vec.x * cos(rad)) - (vec.y * sin(rad)), (vec.y * cos(rad)) +  (vec.x * sin(rad)));
 }
 
+inline static float dotPerp(const glm::vec2& v0, const glm::vec2& v1)
+{
+	return v0.x * v1.y - v1.x * v0.y;
+}
+
 }
 
 typedef glm::mat4 vml_mat4;
@@ -42,6 +47,7 @@ typedef glm::quat vml_quat;
 #define vml_distance glm::distance
 #define vml_normalize glm::normalize
 #define vml_dot glm::dot
+#define vml_dot_perp(v0, v1) glm_utils::dotPerp(v0, v1)
 #define vml_length glm::length
 #define vml_cross glm::cross
 #define vml_to_quat glm::toQuat

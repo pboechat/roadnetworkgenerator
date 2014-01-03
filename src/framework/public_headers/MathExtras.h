@@ -11,6 +11,14 @@ const float HALF_PI = 1.57079632679489661923f;
 const float PI_AND_HALF = 4.71238898038468985769f;
 
 template<typename T>
+inline static T swap(T& a, T& b)
+{
+	T& c = a;
+	a = b;
+	b = c;
+}
+
+template<typename T>
 inline static T max(T a, T b)
 {
 	return (a > b) ? a : b;
