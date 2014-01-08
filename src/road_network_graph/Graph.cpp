@@ -9,8 +9,6 @@ namespace RoadNetworkGraph
 {
 
 //////////////////////////////////////////////////////////////////////////
-void connect(Graph* graph, VertexIndex source, VertexIndex destination, bool highway);
-//////////////////////////////////////////////////////////////////////////
 void splitEdge(Graph* graph, EdgeIndex edge, VertexIndex vertex);
 //////////////////////////////////////////////////////////////////////////
 bool checkIntersection(Graph* graph, const Line2D& newEdgeLine, unsigned int querySize, VertexIndex source, EdgeIndex& edgeIndex, vml_vec2& closestIntersection, IntersectionType& intersectionType);

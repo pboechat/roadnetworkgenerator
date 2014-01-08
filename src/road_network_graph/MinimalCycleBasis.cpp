@@ -4,7 +4,7 @@ namespace RoadNetworkGraph
 {
 
 //////////////////////////////////////////////////////////////////////////
-VertexIndex* g_heapBuffer = 0;
+Vertex* g_heapBuffer = 0;
 //////////////////////////////////////////////////////////////////////////
 unsigned int g_heapBufferSize = 0;
 //////////////////////////////////////////////////////////////////////////
@@ -19,19 +19,18 @@ unsigned int g_sequenceBufferSize = 0;
 VertexIndex* g_visitedBuffer = 0;
 //////////////////////////////////////////////////////////////////////////
 unsigned int g_visitedBufferSize = 0;
-
 //////////////////////////////////////////////////////////////////////////
-void extractIsolatedVertex(Heap<VertexIndex>& heap, Array<Primitive>& primitives, Vertex& v0);
+void extractIsolatedVertex(Heap<Vertex>& heap, Array<Primitive>& primitives, Vertex& v0);
 //////////////////////////////////////////////////////////////////////////
-void extractFilament(Graph* graph, Heap<VertexIndex>& heap, Array<Primitive>& primitives, Vertex& v0, Vertex& v1, EdgeIndex edgeIndex);
+void extractFilament(Graph* graph, Heap<Vertex>& heap, Array<Primitive>& primitives, Vertex& v0, Vertex& v1, EdgeIndex edgeIndex);
 //////////////////////////////////////////////////////////////////////////
-void extractPrimitive(Graph* graph, Heap<VertexIndex>& heap, Array<Primitive>& primitives, Vertex& v0);
+void extractPrimitive(Graph* graph, Heap<Vertex>& heap, Array<Primitive>& primitives, Vertex& v0);
 //////////////////////////////////////////////////////////////////////////
 Vertex* getClockwiseMostVertex(Graph* graph, Vertex* previousVertex, Vertex* currentVertex);
 //////////////////////////////////////////////////////////////////////////
 Vertex* getCounterclockwiseMostVertex(Graph* graph, Vertex* previousVertex, Vertex* currentVertex);
 //////////////////////////////////////////////////////////////////////////
-bool vertexComparison(const VertexIndex& v0, const VertexIndex& v1);
+int vertexCompare(const Vertex& v0, const Vertex& v1);
 
 //////////////////////////////////////////////////////////////////////////
 void allocateExtractionBuffers(unsigned int heapBufferSize, unsigned int primitivesBufferSize, unsigned int sequenceBufferSize, unsigned int visitedBufferSize)
@@ -41,7 +40,7 @@ void allocateExtractionBuffers(unsigned int heapBufferSize, unsigned int primiti
 	g_primitiveBufferSize = primitivesBufferSize;
 	g_sequenceBufferSize = sequenceBufferSize;
 	g_visitedBufferSize = visitedBufferSize;
-	g_heapBuffer = (VertexIndex*)malloc(sizeof(VertexIndex) * g_heapBufferSize);
+	g_heapBuffer = (Vertex*)malloc(sizeof(Vertex) * g_heapBufferSize);
 	g_primitiveBuffer = (Primitive*)malloc(sizeof(Primitive) * g_primitiveBufferSize);
 	g_sequenceBuffer = (EdgeIndex*)malloc(sizeof(EdgeIndex) * g_sequenceBufferSize);
 	g_visitedBuffer = (VertexIndex*)malloc(sizeof(VertexIndex) * g_visitedBufferSize);
@@ -82,12 +81,17 @@ void freeExtractionBuffers()
 //////////////////////////////////////////////////////////////////////////
 void extractPrimitives(Graph* graph)
 {
-	Heap<VertexIndex> heap(g_heapBuffer, g_heapBufferSize, vertexComparison);
+	Heap<Vertex> heap(g_heapBuffer, g_heapBufferSize, vertexCompare);
 	Array<Primitive> primitives(g_primitiveBuffer, g_primitiveBufferSize);
+
+	for (VertexIndex vertexIndex = 0; vertexIndex < graph->numVertices; vertexIndex++)
+	{
+		heap.insert(graph->vertices[vertexIndex]);
+	}
 
 	while (!heap.empty())
 	{
-		Vertex& v0 = graph->vertices[heap.peekFirst()];
+		Vertex& v0 = heap[0];
 		if (v0.numAdjacencies == 0)
 		{
 			extractIsolatedVertex(heap, primitives, v0);
@@ -106,7 +110,7 @@ void extractPrimitives(Graph* graph)
 }
 
 //////////////////////////////////////////////////////////////////////////
-void extractIsolatedVertex(Heap<VertexIndex>& heap, Array<Primitive>& primitives, Vertex& v0)
+void extractIsolatedVertex(Heap<Vertex>& heap, Array<Primitive>& primitives, Vertex& v0)
 {
 	Primitive primitive;
 	primitive.type = ISOLATED_VERTEX;
@@ -117,7 +121,7 @@ void extractIsolatedVertex(Heap<VertexIndex>& heap, Array<Primitive>& primitives
 }
 
 //////////////////////////////////////////////////////////////////////////
-void extractFilament(Graph* graph, Heap<VertexIndex>& heap, Array<Primitive>& primitives, Vertex& v0, Vertex& v1, EdgeIndex edgeIndex)
+void extractFilament(Graph* graph, Heap<Vertex>& heap, Array<Primitive>& primitives, Vertex& v0, Vertex& v1, EdgeIndex edgeIndex)
 {
 	Edge& edge = graph->edges[edgeIndex];
 
@@ -141,7 +145,7 @@ void extractFilament(Graph* graph, Heap<VertexIndex>& heap, Array<Primitive>& pr
 			edge = graph->edges[edgeIndex];
 			if (edge.attr2 == 1)
 			{
-				heap.remove(v0.index);
+				heap.remove(v0);
 				removeEdge(graph, edgeIndex);
 				//vertices.remove(v0);
 				v0 = v1;
@@ -154,7 +158,7 @@ void extractFilament(Graph* graph, Heap<VertexIndex>& heap, Array<Primitive>& pr
 
 		if (v0.numAdjacencies == 0)
 		{
-			heap.remove(v0.index);
+			heap.remove(v0);
 			//vertices.remove(v0);
 		}
 	}
@@ -178,7 +182,7 @@ void extractFilament(Graph* graph, Heap<VertexIndex>& heap, Array<Primitive>& pr
 		{
 			insert(primitive, v0.position);
 			v1 = graph->vertices[v0.adjacencies[0]];
-			heap.remove(v0.index);
+			heap.remove(v0);
 			removeEdge(graph, v0, v1);
 			//vertices.remove(v0);
 			v0 = v1;
@@ -187,7 +191,7 @@ void extractFilament(Graph* graph, Heap<VertexIndex>& heap, Array<Primitive>& pr
 		insert(primitive, v0.position);
 		if (v0.numAdjacencies == 0)
 		{
-			heap.remove(v0.index);
+			heap.remove(v0);
 			removeEdge(graph, v0, v1);
 			//vertices.remove(v0);
 		}
@@ -197,7 +201,7 @@ void extractFilament(Graph* graph, Heap<VertexIndex>& heap, Array<Primitive>& pr
 }
 
 //////////////////////////////////////////////////////////////////////////
-void extractPrimitive(Graph* graph, Heap<VertexIndex>& heap, Array<Primitive>& primitives, Vertex& v0)
+void extractPrimitive(Graph* graph, Heap<Vertex>& heap, Array<Primitive>& primitives, Vertex& v0)
 {
 	Array<VertexIndex> visited(g_visitedBuffer, g_visitedBufferSize);
 	Array<EdgeIndex> sequence(g_sequenceBuffer, g_sequenceBufferSize);
@@ -287,26 +291,28 @@ Vertex* getClockwiseMostVertex(Graph* graph, Vertex* previousVertex, Vertex* cur
 		return 0;
 	}
 
+	Vertex* nextVertex = 0;
+
 	vml_vec2 currentDirection;
 	if (previousVertex != 0)
 	{
 		currentDirection = currentVertex->position - previousVertex->position;
+
+		for (unsigned int i = 0; i < currentVertex->numAdjacencies; i++)
+		{
+			Vertex* adjacentVertex = &graph->vertices[currentVertex->adjacencies[i]];
+			if (adjacentVertex->index != previousVertex->index)
+			{
+				nextVertex = adjacentVertex;
+				break;
+			}
+		}
 	}
 	else
 	{
 		currentDirection = vml_vec2(0.0f, -1.0f);
+		nextVertex = &graph->vertices[currentVertex->adjacencies[0]];
 	}
-
-	Vertex* nextVertex = 0;
-	for (unsigned int i = 0; i < currentVertex->numAdjacencies; i++)
-	{
-		Vertex* adjacentVertex = &graph->vertices[currentVertex->adjacencies[i]];
-		if (adjacentVertex->index != previousVertex->index)
-		{
-			nextVertex = adjacentVertex;
-			break;
-		}
-	} 
 
 	if (nextVertex == 0)
 	{
@@ -402,10 +408,31 @@ Vertex* getCounterclockwiseMostVertex (Graph* graph, Vertex* previousVertex, Ver
 }
 
 //////////////////////////////////////////////////////////////////////////
-bool vertexComparison(const VertexIndex& v0, const VertexIndex& v1)
+int vertexCompare(const Vertex& v0, const Vertex& v1)
 {
-	// TODO:
-	return false;
+	if (v0.position.x > v1.position.x)
+	{
+		return 1;
+	}
+	else if (v0.position.x == v1.position.x)
+	{
+		if (v0.position.y == v1.position.y)
+		{
+			return 0;
+		}
+		else if (v0.position.y > v1.position.y)
+		{
+			return 1;
+		}
+		else
+		{
+			return -1;
+		}
+	}
+	else
+	{
+		return -1;
+	}
 }
 
 }
