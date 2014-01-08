@@ -7,9 +7,6 @@
 #include <Graph.h>
 #include <Primitive.h>
 
-#include <Heap.h>
-#include <Array.h>
-
 #include <vector_math.h>
 
 namespace RoadNetworkGraph

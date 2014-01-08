@@ -1,5 +1,8 @@
 #include <MinimalCycleBasis.h>
 
+#include <SortedSet.h>
+#include <Array.h>
+
 namespace RoadNetworkGraph
 {
 
@@ -20,11 +23,11 @@ VertexIndex* g_visitedBuffer = 0;
 //////////////////////////////////////////////////////////////////////////
 unsigned int g_visitedBufferSize = 0;
 //////////////////////////////////////////////////////////////////////////
-void extractIsolatedVertex(Heap<Vertex>& heap, Array<Primitive>& primitives, Vertex& v0);
+void extractIsolatedVertex(SortedSet<Vertex>& heap, Array<Primitive>& primitives, Vertex& v0);
 //////////////////////////////////////////////////////////////////////////
-void extractFilament(Graph* graph, Heap<Vertex>& heap, Array<Primitive>& primitives, Vertex& v0, Vertex& v1, EdgeIndex edgeIndex);
+void extractFilament(Graph* graph, SortedSet<Vertex>& heap, Array<Primitive>& primitives, Vertex& v0, Vertex& v1, EdgeIndex edgeIndex);
 //////////////////////////////////////////////////////////////////////////
-void extractPrimitive(Graph* graph, Heap<Vertex>& heap, Array<Primitive>& primitives, Vertex& v0);
+void extractPrimitive(Graph* graph, SortedSet<Vertex>& heap, Array<Primitive>& primitives, Vertex& v0);
 //////////////////////////////////////////////////////////////////////////
 Vertex* getClockwiseMostVertex(Graph* graph, Vertex* previousVertex, Vertex* currentVertex);
 //////////////////////////////////////////////////////////////////////////
@@ -81,7 +84,7 @@ void freeExtractionBuffers()
 //////////////////////////////////////////////////////////////////////////
 void extractPrimitives(Graph* graph)
 {
-	Heap<Vertex> heap(g_heapBuffer, g_heapBufferSize, vertexCompare);
+	SortedSet<Vertex> heap(g_heapBuffer, g_heapBufferSize, vertexCompare);
 	Array<Primitive> primitives(g_primitiveBuffer, g_primitiveBufferSize);
 
 	for (VertexIndex vertexIndex = 0; vertexIndex < graph->numVertices; vertexIndex++)
@@ -89,7 +92,7 @@ void extractPrimitives(Graph* graph)
 		heap.insert(graph->vertices[vertexIndex]);
 	}
 
-	while (!heap.empty())
+	while (heap.size() > 0)
 	{
 		Vertex& v0 = heap[0];
 		if (v0.numAdjacencies == 0)
@@ -110,18 +113,18 @@ void extractPrimitives(Graph* graph)
 }
 
 //////////////////////////////////////////////////////////////////////////
-void extractIsolatedVertex(Heap<Vertex>& heap, Array<Primitive>& primitives, Vertex& v0)
+void extractIsolatedVertex(SortedSet<Vertex>& heap, Array<Primitive>& primitives, Vertex& v0)
 {
 	Primitive primitive;
 	primitive.type = ISOLATED_VERTEX;
 	insert(primitive, v0.position);
-	heap.popFirst();
+	heap.remove(v0);
 	//vertices.remove(v0);
 	primitives.push(primitive);
 }
 
 //////////////////////////////////////////////////////////////////////////
-void extractFilament(Graph* graph, Heap<Vertex>& heap, Array<Primitive>& primitives, Vertex& v0, Vertex& v1, EdgeIndex edgeIndex)
+void extractFilament(Graph* graph, SortedSet<Vertex>& heap, Array<Primitive>& primitives, Vertex& v0, Vertex& v1, EdgeIndex edgeIndex)
 {
 	Edge& edge = graph->edges[edgeIndex];
 
@@ -201,7 +204,7 @@ void extractFilament(Graph* graph, Heap<Vertex>& heap, Array<Primitive>& primiti
 }
 
 //////////////////////////////////////////////////////////////////////////
-void extractPrimitive(Graph* graph, Heap<Vertex>& heap, Array<Primitive>& primitives, Vertex& v0)
+void extractPrimitive(Graph* graph, SortedSet<Vertex>& heap, Array<Primitive>& primitives, Vertex& v0)
 {
 	Array<VertexIndex> visited(g_visitedBuffer, g_visitedBufferSize);
 	Array<EdgeIndex> sequence(g_sequenceBuffer, g_sequenceBufferSize);
@@ -317,7 +320,8 @@ Vertex* getClockwiseMostVertex(Graph* graph, Vertex* previousVertex, Vertex* cur
 	if (nextVertex == 0)
 	{
 		// FIXME: checking invariants
-		throw std::exception("nextVertex == 0");
+		//throw std::exception("nextVertex == 0");
+		return 0;
 	}
 
 	vml_vec2 nextDirection = nextVertex->position - currentVertex->position;
@@ -374,7 +378,8 @@ Vertex* getCounterclockwiseMostVertex (Graph* graph, Vertex* previousVertex, Ver
 	if (nextVertex == 0)
 	{
 		// FIXME: checking invariants
-		throw std::exception("nextVertex == 0");
+		//throw std::exception("nextVertex == 0");
+		return 0;
 	}
 
 	vml_vec2 nextDirection = nextVertex->position - currentVertex->position;

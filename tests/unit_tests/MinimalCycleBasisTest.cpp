@@ -158,8 +158,7 @@ void setUpGraph(Graph* graph)
 	connect(graph, v26, v27, false);
 }
 
-//TEST(minimal_cycle_basis, extract_primitives)
-void foo()
+TEST(minimal_cycle_basis, extract_primitives)
 {
 	Graph graph;
 	QuadTree quadtree;
