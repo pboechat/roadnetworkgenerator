@@ -7,9 +7,13 @@ template<typename T>
 class SortedSet
 {
 public:
-	typedef int (*Comparer)(const T&, const T&);
+	struct Comparer 
+	{
+		virtual int operator()(const T&, const T&) const = 0;
 
-	SortedSet(T* data, unsigned int capacity, Comparer cmp) : data(data), capacity(capacity), count(0), cmp(cmp) {}
+	};
+
+	SortedSet(T* data, unsigned int capacity, const Comparer& cmp) : data(data), capacity(capacity), count(0), cmp(cmp) {}
 	~SortedSet() {}
 
 	void insert(const T& item)
@@ -59,6 +63,11 @@ public:
 
 	int indexOf(const T& item) const
 	{
+		if (count == 0)
+		{
+			return -1;
+		}
+
 		int min;
 		int max;
 		binarySearch(item, min, max);
@@ -91,7 +100,7 @@ private:
 	T* data;
 	unsigned int capacity;
 	unsigned int count;
-	Comparer cmp;
+	const Comparer& cmp;
 
 	void binarySearch(const T& item, int& min, int& max) const
 	{

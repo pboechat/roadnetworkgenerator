@@ -6,7 +6,7 @@ namespace RoadNetworkGraph
 //////////////////////////////////////////////////////////////////////////
 void initializeQuadrant(QuadTree* quadtree, const Box2D& quadrantBounds, unsigned int depth = 0, unsigned int index = 0, unsigned int offset = 0, unsigned int levelWidth = 1);
 //////////////////////////////////////////////////////////////////////////
-void removeEdge(QuadrantEdges* quadrantEdges, EdgeIndex edgeIndex);
+void removeEdgeReferencesInVertices(QuadrantEdges* quadrantEdges, EdgeIndex edgeIndex);
 
 //////////////////////////////////////////////////////////////////////////
 void initializeQuadtree(QuadTree* quadtree, const Box2D& worldBounds, unsigned int depth, unsigned int maxResultsPerQuery, Quadrant* quadrants, QuadrantEdges* quadrantEdges)
@@ -123,7 +123,7 @@ void remove(QuadTree* quadtree, EdgeIndex edgeIndex, const Line2D& edgeLine, uns
 				throw std::exception("quadrant.edges == -1");
 			}
 
-			removeEdge(&quadtree->quadrantsEdges[quadrant.edges], edgeIndex);
+			removeEdgeReferencesInVertices(&quadtree->quadrantsEdges[quadrant.edges], edgeIndex);
 		}
 
 		else
@@ -144,7 +144,7 @@ void remove(QuadTree* quadtree, EdgeIndex edgeIndex, const Line2D& edgeLine, uns
 }
 
 //////////////////////////////////////////////////////////////////////////
-void removeEdge(QuadrantEdges* quadrantEdges, EdgeIndex edgeIndex)
+void removeEdgeReferencesInVertices(QuadrantEdges* quadrantEdges, EdgeIndex edgeIndex)
 {
 	// FIXME: checking invariants
 	if (quadrantEdges == 0)

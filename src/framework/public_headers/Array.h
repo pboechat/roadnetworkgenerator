@@ -7,10 +7,17 @@ template<typename T>
 class Array
 {
 public:
+	Array() : data(0), capacity(0), count(0) {}
 	Array(T* data, unsigned int capacity) : data(data), capacity(capacity), count(0) {}
 	~Array() {}
 
-	inline void push(T& item)
+	inline void setData(T* data, unsigned int capacity)
+	{
+		this->data = data;
+		this->capacity = capacity;
+	}
+
+	inline void push(const T& item)
 	{
 		if (count >= capacity)
 		{
@@ -21,7 +28,7 @@ public:
 		data[count++] = item;
 	}
 
-	void remove(T& item)
+	void remove(const T& item)
 	{
 		unsigned int i = indexOf(item);
 
@@ -38,7 +45,7 @@ public:
 		count--;
 	}
 
-	int indexOf(T& item)
+	int indexOf(const T& item)
 	{
 		for (unsigned int i = 0; i < count; i++)
 		{

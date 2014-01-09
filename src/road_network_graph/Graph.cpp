@@ -108,6 +108,33 @@ EdgeIndex findEdge(Graph* graph, Vertex& v0, Vertex& v1)
 }
 
 //////////////////////////////////////////////////////////////////////////
+EdgeIndex findEdge(Graph* graph, Vertex* v0, Vertex* v1)
+{
+	for (unsigned int i = 0; i < v0->numOuts; i++)
+	{
+		EdgeIndex edgeIndex = v0->outs[i];
+		Edge& edge = graph->edges[edgeIndex];
+		if (edge.destination == v1->index)
+		{
+			return edgeIndex;
+		}
+	}
+
+	for (unsigned int i = 0; i < v0->numIns; i++)
+	{
+		EdgeIndex edgeIndex = v0->ins[i];
+		Edge& edge = graph->edges[edgeIndex];
+		if (edge.source == v1->index)
+		{
+			return edgeIndex;
+		}
+	}
+
+	// FIXME: checking invariants
+	throw std::exception("edge not found");
+}
+
+//////////////////////////////////////////////////////////////////////////
 EdgeIndex findEdge(Graph* graph, Vertex& v0, VertexIndex v1)
 {
 	for (unsigned int i = 0; i < v0.numOuts; i++)
@@ -135,16 +162,17 @@ EdgeIndex findEdge(Graph* graph, Vertex& v0, VertexIndex v1)
 }
 
 //////////////////////////////////////////////////////////////////////////
-void removeEdge(Graph* graph, EdgeIndex edgeIndex)
+void removeEdgeReferencesInVertices(Graph* graph, EdgeIndex edgeIndex)
 {
 	Edge& edge = graph->edges[edgeIndex];
-	for (EdgeIndex e = edgeIndex; e < graph->numEdges; e++)
-	{
-		graph->edges[e] = graph->edges[e + 1];
-	}
 
 	Vertex& sourceVertex = graph->vertices[edge.source];
 	Vertex& destinationVertex = graph->vertices[edge.destination];
+
+	/*for (EdgeIndex e = edgeIndex; e < graph->numEdges; e++)
+	{
+		graph->edges[e] = graph->edges[e + 1];
+	}*/
 
 	removeAdjacency(sourceVertex, destinationVertex.index);
 	removeAdjacency(destinationVertex, sourceVertex.index);
@@ -152,19 +180,25 @@ void removeEdge(Graph* graph, EdgeIndex edgeIndex)
 	removeOutEdge(sourceVertex, edgeIndex);
 	removeInEdge(destinationVertex, edgeIndex);
 
-	graph->numEdges--;
+	//graph->numEdges--;
 }
 
 //////////////////////////////////////////////////////////////////////////
-void removeEdge(Graph* graph, Vertex& v0, Vertex& v1)
+void removeEdgeReferencesInVertices(Graph* graph, Vertex& v0, Vertex& v1)
 {
-	removeEdge(graph, findEdge(graph, v0, v1.index));
+	removeEdgeReferencesInVertices(graph, findEdge(graph, v0, v1.index));
 }
 
 //////////////////////////////////////////////////////////////////////////
-void removeEdge(Graph* graph, VertexIndex v0, VertexIndex v1)
+void removeEdgeReferencesInVertices(Graph* graph, Vertex* v0, Vertex* v1)
 {
-	removeEdge(graph, findEdge(graph, graph->vertices[v0], v1));
+	removeEdgeReferencesInVertices(graph, findEdge(graph, v0, v1));
+}
+
+//////////////////////////////////////////////////////////////////////////
+void removeEdgeReferencesInVertices(Graph* graph, VertexIndex v0, VertexIndex v1)
+{
+	removeEdgeReferencesInVertices(graph, findEdge(graph, graph->vertices[v0], v1));
 }
 
 //////////////////////////////////////////////////////////////////////////

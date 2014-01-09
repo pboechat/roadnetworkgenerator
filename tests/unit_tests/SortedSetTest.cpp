@@ -6,8 +6,29 @@
 
 class SortedSetTest : public ::testing::Test 
 {
+private:
+	struct IntComparer : public SortedSet<int>::Comparer
+	{
+		virtual int operator()(const int& i0, const int& i1) const
+		{
+			if (i0 > i1)
+			{
+				return 1;
+			}
+			else if (i0 == i1)
+			{
+				return 0;
+			}
+			else
+			{
+				return -1;
+			}
+		}
+
+	} comparer;
+
 protected:
-	SortedSetTest() : sortedSet(buffer, BUFFER_SIZE, compare) {}
+	SortedSetTest() : sortedSet(buffer, BUFFER_SIZE, comparer) {}
 	~SortedSetTest() {}
 
 	int buffer[BUFFER_SIZE];
@@ -27,22 +48,6 @@ protected:
 	}
 
 	virtual void TearDown() {
-	}
-
-	static int compare(const int& i0, const int& i1)
-	{
-		if (i0 > i1)
-		{
-			return 1;
-		}
-		else if (i0 == i1)
-		{
-			return 0;
-		}
-		else
-		{
-			return -1;
-		}
 	}
 
 };

@@ -6,6 +6,7 @@
 #include <Edge.h>
 #include <Graph.h>
 #include <Primitive.h>
+#include <Array.h>
 
 #include <vector_math.h>
 
@@ -17,7 +18,7 @@ void allocateExtractionBuffers(unsigned int heapBufferSize, unsigned int primiti
 //////////////////////////////////////////////////////////////////////////
 void freeExtractionBuffers();
 //////////////////////////////////////////////////////////////////////////
-void extractPrimitives(Graph* graph);
+Array<Primitive>& extractPrimitives(Graph* graph);
 
 }
 
