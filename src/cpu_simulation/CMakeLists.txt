@@ -10,6 +10,8 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}
 					${CMAKE_SOURCE_DIR}/dependencies/FreeImage/include
 					${CMAKE_SOURCE_DIR}/dependencies/gl3w/include
 					${CMAKE_SOURCE_DIR}/dependencies/GL_utils/include
+					${CMAKE_SOURCE_DIR}/dependencies/glFont/include
+					${CMAKE_SOURCE_DIR}/dependencies/vld/include
 					${CMAKE_SOURCE_DIR}/src/framework/public_headers
 					${CMAKE_SOURCE_DIR}/src/vector_math/public_headers
 					${CMAKE_SOURCE_DIR}/src/road_network_graph/public_headers
@@ -52,6 +54,7 @@ target_link_libraries(
 	${OPENGL_gl_LIBRARY}
 	${OPENGL_glu_LIBRARY}
 	${CMAKE_SOURCE_DIR}/dependencies/FreeImage/lib/FreeImage.lib
+	${CMAKE_SOURCE_DIR}/dependencies/vld/lib/vld.lib
 )
 
 set_target_properties(cpu_simulation PROPERTIES DEBUG_POSTFIX d)

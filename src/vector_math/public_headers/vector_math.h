@@ -43,6 +43,7 @@ typedef glm::quat vml_quat;
 
 #define vml_rotate2D(vec, rad) glm_utils::rotate2D(vec, rad)
 #define vml_rotate glm::rotate
+#define vml_translate glm::translate
 #define vml_radians glm::radians
 #define vml_distance glm::distance
 #define vml_normalize glm::normalize
@@ -56,6 +57,7 @@ typedef glm::quat vml_quat;
 #define vml_angle_axis glm::angleAxis
 #define vml_perspective glm::perspective
 #define vml_look_at glm::lookAt
+#define vml_mix glm::mix
 
 #endif
 

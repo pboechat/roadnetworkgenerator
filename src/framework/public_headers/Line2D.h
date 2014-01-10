@@ -33,7 +33,7 @@ struct Line2D
 	inline bool onSegment(const vml_vec2& p, const vml_vec2& q, const vml_vec2& r) const
 	{
 		if (q.x <= glm::max(p.x, r.x) && q.x >= glm::min(p.x, r.x) &&
-			q.y <= glm::max(p.y, r.y) && q.y >= glm::min(p.y, r.y))
+				q.y <= glm::max(p.y, r.y) && q.y >= glm::min(p.y, r.y))
 		{
 			return true;
 		}

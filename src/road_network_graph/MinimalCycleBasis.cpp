@@ -47,10 +47,12 @@ struct VertexIndexComparer : public SortedSet<VertexIndex>::Comparer
 		{
 			return 1;
 		}
+
 		else if (i0 == i1)
 		{
 			return 0;
 		}
+
 		else
 		{
 			return -1;
@@ -73,21 +75,25 @@ struct MinXMinYComparer : public SortedSet<VertexIndex>::Comparer
 		{
 			return 1;
 		}
+
 		else if (v0.position.x == v1.position.x)
 		{
 			if (v0.position.y == v1.position.y)
 			{
 				return 0;
 			}
+
 			else if (v0.position.y > v1.position.y)
 			{
 				return 1;
 			}
+
 			else
 			{
 				return -1;
 			}
 		}
+
 		else
 		{
 			return -1;
@@ -111,7 +117,6 @@ void allocateExtractionBuffers(unsigned int heapBufferSize, unsigned int primiti
 	g_primitiveBuffer = (Primitive*)malloc(sizeof(Primitive) * g_primitiveBufferSize);
 	g_sequenceBuffer = (EdgeIndex*)malloc(sizeof(EdgeIndex) * g_sequenceBufferSize);
 	g_visitedBuffer = (VertexIndex*)malloc(sizeof(VertexIndex) * g_visitedBufferSize);
-
 	g_primitives.setData(g_primitiveBuffer, g_primitiveBufferSize);
 }
 
@@ -160,15 +165,18 @@ Array<Primitive>& extractPrimitives(Graph* graph)
 	while (heap.size() > 0)
 	{
 		Vertex* v0 = &graph->vertices[heap[0]];
+
 		if (v0->numAdjacencies == 0)
 		{
 			extractIsolatedVertex(heap, v0);
 		}
+
 		else if (v0->numAdjacencies == 1)
 		{
 			Vertex* v1 = &graph->vertices[v0->adjacencies[0]];
 			extractFilament(graph, heap, v0, v1, findEdge(graph, v0, v1));
 		}
+
 		else
 		{
 			// filament or minimal cycle
@@ -205,9 +213,10 @@ void extractFilament(Graph* graph, SortedSet<VertexIndex>& heap, Vertex* v0, Ver
 	{
 		if (v0->numAdjacencies >= 3)
 		{
-			removeEdgeReferencesInVertices(graph, edgeIndex);
+			removeEdgeReferencesInVertices(graph, v0, v1);
 			v0 = v1;
-			if (v0->numAdjacencies == 1) 
+
+			if (v0->numAdjacencies == 1)
 			{
 				v1 = &graph->vertices[v0->adjacencies[0]];
 			}
@@ -218,12 +227,14 @@ void extractFilament(Graph* graph, SortedSet<VertexIndex>& heap, Vertex* v0, Ver
 			v1 = &graph->vertices[v0->adjacencies[0]];
 			edgeIndex = findEdge(graph, v0, v1);
 			edge = graph->edges[edgeIndex];
+
 			if (edge.attr2 == 1)
 			{
 				heap.remove(v0->index);
 				removeEdgeReferencesInVertices(graph, edgeIndex);
 				v0 = v1;
 			}
+
 			else
 			{
 				break;
@@ -235,6 +246,7 @@ void extractFilament(Graph* graph, SortedSet<VertexIndex>& heap, Vertex* v0, Ver
 			heap.remove(v0->index);
 		}
 	}
+
 	else
 	{
 		Primitive primitive;
@@ -245,6 +257,7 @@ void extractFilament(Graph* graph, SortedSet<VertexIndex>& heap, Vertex* v0, Ver
 			insert(primitive, v0->position);
 			removeEdgeReferencesInVertices(graph, v0, v1);
 			v0 = v1;
+
 			if (v0->numAdjacencies == 1)
 			{
 				v1 = &graph->vertices[v0->adjacencies[0]];
@@ -261,6 +274,7 @@ void extractFilament(Graph* graph, SortedSet<VertexIndex>& heap, Vertex* v0, Ver
 		}
 
 		insert(primitive, v0->position);
+
 		if (v0->numAdjacencies == 0)
 		{
 			heap.remove(v0->index);
@@ -275,23 +289,22 @@ void extractPrimitive(Graph* graph, SortedSet<VertexIndex>& heap, Vertex* v0)
 {
 	SortedSet<VertexIndex> visited(g_visitedBuffer, g_visitedBufferSize, VertexIndexComparer());
 	Array<EdgeIndex> sequence(g_sequenceBuffer, g_sequenceBufferSize);
-
 	Vertex* v1 = getCounterclockwiseMostVertex(graph, 0, v0);
 	Vertex* previousVertex = v0;
 	Vertex* currentVertex = v1;
-	
+
 	while (currentVertex != 0 && currentVertex->index != v0->index && visited.indexOf(currentVertex->index) == -1)
 	{
 		EdgeIndex edgeIndex = findEdge(graph, previousVertex, currentVertex);
 		sequence.push(edgeIndex);
 		visited.insert(currentVertex->index);
-
 		Vertex* nextVertex = getClockwiseMostVertex(graph, previousVertex, currentVertex);
 		previousVertex = currentVertex;
 		currentVertex = nextVertex;
 	}
 
 	Vertex* v2;
+
 	if (currentVertex == 0)
 	{
 		if (previousVertex->numAdjacencies != 1)
@@ -301,16 +314,17 @@ void extractPrimitive(Graph* graph, SortedSet<VertexIndex>& heap, Vertex* v0)
 		}
 
 		v2 = &graph->vertices[previousVertex->adjacencies[0]];
-		// filament found, not necessarily rooted at v0
+		// filament found, not necessarily rooted at previousVertex
 		extractFilament(graph, heap, previousVertex, v2, findEdge(graph, previousVertex, v2));
 	}
+
 	else if (currentVertex->index == v0->index)
 	{
 		// minimal cycle found
 		Primitive primitive;
 		primitive.type = MINIMAL_CYCLE;
-
 		sequence.push(findEdge(graph, previousVertex, currentVertex));
+
 		for (unsigned int i = 0; i < sequence.size(); i++)
 		{
 			Edge& edge = graph->edges[sequence[i]];
@@ -318,13 +332,13 @@ void extractPrimitive(Graph* graph, SortedSet<VertexIndex>& heap, Vertex* v0)
 		}
 
 		insert(primitive, currentVertex->position);
+
 		for (int i = (int)visited.size() - 1; i >= 0; i--)
 		{
 			insert(primitive, graph->vertices[visited[i]].position);
 		}
 
-		EdgeIndex edgeIndex = findEdge(graph, v0, v1);
-		removeEdgeReferencesInVertices(graph, edgeIndex);
+		removeEdgeReferencesInVertices(graph, v0, v1);
 
 		if (v0->numAdjacencies == 1)
 		{
@@ -342,6 +356,7 @@ void extractPrimitive(Graph* graph, SortedSet<VertexIndex>& heap, Vertex* v0)
 
 		g_primitives.push(primitive);
 	}
+
 	else // currentVertex was visited earlier
 	{
 		// A cycle has been found, but is not guaranteed to be a minimal cycle
@@ -354,12 +369,14 @@ void extractPrimitive(Graph* graph, SortedSet<VertexIndex>& heap, Vertex* v0)
 				v1 = v0;
 				v0 = &graph->vertices[v0->adjacencies[0]];
 			}
+
 			else
 			{
 				v1 = v0;
 				v0 = &graph->vertices[v0->adjacencies[1]];
 			}
 		}
+
 		extractFilament(graph, heap, v0, v1, findEdge(graph, v0, v1));
 	}
 }
@@ -373,8 +390,8 @@ Vertex* getClockwiseMostVertex(Graph* graph, Vertex* previousVertex, Vertex* cur
 	}
 
 	Vertex* nextVertex = 0;
-
 	vml_vec2 currentDirection;
+
 	if (previousVertex != 0)
 	{
 		currentDirection = previousVertex->position - currentVertex->position;
@@ -382,6 +399,7 @@ Vertex* getClockwiseMostVertex(Graph* graph, Vertex* previousVertex, Vertex* cur
 		for (unsigned int i = 0; i < currentVertex->numAdjacencies; i++)
 		{
 			Vertex* adjacentVertex = &graph->vertices[currentVertex->adjacencies[i]];
+
 			if (adjacentVertex->index != previousVertex->index)
 			{
 				nextVertex = adjacentVertex;
@@ -389,6 +407,7 @@ Vertex* getClockwiseMostVertex(Graph* graph, Vertex* previousVertex, Vertex* cur
 			}
 		}
 	}
+
 	else
 	{
 		currentDirection = vml_vec2(0.0f, -1.0f);
@@ -401,8 +420,8 @@ Vertex* getClockwiseMostVertex(Graph* graph, Vertex* previousVertex, Vertex* cur
 	}
 
 	vml_vec2 nextDirection = nextVertex->position - currentVertex->position;
-	
 	bool isConvex = convex(nextDirection, currentDirection);
+
 	for (unsigned int i = 0; i < currentVertex->numAdjacencies; i++)
 	{
 		Vertex* adjacentVertex = &graph->vertices[currentVertex->adjacencies[i]];
@@ -413,6 +432,7 @@ Vertex* getClockwiseMostVertex(Graph* graph, Vertex* previousVertex, Vertex* cur
 		}
 
 		vml_vec2 adjacencyDirection = adjacentVertex->position - currentVertex->position;
+
 		if (isConvex)
 		{
 			if (left(nextDirection, adjacencyDirection) && left(adjacencyDirection, currentDirection))
@@ -422,6 +442,7 @@ Vertex* getClockwiseMostVertex(Graph* graph, Vertex* previousVertex, Vertex* cur
 				isConvex = convex(nextDirection, currentDirection);
 			}
 		}
+
 		else
 		{
 			if (right(currentDirection, adjacencyDirection) || right(adjacencyDirection, nextDirection))
@@ -439,14 +460,14 @@ Vertex* getClockwiseMostVertex(Graph* graph, Vertex* previousVertex, Vertex* cur
 //////////////////////////////////////////////////////////////////////////
 Vertex* getCounterclockwiseMostVertex (Graph* graph, Vertex* previousVertex, Vertex* currentVertex)
 {
-	if (currentVertex->numAdjacencies == 0) 
+	if (currentVertex->numAdjacencies == 0)
 	{
 		return 0;
 	}
 
 	Vertex* nextVertex = 0;
-
 	vml_vec2 currentDirection;
+
 	if (previousVertex != 0)
 	{
 		currentDirection = previousVertex->position - currentVertex->position;
@@ -454,6 +475,7 @@ Vertex* getCounterclockwiseMostVertex (Graph* graph, Vertex* previousVertex, Ver
 		for (unsigned int i = 0; i < currentVertex->numAdjacencies; i++)
 		{
 			Vertex* adjacentVertex = &graph->vertices[currentVertex->adjacencies[i]];
+
 			if (adjacentVertex->index != previousVertex->index)
 			{
 				nextVertex = adjacentVertex;
@@ -461,6 +483,7 @@ Vertex* getCounterclockwiseMostVertex (Graph* graph, Vertex* previousVertex, Ver
 			}
 		}
 	}
+
 	else
 	{
 		currentDirection = vml_vec2(0.0f, -1.0f);
@@ -473,8 +496,8 @@ Vertex* getCounterclockwiseMostVertex (Graph* graph, Vertex* previousVertex, Ver
 	}
 
 	vml_vec2 nextDirection = nextVertex->position - currentVertex->position;
-
 	bool isConvex = convex(nextDirection, currentDirection);
+
 	for (unsigned int i = 0; i < currentVertex->numAdjacencies; i++)
 	{
 		Vertex* adjacentVertex = &graph->vertices[currentVertex->adjacencies[i]];
@@ -485,6 +508,7 @@ Vertex* getCounterclockwiseMostVertex (Graph* graph, Vertex* previousVertex, Ver
 		}
 
 		vml_vec2 adjacencyDirection = adjacentVertex->position - currentVertex->position;
+
 		if (isConvex)
 		{
 			if (left(currentDirection, adjacencyDirection) || left(adjacencyDirection, nextDirection))
@@ -494,6 +518,7 @@ Vertex* getCounterclockwiseMostVertex (Graph* graph, Vertex* previousVertex, Ver
 				isConvex = convex(nextDirection, currentDirection);
 			}
 		}
+
 		else
 		{
 			if (right(nextDirection, adjacencyDirection) && right(adjacencyDirection, currentDirection))

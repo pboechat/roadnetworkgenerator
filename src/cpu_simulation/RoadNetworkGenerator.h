@@ -10,6 +10,7 @@
 #include <RoadAttributes.h>
 #include <RuleAttributes.h>
 #include <MathExtras.h>
+#include <MinimalCycleBasis.h>
 
 #include <vector_math.h>
 
@@ -43,10 +44,12 @@ public:
 		while (frontBuffer->notEmpty() && lastDerivation++ < g_configuration->maxDerivations)
 		{
 #ifdef _DEBUG
+
 			if (frontBuffer->getNumWorkItems() > maxWorkQueueCapacityUsed)
 			{
 				maxWorkQueueCapacityUsed = frontBuffer->getNumWorkItems();
 			}
+
 #endif
 			frontBuffer->executeAllWorkItems(backBuffer);
 			std::swap(frontBuffer, backBuffer);
@@ -56,6 +59,13 @@ public:
 		{
 			RoadNetworkGraph::removeDeadEndRoads(g_graph);
 		}
+
+		/*RoadNetworkGraph::allocateExtractionBuffers(g_configuration->maxVertices, g_configuration->maxPrimitives, g_configuration->maxEdgeSequences, g_configuration->maxVisitedVertices);
+		Array<RoadNetworkGraph::Primitive>& primitives = RoadNetworkGraph::extractPrimitives(g_graph);
+		RoadNetworkGraph::freeExtractionBuffers();*/
+
+		buffer1.clear();
+		buffer2.clear();
 	}
 
 #ifdef _DEBUG

@@ -18,8 +18,8 @@ void initializeQuadtree(QuadTree* quadtree, const Box2D& worldBounds, unsigned i
 	quadtree->quadrantsEdges = quadrantEdges;
 	quadtree->numQuadrantEdges = 0;
 	quadtree->numCollisionChecks = 0;
-
 	quadtree->totalNumQuadrants = 0;
+
 	for (unsigned int i = 0; i < quadtree->maxDepth; i++)
 	{
 		unsigned int numQuadrants = (unsigned int)pow(4.0f, (int)i);

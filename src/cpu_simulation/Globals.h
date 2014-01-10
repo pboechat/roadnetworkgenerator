@@ -80,8 +80,8 @@ void allocateQuadtreeBuffers(unsigned int maxResultsPerQuery);
 #endif
 
 //////////////////////////////////////////////////////////////////////////
-void allocateAndInitializeImageMaps(const char* populationDensityMapFilePath, 
-									const char* waterBodiesMapFilePath, 
+void allocateAndInitializeImageMaps(const char* populationDensityMapFilePath,
+									const char* waterBodiesMapFilePath,
 									const char* blockadesMapFilePath,
 									const char* naturalPatternMapFilePath,
 									const char* radialPatternMapFileMap,

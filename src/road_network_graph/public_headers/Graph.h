@@ -62,7 +62,7 @@ VertexIndex createVertex(Graph* graph, const vml_vec2& position);
 //////////////////////////////////////////////////////////////////////////
 bool addRoad(Graph* graph, VertexIndex sourceIndex, const vml_vec2& direction, VertexIndex& newVertexIndex, vml_vec2& end, bool highway);
 //////////////////////////////////////////////////////////////////////////
-void connect(Graph* graph, VertexIndex source, VertexIndex destination, bool highway);
+bool connect(Graph* graph, VertexIndex source, VertexIndex destination, bool highway);
 //////////////////////////////////////////////////////////////////////////
 EdgeIndex findEdge(Graph* graph, Vertex& v0, Vertex& v1);
 //////////////////////////////////////////////////////////////////////////

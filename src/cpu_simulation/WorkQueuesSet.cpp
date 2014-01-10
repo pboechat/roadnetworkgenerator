@@ -5,6 +5,7 @@
 void WorkQueuesSet::executeAllWorkItems(WorkQueuesSet* backQueues)
 {
 	unsigned int i = 0;
+
 	while (i < numWorkQueues)
 	{
 		StaticMarshallingQueue& queue = workQueues[i];

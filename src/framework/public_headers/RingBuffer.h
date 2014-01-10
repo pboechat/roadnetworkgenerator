@@ -29,6 +29,7 @@ public:
 		{
 			return false;
 		}
+
 		item = data[head++];
 		return true;
 	}
@@ -39,6 +40,7 @@ public:
 		{
 			return false;
 		}
+
 		head++;
 		return true;
 	}
@@ -49,6 +51,7 @@ public:
 		{
 			return false;
 		}
+
 		data[tail++] = item;
 		return true;
 	}

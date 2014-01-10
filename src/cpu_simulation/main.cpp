@@ -5,6 +5,7 @@
 #include <RoadNetworkInputController.h>
 #include <SceneRenderer.h>
 #include <RoadNetworkGeometry.h>
+#include <RoadNetworkLabels.h>
 #include <RoadNetworkGenerator.h>
 #include <Configuration.h>
 #include <Graph.h>
@@ -29,7 +30,7 @@ void printUsage()
 	std::cerr << "Command line options: <width> <height> <configuration file>";
 }
 
-void generateAndDisplay(const std::string& configurationFile, SceneRenderer& renderer, RoadNetworkGeometry& geometry, Camera& camera)
+void generateAndDisplay(const std::string& configurationFile, SceneRenderer& renderer, RoadNetworkGeometry& geometry, RoadNetworkLabels& labels, Camera& camera)
 {
 	//////////////////////////////////////////////////////////////////////////
 	//	ALLOCATE CONFIGURATION
@@ -38,23 +39,20 @@ void generateAndDisplay(const std::string& configurationFile, SceneRenderer& ren
 	{
 		free(g_configuration);
 	}
+
 	g_configuration = (Configuration*)malloc(sizeof(Configuration));
-
 	g_configuration->loadFromFile(configurationFile);
-
-	allocateAndInitializeImageMaps(g_configuration->populationDensityMapFilePath, 
-								   g_configuration->waterBodiesMapFilePath, 
-								   g_configuration->blockadesMapFilePath, 
-								   g_configuration->naturalPatternMapFilePath, 
-								   g_configuration->radialPatternMapFilePath, 
+	allocateAndInitializeImageMaps(g_configuration->populationDensityMapFilePath,
+								   g_configuration->waterBodiesMapFilePath,
+								   g_configuration->blockadesMapFilePath,
+								   g_configuration->naturalPatternMapFilePath,
+								   g_configuration->radialPatternMapFilePath,
 								   g_configuration->rasterPatternMapFilePath,
 								   g_configuration->worldWidth,
 								   g_configuration->worldHeight);
 	allocateSamplingBuffers(g_configuration->samplingArc);
 	allocateWorkQueues(g_configuration->maxWorkQueueCapacity);
-
 	Box2D worldBounds(0.0f, 0.0f, (float)g_configuration->worldWidth, (float)g_configuration->worldHeight);
-
 	renderer.setUpImageMaps(worldBounds, g_populationDensityMap, g_waterBodiesMap, g_blockadesMap);
 
 	//////////////////////////////////////////////////////////////////////////
@@ -66,7 +64,6 @@ void generateAndDisplay(const std::string& configurationFile, SceneRenderer& ren
 	}
 
 	g_graph = new RoadNetworkGraph::Graph();
-
 	allocateGraphBuffers(g_configuration->maxVertices, g_configuration->maxEdges);
 #ifdef USE_QUADTREE
 	//////////////////////////////////////////////////////////////////////////
@@ -77,23 +74,20 @@ void generateAndDisplay(const std::string& configurationFile, SceneRenderer& ren
 	{
 		delete g_quadtree;
 	}
+
 	g_quadtree = new RoadNetworkGraph::QuadTree();
-
 	allocateQuadtreeBuffers(g_configuration->maxResultsPerQuery);
-
 	RoadNetworkGraph::initializeQuadtree(g_quadtree, worldBounds, g_configuration->quadtreeDepth, g_configuration->maxResultsPerQuery, g_quadrants, g_quadrantsEdges);
 	RoadNetworkGraph::initializeGraph(g_graph, g_configuration->snapRadius, g_configuration->maxVertices, g_configuration->maxEdges, g_vertices, g_edges, g_quadtree, g_configuration->maxResultsPerQuery, g_queryResults);
 #else
 	RoadNetworkGraph::initializeGraph(g_graph, g_configuration->snapRadius, g_configuration->maxVertices, g_configuration->maxEdges, g_vertices, g_edges);
 #endif
-
 	RoadNetworkGenerator generator(g_configuration->maxWorkQueueCapacity);
 #ifdef _DEBUG
 	Timer timer;
 	timer.start();
 #endif
 	generator.execute();
-
 #ifdef _DEBUG
 	timer.end();
 	std::cout << "*****************************" << std::endl;
@@ -119,12 +113,14 @@ void generateAndDisplay(const std::string& configurationFile, SceneRenderer& ren
 	std::cout  << std::endl << std::endl;
 #endif
 	geometry.build();
+	labels.build();
 	camera.centerOnTarget(worldBounds);
 }
 
 int main(int argc, char** argv)
 {
 	int returnValue = -1;
+
 	try
 	{
 		if (argc < 4)
@@ -152,16 +148,14 @@ int main(int argc, char** argv)
 
 		Camera camera(screenWidth, screenHeight, FOVY_DEG, ZNEAR, ZFAR);
 		RoadNetworkGeometry geometry;
-		SceneRenderer renderer(camera, geometry);
-		RoadNetworkInputController inputController(camera, configurationFile, renderer, geometry, generateAndDisplay);
+		RoadNetworkLabels labels;
+		SceneRenderer renderer(camera, geometry, labels);
+		RoadNetworkInputController inputController(camera, configurationFile, renderer, geometry, labels, generateAndDisplay);
 		application.setCamera(camera);
 		application.setRenderer(renderer);
 		application.setInputController(inputController);
-
 		initializeWorkQueues();
-
-		generateAndDisplay(configurationFile, renderer, geometry, camera);
-
+		generateAndDisplay(configurationFile, renderer, geometry, labels, camera);
 		returnValue = application.run();
 	}
 
@@ -186,6 +180,7 @@ int main(int argc, char** argv)
 	}
 
 #ifdef USE_QUADTREE
+
 	if (g_quadtree != 0)
 	{
 		delete g_quadtree;
@@ -197,7 +192,6 @@ int main(int argc, char** argv)
 	freeImageMaps();
 	freeSamplingBuffers();
 	freeWorkQueues();
-
 	// DEBUG:
 	system("pause");
 	return returnValue;

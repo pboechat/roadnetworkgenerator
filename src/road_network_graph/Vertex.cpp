@@ -9,6 +9,7 @@ namespace RoadNetworkGraph
 void replaceInEdge(Vertex& vertex, EdgeIndex oldInEdgeIndex, EdgeIndex newInEdgeIndex)
 {
 	bool found = false;
+
 	for (unsigned int i = 0; i < vertex.numIns; i++)
 	{
 		if (vertex.ins[i] == oldInEdgeIndex)
@@ -29,7 +30,17 @@ void replaceInEdge(Vertex& vertex, EdgeIndex oldInEdgeIndex, EdgeIndex newInEdge
 //////////////////////////////////////////////////////////////////////////
 void replaceAdjacency(Vertex& vertex, VertexIndex oldAdjacentVertexIndex, VertexIndex newAdjacentVertexIndex)
 {
+	// FIXME:
+	for (unsigned int i = 0; i < vertex.numAdjacencies; i++)
+	{
+		if (vertex.adjacencies[i] == newAdjacentVertexIndex)
+		{
+			throw std::exception("duplicate adjacency");
+		}
+	}
+
 	bool found = false;
+
 	for (unsigned int i = 0; i < vertex.numAdjacencies; i++)
 	{
 		if (vertex.adjacencies[i] == oldAdjacentVertexIndex)
@@ -52,6 +63,7 @@ void removeAdjacency(Vertex& vertex, VertexIndex adjacentVertexIndex)
 {
 	bool found = false;
 	unsigned int adjacencyIndex;
+
 	for (unsigned int i = 0; i < vertex.numAdjacencies; i++)
 	{
 		if (vertex.adjacencies[i] == adjacentVertexIndex)
@@ -81,6 +93,7 @@ void removeInEdge(Vertex& vertex, EdgeIndex edgeIndex)
 {
 	bool found = false;
 	unsigned int inEdgeIndex;
+
 	for (unsigned int i = 0; i < vertex.numIns; i++)
 	{
 		if (vertex.ins[i] == edgeIndex)
@@ -110,6 +123,7 @@ void removeOutEdge(Vertex& vertex, EdgeIndex edgeIndex)
 {
 	bool found = false;
 	unsigned int outEdgeIndex;
+
 	for (unsigned int i = 0; i < vertex.numOuts; i++)
 	{
 		if (vertex.outs[i] == edgeIndex)

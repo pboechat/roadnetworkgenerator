@@ -7,7 +7,7 @@ template<typename T>
 class SortedSet
 {
 public:
-	struct Comparer 
+	struct Comparer
 	{
 		virtual int operator()(const T&, const T&) const = 0;
 
@@ -28,6 +28,7 @@ public:
 		{
 			data[count++] = item;
 		}
+
 		else
 		{
 			int min;
@@ -35,6 +36,7 @@ public:
 			binarySearch(item, min, max);
 			T curr = item;
 			count++;
+
 			for (; min < (int)count; min++)
 			{
 				T prev = data[min];
@@ -71,10 +73,12 @@ public:
 		int min;
 		int max;
 		binarySearch(item, min, max);
+
 		if (max == min && cmp(data[min], item) == 0)
 		{
 			return min;
 		}
+
 		else
 		{
 			return -1;
@@ -83,7 +87,7 @@ public:
 
 	inline unsigned int size() const
 	{
-		return count; 
+		return count;
 	}
 
 	inline T& operator[] (unsigned int i)
@@ -106,6 +110,7 @@ private:
 	{
 		min = 0;
 		max = count;
+
 		while (min < max)
 		{
 			int mid = (min + max) >> 1;
@@ -114,6 +119,7 @@ private:
 			{
 				min = mid + 1;
 			}
+
 			else
 			{
 				max = mid;

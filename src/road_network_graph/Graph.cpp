@@ -87,6 +87,7 @@ EdgeIndex findEdge(Graph* graph, Vertex& v0, Vertex& v1)
 	{
 		EdgeIndex edgeIndex = v0.outs[i];
 		Edge& edge = graph->edges[edgeIndex];
+
 		if (edge.destination == v1.index)
 		{
 			return edgeIndex;
@@ -97,6 +98,7 @@ EdgeIndex findEdge(Graph* graph, Vertex& v0, Vertex& v1)
 	{
 		EdgeIndex edgeIndex = v0.ins[i];
 		Edge& edge = graph->edges[edgeIndex];
+
 		if (edge.source == v1.index)
 		{
 			return edgeIndex;
@@ -114,6 +116,7 @@ EdgeIndex findEdge(Graph* graph, Vertex* v0, Vertex* v1)
 	{
 		EdgeIndex edgeIndex = v0->outs[i];
 		Edge& edge = graph->edges[edgeIndex];
+
 		if (edge.destination == v1->index)
 		{
 			return edgeIndex;
@@ -124,6 +127,7 @@ EdgeIndex findEdge(Graph* graph, Vertex* v0, Vertex* v1)
 	{
 		EdgeIndex edgeIndex = v0->ins[i];
 		Edge& edge = graph->edges[edgeIndex];
+
 		if (edge.source == v1->index)
 		{
 			return edgeIndex;
@@ -135,22 +139,25 @@ EdgeIndex findEdge(Graph* graph, Vertex* v0, Vertex* v1)
 }
 
 //////////////////////////////////////////////////////////////////////////
-EdgeIndex findEdge(Graph* graph, Vertex& v0, VertexIndex v1)
+EdgeIndex findEdge(Graph* graph, VertexIndex v0, VertexIndex v1)
 {
-	for (unsigned int i = 0; i < v0.numOuts; i++)
+	Vertex& vertex = graph->vertices[v0];
+	for (unsigned int i = 0; i < vertex.numOuts; i++)
 	{
-		EdgeIndex edgeIndex = v0.outs[i];
+		EdgeIndex edgeIndex = vertex.outs[i];
 		Edge& edge = graph->edges[edgeIndex];
+
 		if (edge.destination == v1)
 		{
 			return edgeIndex;
 		}
 	}
 
-	for (unsigned int i = 0; i < v0.numIns; i++)
+	for (unsigned int i = 0; i < vertex.numIns; i++)
 	{
-		EdgeIndex edgeIndex = v0.ins[i];
+		EdgeIndex edgeIndex = vertex.ins[i];
 		Edge& edge = graph->edges[edgeIndex];
+
 		if (edge.source == v1)
 		{
 			return edgeIndex;
@@ -165,28 +172,20 @@ EdgeIndex findEdge(Graph* graph, Vertex& v0, VertexIndex v1)
 void removeEdgeReferencesInVertices(Graph* graph, EdgeIndex edgeIndex)
 {
 	Edge& edge = graph->edges[edgeIndex];
-
 	Vertex& sourceVertex = graph->vertices[edge.source];
 	Vertex& destinationVertex = graph->vertices[edge.destination];
-
-	/*for (EdgeIndex e = edgeIndex; e < graph->numEdges; e++)
-	{
-		graph->edges[e] = graph->edges[e + 1];
-	}*/
 
 	removeAdjacency(sourceVertex, destinationVertex.index);
 	removeAdjacency(destinationVertex, sourceVertex.index);
 
 	removeOutEdge(sourceVertex, edgeIndex);
 	removeInEdge(destinationVertex, edgeIndex);
-
-	//graph->numEdges--;
 }
 
 //////////////////////////////////////////////////////////////////////////
 void removeEdgeReferencesInVertices(Graph* graph, Vertex& v0, Vertex& v1)
 {
-	removeEdgeReferencesInVertices(graph, findEdge(graph, v0, v1.index));
+	removeEdgeReferencesInVertices(graph, findEdge(graph, v0, v1));
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -198,13 +197,14 @@ void removeEdgeReferencesInVertices(Graph* graph, Vertex* v0, Vertex* v1)
 //////////////////////////////////////////////////////////////////////////
 void removeEdgeReferencesInVertices(Graph* graph, VertexIndex v0, VertexIndex v1)
 {
-	removeEdgeReferencesInVertices(graph, findEdge(graph, graph->vertices[v0], v1));
+	removeEdgeReferencesInVertices(graph, findEdge(graph, v0, v1));
 }
 
 //////////////////////////////////////////////////////////////////////////
 void removeDeadEndRoads(Graph* graph)
 {
 	bool changed;
+
 	do
 	{
 		changed = false;
@@ -218,9 +218,7 @@ void removeDeadEndRoads(Graph* graph)
 				continue;
 			}
 
-			unsigned int valency = getValency(graph, vertex);
-
-			if (valency == 1)
+			if (getValency(graph, vertex) == 1)
 			{
 				vertex.removed = true;
 				changed = true;
@@ -244,7 +242,7 @@ void traverse(const Graph* graph, GraphTraversal& traversal)
 			continue;
 		}
 
-		if (!traversal(sourceVertex.position, destinationVertex.position, edge.attr1 != 0))
+		if (!traversal(sourceVertex, destinationVertex, edge))
 		{
 			break;
 		}
@@ -252,8 +250,20 @@ void traverse(const Graph* graph, GraphTraversal& traversal)
 }
 
 //////////////////////////////////////////////////////////////////////////
-void connect(Graph* graph, VertexIndex sourceVertexIndex, VertexIndex destinationVertexIndex, bool highway)
+bool connect(Graph* graph, VertexIndex sourceVertexIndex, VertexIndex destinationVertexIndex, bool highway)
 {
+	Vertex& sourceVertex = graph->vertices[sourceVertexIndex];
+	Vertex& destinationVertex = graph->vertices[destinationVertexIndex];
+
+	// avoiding duplicate edges
+	for (unsigned int i = 0; i < sourceVertex.numAdjacencies; i++)
+	{
+		if (sourceVertex.adjacencies[i] == destinationVertexIndex)
+		{
+			return false;
+		}
+	}
+
 	// FIXME: checking boundaries
 	if (graph->numEdges >= (int)graph->maxEdges)
 	{
@@ -261,12 +271,10 @@ void connect(Graph* graph, VertexIndex sourceVertexIndex, VertexIndex destinatio
 	}
 
 	Edge& newEdge = graph->edges[graph->numEdges];
+	newEdge.index = graph->numEdges;
 	newEdge.source = sourceVertexIndex;
 	newEdge.destination = destinationVertexIndex;
-	newEdge.attr1 = (highway) ? 0 : 1;
-
-	Vertex& sourceVertex = graph->vertices[sourceVertexIndex];
-	Vertex& destinationVertex = graph->vertices[destinationVertexIndex];
+	newEdge.attr1 = (highway) ? 1 : 0;
 
 	// FIXME: checking boundaries
 	if (sourceVertex.numOuts >= MAX_VERTEX_OUT_CONNECTIONS)
@@ -281,6 +289,15 @@ void connect(Graph* graph, VertexIndex sourceVertexIndex, VertexIndex destinatio
 	{
 		throw std::exception("max. vertex adjacencies overflow");
 	}
+
+	// FIXME:
+	/*for (unsigned int i = 0; i < sourceVertex.numAdjacencies; i++)
+	{
+		if (sourceVertex.adjacencies[i] == destinationVertexIndex)
+		{
+			throw std::exception("duplicate adjacency");
+		}
+	}*/
 
 	sourceVertex.adjacencies[sourceVertex.numAdjacencies++] = destinationVertexIndex;
 
@@ -298,6 +315,15 @@ void connect(Graph* graph, VertexIndex sourceVertexIndex, VertexIndex destinatio
 		throw std::exception("max. vertex adjacencies overflow");
 	}
 
+	// FIXME:
+	/*for (unsigned int i = 0; i < destinationVertex.numAdjacencies; i++)
+	{
+		if (destinationVertex.adjacencies[i] == sourceVertexIndex)
+		{
+			throw std::exception("duplicate adjacency");
+		}
+	}*/
+
 	destinationVertex.adjacencies[destinationVertex.numAdjacencies++] = sourceVertexIndex;
 
 #ifdef USE_QUADTREE
@@ -305,17 +331,27 @@ void connect(Graph* graph, VertexIndex sourceVertexIndex, VertexIndex destinatio
 #endif
 
 	graph->numEdges++;
+
+	return true;
 }
 
 //////////////////////////////////////////////////////////////////////////
 void splitEdge(Graph* graph, EdgeIndex edgeIndex, VertexIndex splitVertexIndex)
 {
 	Edge& edge = graph->edges[edgeIndex];
-	VertexIndex oldDestinationVertexIndex = edge.destination;
-	edge.destination = splitVertexIndex;
-
 	Vertex& sourceVertex = graph->vertices[edge.source];
+	VertexIndex oldDestinationVertexIndex = edge.destination;
 	Vertex& oldDestinationVertex = graph->vertices[oldDestinationVertexIndex];
+
+	/*for (unsigned int i = 0; i < sourceVertex.numAdjacencies; i++)
+	{
+		if (sourceVertex.adjacencies[i] == splitVertexIndex)
+		{
+			throw std::exception("unexpected situation");
+		}
+	}*/
+	
+	edge.destination = splitVertexIndex;
 	Vertex& splitVertex = graph->vertices[splitVertexIndex];
 
 #ifdef USE_QUADTREE
@@ -339,6 +375,15 @@ void splitEdge(Graph* graph, EdgeIndex edgeIndex, VertexIndex splitVertexIndex)
 		throw std::exception("max. vertex adjacencies overflow");
 	}
 
+	// FIXME:
+	/*for (unsigned int i = 0; i < splitVertex.numAdjacencies; i++)
+	{
+		if (splitVertex.adjacencies[i] == edge.source)
+		{
+			throw std::exception("duplicate adjacency");
+		}
+	}*/
+
 	splitVertex.adjacencies[splitVertex.numAdjacencies++] = edge.source;
 
 	// FIXME: checking boundaries
@@ -348,6 +393,7 @@ void splitEdge(Graph* graph, EdgeIndex edgeIndex, VertexIndex splitVertexIndex)
 	}
 
 	Edge& newEdge = graph->edges[graph->numEdges];
+	newEdge.index = graph->numEdges;
 	newEdge.source = splitVertexIndex;
 	newEdge.destination = oldDestinationVertexIndex;
 	newEdge.attr1 = edge.attr1;
@@ -369,12 +415,20 @@ void splitEdge(Graph* graph, EdgeIndex edgeIndex, VertexIndex splitVertexIndex)
 		throw std::exception("max. vertex adjacencies overflow");
 	}
 
-	splitVertex.adjacencies[splitVertex.numAdjacencies++] = oldDestinationVertexIndex;
+	// FIXME:
+	/*for (unsigned int i = 0; i < splitVertex.numAdjacencies; i++)
+	{
+		if (splitVertex.adjacencies[i] == oldDestinationVertexIndex)
+		{
+			throw std::exception("duplicate adjacency");
+		}
+	}*/
 
+	splitVertex.adjacencies[splitVertex.numAdjacencies++] = oldDestinationVertexIndex;
+	
 #ifdef USE_QUADTREE
 	insert(graph->quadtree, graph->numEdges, Line2D(splitVertex.position, oldDestinationVertex.position));
 #endif
-
 	graph->numEdges++;
 }
 
@@ -400,17 +454,24 @@ bool addRoad(Graph* graph, VertexIndex sourceIndex, const vml_vec2& direction, V
 		if (intersectionType == SOURCE)
 		{
 			newVertexIndex = graph->edges[edgeIndex].source;
+			connect(graph, sourceIndex, newVertexIndex, highway);
 		}
 
 		else if (intersectionType == DESTINATION)
 		{
 			newVertexIndex = graph->edges[edgeIndex].destination;
+			connect(graph, sourceIndex, newVertexIndex, highway);
 		}
 
 		else if (intersectionType == EDGE)
 		{
 			newVertexIndex = createVertex(graph, end);
 			splitEdge(graph, edgeIndex, newVertexIndex);
+			if (!connect(graph, sourceIndex, newVertexIndex, highway))
+			{
+				// FIXME: checking invariants
+				throw std::exception("unexpected situation");
+			}
 		}
 
 		else
@@ -419,7 +480,6 @@ bool addRoad(Graph* graph, VertexIndex sourceIndex, const vml_vec2& direction, V
 			throw std::exception("unknown intersection type");
 		}
 
-		connect(graph, sourceIndex, newVertexIndex, highway);
 		return true;
 	}
 
@@ -433,15 +493,25 @@ bool addRoad(Graph* graph, VertexIndex sourceIndex, const vml_vec2& direction, V
 			end = snapping;
 			newVertexIndex = createVertex(graph, end);
 			splitEdge(graph, edgeIndex, newVertexIndex);
-			connect(graph, sourceIndex, newVertexIndex, highway);
+			if (!connect(graph, sourceIndex, newVertexIndex, highway))
+			{
+				// FIXME: checking invariants
+				throw std::exception("unexpected situation");
+			}
 			return true;
 		}
 
 		else
 		{
 			newVertexIndex = createVertex(graph, end);
-			connect(graph, sourceIndex, newVertexIndex, highway);
-			return false;
+			if (connect(graph, sourceIndex, newVertexIndex, highway))
+			{
+				return false;
+			}
+			else
+			{
+				return true;
+			}
 		}
 	}
 }
@@ -622,27 +692,25 @@ bool addRoad(Graph* graph, VertexIndex sourceIndex, const vml_vec2& direction, V
 			throw std::exception("unknown intersection type");
 		}
 
-		connect(graph, sourceIndex, newVertexIndex, highway);
-		return true;
+		return connect(graph, sourceIndex, newVertexIndex, highway);
 	}
 
 	else
 	{
 		Circle2D snapCircle(end, graph->snapRadius);
+
 		if (checkSnapping(graph, snapCircle, sourceIndex, snapping, edgeIndex))
 		{
 			end = snapping;
 			newVertexIndex = createVertex(graph, end);
 			splitEdge(graph, edgeIndex, newVertexIndex);
-			connect(graph, sourceIndex, newVertexIndex, highway);
-			return true;
+			return connect(graph, sourceIndex, newVertexIndex, highway);
 		}
 
 		else
 		{
 			newVertexIndex = createVertex(graph, end);
-			connect(graph, sourceIndex, newVertexIndex, highway);
-			return false;
+			return connect(graph, sourceIndex, newVertexIndex, highway);
 		}
 	}
 }
@@ -943,10 +1011,10 @@ unsigned int getAllocatedMemory(Graph* graph)
 	unsigned int verticesBufferMemory = graph->maxVertices * sizeof(Vertex);
 	unsigned int edgesBufferMemory = graph->maxEdges * sizeof(Vertex);
 #ifdef USE_QUADTREE
-		unsigned int queryResultBufferMemory = graph->maxResultsPerQuery * sizeof(EdgeIndex);
-		return (verticesBufferMemory + edgesBufferMemory + queryResultBufferMemory + getAllocatedMemory(graph->quadtree));
+	unsigned int queryResultBufferMemory = graph->maxResultsPerQuery * sizeof(EdgeIndex);
+	return (verticesBufferMemory + edgesBufferMemory + queryResultBufferMemory + getAllocatedMemory(graph->quadtree));
 #else
-		return (verticesBufferMemory + edgesBufferMemory);
+	return (verticesBufferMemory + edgesBufferMemory);
 #endif
 }
 
@@ -964,10 +1032,10 @@ unsigned int getMemoryInUse(Graph* graph)
 
 	unsigned int edgesBufferMemoryInUse = graph->numEdges * sizeof(Vertex);
 #ifdef USE_QUADTREE
-		unsigned int queryResultBufferMemory = graph->maxResultsPerQuery * sizeof(EdgeIndex);
-		return (verticesBufferMemoryInUse + edgesBufferMemoryInUse + queryResultBufferMemory + getMemoryInUse(graph->quadtree));
+	unsigned int queryResultBufferMemory = graph->maxResultsPerQuery * sizeof(EdgeIndex);
+	return (verticesBufferMemoryInUse + edgesBufferMemoryInUse + queryResultBufferMemory + getMemoryInUse(graph->quadtree));
 #else
-		return (verticesBufferMemoryInUse + edgesBufferMemoryInUse);
+	return (verticesBufferMemoryInUse + edgesBufferMemoryInUse);
 #endif
 }
 

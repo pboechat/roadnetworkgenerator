@@ -54,12 +54,13 @@ public:
 				return i;
 			}
 		}
+
 		return -1;
 	}
 
 	inline unsigned int size() const
 	{
-		return count; 
+		return count;
 	}
 
 	inline T& operator[] (unsigned int i)

@@ -10,34 +10,40 @@
 
 #include <vector>
 
-struct GeometryCreationTraversal : public RoadNetworkGraph::GraphTraversal
-{
-	std::vector<vml_vec4>& vertices;
-	std::vector<vml_vec4>& colors;
-	std::vector<unsigned int>& indices;
-	vml_vec4 highwayColor;
-	vml_vec4 streetColor;
-
-	GeometryCreationTraversal(std::vector<vml_vec4>& vertices, std::vector<vml_vec4>& colors, std::vector<unsigned int>& indices, const vml_vec4& highwayColor, const vml_vec4& streetColor) : vertices(vertices), colors(colors), indices(indices), highwayColor(highwayColor), streetColor(streetColor) {}
-	~GeometryCreationTraversal() {}
-
-	virtual bool operator () (const vml_vec2& source, const vml_vec2& destination, bool highway)
-	{
-		unsigned int i = vertices.size();
-		vertices.push_back(vml_vec4(source.x, source.y, 0.0f, 1.0f));
-		vertices.push_back(vml_vec4(destination.x, destination.y, 0.0f, 1.0f));
-		vml_vec4 color = (highway) ? highwayColor : streetColor;
-		colors.push_back(color);
-		colors.push_back(color);
-		indices.push_back(i);
-		indices.push_back(i + 1);
-		return true;
-	}
-
-};
-
 class RoadNetworkGeometry : public Geometry
 {
+private:
+	struct GeometryCreationTraversal : public RoadNetworkGraph::GraphTraversal
+	{
+		std::vector<vml_vec4>& vertices;
+		std::vector<vml_vec4>& colors;
+		std::vector<unsigned int>& indices;
+		vml_vec4 highwayColor;
+		vml_vec4 streetColor;
+
+		GeometryCreationTraversal(std::vector<vml_vec4>& vertices, std::vector<vml_vec4>& colors, std::vector<unsigned int>& indices, const vml_vec4& highwayColor, const vml_vec4& streetColor) : vertices(vertices), colors(colors), indices(indices), highwayColor(highwayColor), streetColor(streetColor) {}
+		~GeometryCreationTraversal() {}
+
+		virtual bool operator () (const RoadNetworkGraph::Vertex& source, const RoadNetworkGraph::Vertex& destination, const RoadNetworkGraph::Edge& edge)
+		{
+			unsigned int i = vertices.size();
+			vertices.push_back(vml_vec4(source.position.x, source.position.y, 0.0f, 1.0f));
+			vertices.push_back(vml_vec4(destination.position.x, destination.position.y, 0.0f, 1.0f));
+			vml_vec4 color = (edge.attr1 == 1) ? highwayColor : streetColor;
+			colors.push_back(color);
+			colors.push_back(color);
+			indices.push_back(i);
+			indices.push_back(i + 1);
+			return true;
+		}
+
+	};
+
+	unsigned int buffers[3];
+	unsigned int vao;
+	unsigned int elementsCount;
+	bool built;
+
 public:
 	RoadNetworkGeometry() : built(false), elementsCount(0)
 	{
@@ -63,7 +69,7 @@ public:
 		std::vector<vml_vec4> vertices;
 		std::vector<vml_vec4> colors;
 		std::vector<unsigned int> indices;
-		traverse(g_graph, GeometryCreationTraversal(vertices, colors, indices, g_configuration->highwayColor, g_configuration->streetColor));
+		RoadNetworkGraph::traverse(g_graph, GeometryCreationTraversal(vertices, colors, indices, g_configuration->highwayColor, g_configuration->streetColor));
 		glBindBuffer(GL_ARRAY_BUFFER, buffers[0]);
 		glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(vml_vec4), (void*)&vertices[0], GL_STATIC_DRAW);
 		glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -101,12 +107,6 @@ public:
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 		glBindVertexArray(0);
 	}
-
-private:
-	unsigned int buffers[3];
-	unsigned int vao;
-	unsigned int elementsCount;
-	bool built;
 
 };
 

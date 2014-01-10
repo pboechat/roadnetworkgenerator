@@ -11,7 +11,7 @@ namespace RoadNetworkGraph
 
 struct GraphTraversal
 {
-	virtual bool operator () (const vml_vec2& source, const vml_vec2& destination, bool highway) = 0;
+	virtual bool operator () (const Vertex& source, const Vertex& destination, const Edge& edge) = 0;
 
 };
 

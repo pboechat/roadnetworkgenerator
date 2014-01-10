@@ -8,6 +8,7 @@ namespace RoadNetworkGraph
 
 struct Edge
 {
+	EdgeIndex index;
 	VertexIndex source;
 	VertexIndex destination;
 	unsigned char attr1;

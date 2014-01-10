@@ -37,6 +37,15 @@ public:
 
 	void executeAllWorkItems(WorkQueuesSet* backQueues);
 
+	void clear()
+	{
+		for (unsigned int i = 0; i < numWorkQueues; i++)
+		{
+			workQueues[i].clear();
+		}
+		numWorkItems = 0;
+	}
+
 private:
 	StaticMarshallingQueue* workQueues;
 	unsigned int numWorkQueues;
@@ -46,6 +55,7 @@ private:
 	void executeAllWorkItemsInQueue(StaticMarshallingQueue& queue, WorkQueuesSet* backQueues)
 	{
 		WorkItemType workItem;
+
 		while (queue.dequeue(workItem))
 		{
 			ProcedureType::execute(workItem, backQueues);

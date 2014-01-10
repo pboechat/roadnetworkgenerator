@@ -59,7 +59,7 @@ public:
 	}
 
 	////////////////////////////////////////////////////////////////////////////////////////////////////
-	inline const vml_mat4 getViewMatrix() const
+	inline vml_mat4 getViewMatrix() const
 	{
 		return vml_look_at(worldTransform.position, worldTransform.position + worldTransform.forward(), worldTransform.up());
 	}

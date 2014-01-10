@@ -55,7 +55,7 @@ void evaluateLocalContraints(Road& road)
 
 	// remove roads that cross world boundaries
 	if (position.x < 0 || position.x > (float)g_configuration->worldWidth ||
-		position.y < 0 || position.y > (float)g_configuration->worldHeight)
+			position.y < 0 || position.y > (float)g_configuration->worldHeight)
 	{
 		road.state = FAILED;
 		return;
@@ -117,7 +117,6 @@ outside_loops:
 
 	road.roadAttributes.length = length;
 	road.roadAttributes.angle += vml_radians((float)angleIncrement);
-	
 	return true;
 }
 
@@ -164,6 +163,5 @@ outside_loops:
 
 	road.roadAttributes.length = length;
 	road.roadAttributes.angle += vml_radians((float)angleIncrement);
-
 	return true;
 }

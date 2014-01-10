@@ -71,9 +71,9 @@ inline static vml_vec3 clamp(T min, T max, vml_vec3 a)
 static float getOrientedAngle(const vml_vec2& a, const vml_vec2& b)
 {
 	float angle = acos(vml_dot(a, b) / (vml_length(a) * vml_length(b)));
-
 	vml_vec3 e1(a.x, a.y, 0.0f);
 	vml_vec3 e2(b.x, b.y, 0.0f);
+
 	if (vml_cross(e1, e2).z > 0)
 	{
 		return angle;

@@ -74,6 +74,13 @@ public:
 		return true;
 	}
 
+	inline void clear()
+	{
+		counter = 0;
+		head = 0;
+		tail = 0;
+	}
+
 private:
 	unsigned int capacity;
 	unsigned int itemSize;

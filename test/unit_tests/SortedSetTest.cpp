@@ -4,7 +4,7 @@
 
 #define BUFFER_SIZE 10
 
-class SortedSetTest : public ::testing::Test 
+class SortedSetTest : public ::testing::Test
 {
 private:
 	struct IntComparer : public SortedSet<int>::Comparer
@@ -15,10 +15,12 @@ private:
 			{
 				return 1;
 			}
+
 			else if (i0 == i1)
 			{
 				return 0;
 			}
+
 			else
 			{
 				return -1;
@@ -34,7 +36,8 @@ protected:
 	int buffer[BUFFER_SIZE];
 	SortedSet<int> sortedSet;
 
-	virtual void SetUp() {
+	virtual void SetUp()
+	{
 		sortedSet.insert(10);
 		sortedSet.insert(5);
 		sortedSet.insert(7);
@@ -47,7 +50,8 @@ protected:
 		sortedSet.insert(4);
 	}
 
-	virtual void TearDown() {
+	virtual void TearDown()
+	{
 	}
 
 };

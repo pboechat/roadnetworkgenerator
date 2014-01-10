@@ -81,7 +81,6 @@ void initializeWorkQueues()
 void allocateWorkQueues(unsigned int maxWorkQueueCapacity)
 {
 	freeWorkQueues();
-
 	unsigned int capacity = maxWorkQueueCapacity;
 	unsigned int itemSize = MathExtras::max(sizeof(Road), sizeof(Branch));
 	unsigned int bufferSize = capacity * itemSize;
@@ -104,7 +103,6 @@ void allocateWorkQueues(unsigned int maxWorkQueueCapacity)
 
 		g_workQueues1[i].setBuffer(g_workQueuesBuffers1[i], capacity);
 		g_workQueues1[i].setItemSize(itemSize);
-
 		g_workQueues2[i].setBuffer(g_workQueuesBuffers2[i], capacity);
 		g_workQueues2[i].setItemSize(itemSize);
 	}
@@ -133,7 +131,6 @@ void freeWorkQueues()
 void allocateSamplingBuffers(unsigned int samplingArc)
 {
 	freeSamplingBuffers();
-
 	g_populationDensitiesSamplingBuffer = (unsigned char*)malloc(sizeof(unsigned char) * samplingArc);
 
 	if (g_populationDensitiesSamplingBuffer == 0)
@@ -169,7 +166,6 @@ void freeSamplingBuffers()
 void allocateGraphBuffers(unsigned int maxVertices, unsigned int maxEdges)
 {
 	freeGraphBuffers();
-
 	g_vertices = (RoadNetworkGraph::Vertex*)malloc(sizeof(RoadNetworkGraph::Vertex) * maxVertices);
 
 	if (g_vertices == 0)
@@ -209,7 +205,6 @@ void freeGraphBuffers()
 void allocateQuadtreeBuffers(unsigned int maxResultsPerQuery)
 {
 	freeQuadtreeBuffers();
-
 	g_queryResults = (RoadNetworkGraph::EdgeIndex*)malloc(sizeof(RoadNetworkGraph::EdgeIndex) * maxResultsPerQuery);
 
 	if (g_queryResults == 0)
@@ -218,7 +213,6 @@ void allocateQuadtreeBuffers(unsigned int maxResultsPerQuery)
 	}
 
 	// TODO: create constants for number of quadrants and number of quadrant edges
-
 	g_quadrants = (RoadNetworkGraph::Quadrant*)malloc(sizeof(RoadNetworkGraph::Quadrant) * 512);
 
 	if (g_quadrants == 0)
@@ -258,8 +252,8 @@ void freeQuadtreeBuffers()
 #endif
 
 //////////////////////////////////////////////////////////////////////////
-void allocateAndInitializeImageMaps(const char* populationDensityMapFilePath, 
-									const char* waterBodiesMapFilePath, 
+void allocateAndInitializeImageMaps(const char* populationDensityMapFilePath,
+									const char* waterBodiesMapFilePath,
 									const char* blockadesMapFilePath,
 									const char* naturalPatternMapFilePath,
 									const char* radialPatternMapFileMap,
@@ -268,7 +262,6 @@ void allocateAndInitializeImageMaps(const char* populationDensityMapFilePath,
 									unsigned int mapHeight)
 {
 	freeImageMaps();
-
 	int mapSize = mapWidth * mapHeight;
 
 	if (strlen(populationDensityMapFilePath) > 0)
