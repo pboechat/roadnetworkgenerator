@@ -1,5 +1,5 @@
 // memory leak detection
-#include <vld.h>
+//#include <vld.h>
 
 #include "Defines.h"
 #include <RoadNetworkInputController.h>

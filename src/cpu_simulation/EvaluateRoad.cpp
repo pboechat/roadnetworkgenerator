@@ -13,7 +13,7 @@ template<typename RuleAttributesType>
 bool evaluateBlockades(Road<RuleAttributesType>& road, const vml_vec2& position);
 
 //////////////////////////////////////////////////////////////////////////
-void EvaluateStreet::execute(Road<StreetRuleAttributes>& road, WorkQueuesSet* backQueues)
+void EvaluateStreet::execute(Street& road, WorkQueuesSet* backQueues)
 {
 	// p1, p3 and p6
 	if (road.delay < 0 || road.state == FAILED)
@@ -45,7 +45,7 @@ void EvaluateStreet::execute(Road<StreetRuleAttributes>& road, WorkQueuesSet* ba
 }
 
 //////////////////////////////////////////////////////////////////////////
-void EvaluateHighway::execute(Road<HighwayRuleAttributes>& road, WorkQueuesSet* backQueues)
+void EvaluateHighway::execute(Highway& road, WorkQueuesSet* backQueues)
 {
 	// p1, p3 and p6
 	if (road.delay < 0 || road.state == FAILED)
@@ -77,7 +77,7 @@ void EvaluateHighway::execute(Road<HighwayRuleAttributes>& road, WorkQueuesSet* 
 }
 
 //////////////////////////////////////////////////////////////////////////
-void evaluateLocalContraints(Road<StreetRuleAttributes>& road)
+void evaluateLocalContraints(Street& road)
 {
 	// remove streets that have exceeded max street branch depth
 	if (road.ruleAttributes.branchDepth > g_configuration->maxStreetBranchDepth)
@@ -110,7 +110,7 @@ void evaluateLocalContraints(Road<StreetRuleAttributes>& road)
 }
 
 //////////////////////////////////////////////////////////////////////////
-void evaluateLocalContraints(Road<HighwayRuleAttributes>& road)
+void evaluateLocalContraints(Highway& road)
 {
 	vml_vec2 position = getPosition(g_graph, road.roadAttributes.source);
 

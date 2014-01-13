@@ -22,7 +22,7 @@ void applyRadialPatternRule(const vml_vec2& position, unsigned int goalDistance,
 void applyRasterPatternRule(const vml_vec2& position, unsigned int goalDistance, int& delay, RoadAttributes& roadAttributes, HighwayRuleAttributes& ruleAttributes);
 
 //////////////////////////////////////////////////////////////////////////
-void InstantiateStreet::execute(Road<StreetRuleAttributes>& road, WorkQueuesSet* backQueues)
+void InstantiateStreet::execute(Street& road, WorkQueuesSet* backQueues)
 {
 	// p2
 
@@ -35,7 +35,7 @@ void InstantiateStreet::execute(Road<StreetRuleAttributes>& road, WorkQueuesSet*
 	vml_vec2 direction = vml_rotate2D(vml_vec2(0.0f, road.roadAttributes.length), road.roadAttributes.angle);
 	RoadNetworkGraph::VertexIndex newSource;
 	vml_vec2 position;
-	bool interrupted = addRoad(g_graph, road.roadAttributes.source, direction, newSource, position, road.roadAttributes.highway);
+	bool interrupted = addRoad(g_graph, road.roadAttributes.source, direction, newSource, position, false);
 	int delays[3];
 	RoadAttributes roadAttributes[3];
 	StreetRuleAttributes ruleAttributes[3];
@@ -54,11 +54,11 @@ void InstantiateStreet::execute(Road<StreetRuleAttributes>& road, WorkQueuesSet*
 
 	backQueues->addWorkItem(EVALUATE_STREET_BRANCH, Branch<StreetRuleAttributes>(delays[0], roadAttributes[0], ruleAttributes[0]));
 	backQueues->addWorkItem(EVALUATE_STREET_BRANCH, Branch<StreetRuleAttributes>(delays[1], roadAttributes[1], ruleAttributes[1]));
-	backQueues->addWorkItem(EVALUATE_STREET, Road<StreetRuleAttributes>(delays[2], roadAttributes[2], ruleAttributes[2], UNASSIGNED));
+	backQueues->addWorkItem(EVALUATE_STREET, Street(delays[2], roadAttributes[2], ruleAttributes[2], UNASSIGNED));
 }
 
 //////////////////////////////////////////////////////////////////////////
-void InstantiateHighway::execute(Road<HighwayRuleAttributes>& road, WorkQueuesSet* backQueues)
+void InstantiateHighway::execute(Highway& road, WorkQueuesSet* backQueues)
 {
 	// p2
 
@@ -71,7 +71,7 @@ void InstantiateHighway::execute(Road<HighwayRuleAttributes>& road, WorkQueuesSe
 	vml_vec2 direction = vml_rotate2D(vml_vec2(0.0f, road.roadAttributes.length), road.roadAttributes.angle);
 	RoadNetworkGraph::VertexIndex newSource;
 	vml_vec2 position;
-	bool interrupted = addRoad(g_graph, road.roadAttributes.source, direction, newSource, position, road.roadAttributes.highway);
+	bool interrupted = addRoad(g_graph, road.roadAttributes.source, direction, newSource, position, true);
 	int delays[3];
 	RoadAttributes roadAttributes[3];
 	HighwayRuleAttributes ruleAttributes[3];
@@ -90,11 +90,11 @@ void InstantiateHighway::execute(Road<HighwayRuleAttributes>& road, WorkQueuesSe
 
 	backQueues->addWorkItem(EVALUATE_HIGHWAY_BRANCH, Branch<HighwayRuleAttributes>(delays[0], roadAttributes[0], ruleAttributes[0]));
 	backQueues->addWorkItem(EVALUATE_HIGHWAY_BRANCH, Branch<HighwayRuleAttributes>(delays[1], roadAttributes[1], ruleAttributes[1]));
-	backQueues->addWorkItem(EVALUATE_HIGHWAY, Road<HighwayRuleAttributes>(delays[2], roadAttributes[2], ruleAttributes[2], UNASSIGNED));
+	backQueues->addWorkItem(EVALUATE_HIGHWAY, Highway(delays[2], roadAttributes[2], ruleAttributes[2], UNASSIGNED));
 }
 
 //////////////////////////////////////////////////////////////////////////
-void evaluateGlobalGoals(Road<StreetRuleAttributes>& road, RoadNetworkGraph::VertexIndex source, const vml_vec2& position, int* delays, RoadAttributes* roadAttributes, StreetRuleAttributes* ruleAttributes)
+void evaluateGlobalGoals(Street& road, RoadNetworkGraph::VertexIndex source, const vml_vec2& position, int* delays, RoadAttributes* roadAttributes, StreetRuleAttributes* ruleAttributes)
 {
 		unsigned int newDepth = road.ruleAttributes.branchDepth + 1;
 		// street branch left
@@ -102,32 +102,28 @@ void evaluateGlobalGoals(Road<StreetRuleAttributes>& road, RoadNetworkGraph::Ver
 		roadAttributes[0].source = source;
 		roadAttributes[0].length = g_configuration->streetLength;
 		roadAttributes[0].angle = road.roadAttributes.angle - MathExtras::HALF_PI;
-		roadAttributes[0].highway = false;
 		ruleAttributes[0].branchDepth = newDepth;
 		// street branch right
 		delays[1] = g_configuration->streetBranchingDelay;
 		roadAttributes[1].source = source;
 		roadAttributes[1].length = g_configuration->streetLength;
 		roadAttributes[1].angle = road.roadAttributes.angle + MathExtras::HALF_PI;
-		roadAttributes[1].highway = false;
 		ruleAttributes[1].branchDepth = newDepth;
 		// street continuation
 		delays[2] = 0;
 		roadAttributes[2].source = source;
 		roadAttributes[2].length = g_configuration->streetLength;
 		roadAttributes[2].angle = road.roadAttributes.angle;
-		roadAttributes[2].highway = false;
 		ruleAttributes[2].branchDepth = newDepth;
 }
 
 //////////////////////////////////////////////////////////////////////////
-void evaluateGlobalGoals(Road<HighwayRuleAttributes>& road, RoadNetworkGraph::VertexIndex source, const vml_vec2& position, int* delays, RoadAttributes* roadAttributes, HighwayRuleAttributes* ruleAttributes)
+void evaluateGlobalGoals(Highway& road, RoadNetworkGraph::VertexIndex source, const vml_vec2& position, int* delays, RoadAttributes* roadAttributes, HighwayRuleAttributes* ruleAttributes)
 {
 	bool branch = (road.ruleAttributes.branchingDistance == g_configuration->minHighwayBranchingDistance);
 	// highway continuation
 	delays[2] = 0;
 	roadAttributes[2].source = source;
-	roadAttributes[2].highway = true;
 	ruleAttributes[2].hasGoal = road.ruleAttributes.hasGoal;
 	ruleAttributes[2].goal = road.ruleAttributes.goal;
 	ruleAttributes[2].branchingDistance = (branch) ? 0 : road.ruleAttributes.branchingDistance + 1;
@@ -182,13 +178,11 @@ void evaluateGlobalGoals(Road<HighwayRuleAttributes>& road, RoadNetworkGraph::Ve
 		roadAttributes[0].source = source;
 		roadAttributes[0].length = g_configuration->highwayLength;
 		roadAttributes[0].angle = roadAttributes[2].angle - MathExtras::HALF_PI;
-		roadAttributes[0].highway = true;
 		// new highway branch right
 		delays[1] = 0;
 		roadAttributes[1].source = source;
 		roadAttributes[1].length = g_configuration->highwayLength;
 		roadAttributes[1].angle = roadAttributes[2].angle + MathExtras::HALF_PI;
-		roadAttributes[1].highway = true;
 	}
 }
 

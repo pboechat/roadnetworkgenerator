@@ -8,8 +8,6 @@
 #include <WorkQueuesSet.h>
 #include <Road.h>
 #include <RoadAttributes.h>
-#include <StreetRuleAttributes.h>
-#include <HighwayRuleAttributes.h>
 #include <MathExtras.h>
 #include <MinimalCycleBasis.h>
 
@@ -35,10 +33,10 @@ public:
 		{
 			vml_vec2 spawnPoint = g_configuration->spawnPoints[i];
 			RoadNetworkGraph::VertexIndex source = RoadNetworkGraph::createVertex(g_graph, spawnPoint);
-			frontBuffer->addWorkItem(EVALUATE_HIGHWAY, Road<HighwayRuleAttributes>(0, RoadAttributes(source, g_configuration->highwayLength, 0, true), HighwayRuleAttributes(), UNASSIGNED));
-			frontBuffer->addWorkItem(EVALUATE_HIGHWAY, Road<HighwayRuleAttributes>(0, RoadAttributes(source, g_configuration->highwayLength, -MathExtras::HALF_PI, true), HighwayRuleAttributes(), UNASSIGNED));
-			frontBuffer->addWorkItem(EVALUATE_HIGHWAY, Road<HighwayRuleAttributes>(0, RoadAttributes(source, g_configuration->highwayLength, MathExtras::HALF_PI, true), HighwayRuleAttributes(), UNASSIGNED));
-			frontBuffer->addWorkItem(EVALUATE_HIGHWAY, Road<HighwayRuleAttributes>(0, RoadAttributes(source, g_configuration->highwayLength, MathExtras::PI, true), HighwayRuleAttributes(), UNASSIGNED));
+			frontBuffer->addWorkItem(EVALUATE_HIGHWAY, Highway(0, RoadAttributes(source, g_configuration->highwayLength, 0), UNASSIGNED));
+			frontBuffer->addWorkItem(EVALUATE_HIGHWAY, Highway(0, RoadAttributes(source, g_configuration->highwayLength, -MathExtras::HALF_PI), UNASSIGNED));
+			frontBuffer->addWorkItem(EVALUATE_HIGHWAY, Highway(0, RoadAttributes(source, g_configuration->highwayLength, MathExtras::HALF_PI), UNASSIGNED));
+			frontBuffer->addWorkItem(EVALUATE_HIGHWAY, Highway(0, RoadAttributes(source, g_configuration->highwayLength, MathExtras::PI), UNASSIGNED));
 		}
 
 		lastHighwayDerivation = 0;
@@ -83,8 +81,8 @@ public:
 			vml_vec2 center = MathExtras::getBarycenter(primitive.vertices, primitive.numVertices);
 
 			RoadNetworkGraph::VertexIndex source = RoadNetworkGraph::createVertex(g_graph, center);
-			frontBuffer->addWorkItem(EVALUATE_STREET, Road<StreetRuleAttributes>(0, RoadAttributes(source, g_configuration->streetLength, -MathExtras::HALF_PI, false), StreetRuleAttributes(), UNASSIGNED));
-			frontBuffer->addWorkItem(EVALUATE_STREET, Road<StreetRuleAttributes>(0, RoadAttributes(source, g_configuration->streetLength, MathExtras::HALF_PI, false), StreetRuleAttributes(), UNASSIGNED));
+			frontBuffer->addWorkItem(EVALUATE_STREET, Street(0, RoadAttributes(source, g_configuration->streetLength, -MathExtras::HALF_PI), UNASSIGNED));
+			frontBuffer->addWorkItem(EVALUATE_STREET, Street(0, RoadAttributes(source, g_configuration->streetLength, MathExtras::HALF_PI), UNASSIGNED));
 		}
 
 		lastStreetDerivation = 0;

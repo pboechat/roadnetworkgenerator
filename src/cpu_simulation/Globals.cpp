@@ -1,8 +1,6 @@
 #include <Globals.h>
 #include <Road.h>
 #include <Branch.h>
-#include <StreetRuleAttributes.h>
-#include <HighwayRuleAttributes.h>
 
 #include <FreeImage.h>
 
@@ -88,7 +86,10 @@ void allocateWorkQueues(unsigned int maxWorkQueueCapacity)
 {
 	freeWorkQueues();
 	unsigned int capacity = maxWorkQueueCapacity;
-	unsigned int itemSize = MathExtras::max(MathExtras::max(sizeof(Road<StreetRuleAttributes>), sizeof(Road<HighwayRuleAttributes>)), MathExtras::max(sizeof(Branch<StreetRuleAttributes>), sizeof(Branch<HighwayRuleAttributes>)));
+	unsigned int itemSize = MathExtras::max(
+			MathExtras::max(sizeof(Highway), sizeof(Street)), 
+			MathExtras::max(sizeof(HighwayBranch), sizeof(StreetBranch))
+	);
 	unsigned int bufferSize = capacity * itemSize;
 
 	for (unsigned int i = 0; i < NUM_PROCEDURES; i++)

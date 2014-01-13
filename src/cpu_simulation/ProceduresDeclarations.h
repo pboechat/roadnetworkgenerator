@@ -4,8 +4,6 @@
 #include <WorkQueuesSet.h>
 #include <Road.h>
 #include <Branch.h>
-#include <HighwayRuleAttributes.h>
-#include <StreetRuleAttributes.h>
 
 #include <vector_math.h>
 
@@ -21,11 +19,11 @@
 		static void execute(ArgType& item, WorkQueuesSet* backQueues); \
 	}
 
-PROCEDURE_DECL(EvaluateHighwayBranch, Branch<HighwayRuleAttributes>);
-PROCEDURE_DECL(EvaluateHighway, Road<HighwayRuleAttributes>);
-PROCEDURE_DECL(InstantiateHighway, Road<HighwayRuleAttributes>);
-PROCEDURE_DECL(EvaluateStreetBranch, Branch<StreetRuleAttributes>);
-PROCEDURE_DECL(EvaluateStreet, Road<StreetRuleAttributes>);
-PROCEDURE_DECL(InstantiateStreet, Road<StreetRuleAttributes>);
+PROCEDURE_DECL(EvaluateHighwayBranch, HighwayBranch);
+PROCEDURE_DECL(EvaluateHighway, Highway);
+PROCEDURE_DECL(InstantiateHighway, Highway);
+PROCEDURE_DECL(EvaluateStreetBranch, StreetBranch);
+PROCEDURE_DECL(EvaluateStreet, Street);
+PROCEDURE_DECL(InstantiateStreet, Street);
 
 #endif

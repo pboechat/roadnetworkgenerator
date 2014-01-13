@@ -2,7 +2,7 @@
 #include <ProceduresCodes.h>
 
 //////////////////////////////////////////////////////////////////////////
-void EvaluateStreetBranch::execute(Branch<StreetRuleAttributes>& branch, WorkQueuesSet* backQueues)
+void EvaluateStreetBranch::execute(StreetBranch& branch, WorkQueuesSet* backQueues)
 {
 	// p6
 	if (branch.delay < 0)
@@ -20,12 +20,12 @@ void EvaluateStreetBranch::execute(Branch<StreetRuleAttributes>& branch, WorkQue
 	// p5
 	else if (branch.delay == 0)
 	{
-		backQueues->addWorkItem(EVALUATE_STREET, Road<StreetRuleAttributes>(0, branch.roadAttributes, branch.ruleAttributes, UNASSIGNED));
+		backQueues->addWorkItem(EVALUATE_STREET, Street(0, branch.roadAttributes, branch.ruleAttributes, UNASSIGNED));
 	}
 }
 
 //////////////////////////////////////////////////////////////////////////
-void EvaluateHighwayBranch::execute(Branch<HighwayRuleAttributes>& branch, WorkQueuesSet* backQueues)
+void EvaluateHighwayBranch::execute(HighwayBranch& branch, WorkQueuesSet* backQueues)
 {
 	// p6
 	if (branch.delay < 0)
@@ -43,6 +43,6 @@ void EvaluateHighwayBranch::execute(Branch<HighwayRuleAttributes>& branch, WorkQ
 	// p5
 	else if (branch.delay == 0)
 	{
-		backQueues->addWorkItem(EVALUATE_HIGHWAY, Road<HighwayRuleAttributes>(0, branch.roadAttributes, branch.ruleAttributes, UNASSIGNED));
+		backQueues->addWorkItem(EVALUATE_HIGHWAY, Highway(0, branch.roadAttributes, branch.ruleAttributes, UNASSIGNED));
 	}
 }

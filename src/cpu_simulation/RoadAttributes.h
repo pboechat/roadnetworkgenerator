@@ -8,10 +8,9 @@ struct RoadAttributes
 	RoadNetworkGraph::VertexIndex source;
 	unsigned int length;
 	float angle;
-	bool highway;
 
 	RoadAttributes() {}
-	RoadAttributes(RoadNetworkGraph::VertexIndex source, unsigned int length, float angle, bool highway) : source(source), length(length), angle(angle), highway(highway) {}
+	RoadAttributes(RoadNetworkGraph::VertexIndex source, unsigned int length, float angle) : source(source), length(length), angle(angle) {}
 
 };
 
