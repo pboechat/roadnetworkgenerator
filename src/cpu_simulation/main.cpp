@@ -60,11 +60,12 @@ void generateAndDisplay(const std::string& configurationFile, SceneRenderer& ren
 	//////////////////////////////////////////////////////////////////////////
 	if (g_graph != 0)
 	{
-		delete g_graph;
+		free(g_graph);
 	}
 
 	g_graph = new RoadNetworkGraph::Graph();
 	allocateGraphBuffers(g_configuration->maxVertices, g_configuration->maxEdges);
+	allocatePrimitivesBuffer(g_configuration->maxPrimitives);
 #ifdef USE_QUADTREE
 	//////////////////////////////////////////////////////////////////////////
 	//	ALLOCATE QUADTREE
@@ -72,7 +73,7 @@ void generateAndDisplay(const std::string& configurationFile, SceneRenderer& ren
 
 	if (g_quadtree != 0)
 	{
-		delete g_quadtree;
+		free(g_quadtree);
 	}
 
 	g_quadtree = new RoadNetworkGraph::QuadTree();
@@ -188,6 +189,7 @@ int main(int argc, char** argv)
 
 	freeQuadtreeBuffers();
 #endif
+	freePrimitivesBuffer();
 	freeGraphBuffers();
 	freeImageMaps();
 	freeSamplingBuffers();

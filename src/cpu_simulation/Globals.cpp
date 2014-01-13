@@ -27,6 +27,10 @@ unsigned int* g_distancesSamplingBuffer = 0;
 RoadNetworkGraph::Vertex* g_vertices = 0;
 //////////////////////////////////////////////////////////////////////////
 RoadNetworkGraph::Edge* g_edges = 0;
+//////////////////////////////////////////////////////////////////////////
+RoadNetworkGraph::Primitive* g_primitives = 0;
+//////////////////////////////////////////////////////////////////////////
+unsigned int g_numExtractedPrimitives = 0;
 #ifdef USE_QUADTREE
 //////////////////////////////////////////////////////////////////////////
 extern RoadNetworkGraph::QuadTree* g_quadtree = 0;
@@ -185,6 +189,20 @@ void allocateGraphBuffers(unsigned int maxVertices, unsigned int maxEdges)
 }
 
 //////////////////////////////////////////////////////////////////////////
+void allocatePrimitivesBuffer(unsigned int maxPrimitives)
+{
+	freePrimitivesBuffer();
+	g_primitives = (RoadNetworkGraph::Primitive*)malloc(sizeof(RoadNetworkGraph::Primitive) * maxPrimitives);
+
+	if (g_primitives == 0)
+	{
+		throw std::exception("insufficient memory");
+	}
+
+	memset(g_primitives, 0, sizeof(RoadNetworkGraph::Primitive) * maxPrimitives);
+}
+
+//////////////////////////////////////////////////////////////////////////
 void freeGraphBuffers()
 {
 	if (g_vertices != 0)
@@ -197,6 +215,16 @@ void freeGraphBuffers()
 	{
 		free(g_edges);
 		g_edges = 0;
+	}
+}
+
+//////////////////////////////////////////////////////////////////////////
+void freePrimitivesBuffer()
+{
+	if (g_primitives != 0)
+	{
+		free(g_primitives);
+		g_primitives = 0;
 	}
 }
 

@@ -1,6 +1,7 @@
 #include <MinimalCycleBasis.h>
 
 #include <SortedSet.h>
+#include <Array.h>
 
 namespace RoadNetworkGraph
 {
@@ -10,10 +11,6 @@ VertexIndex* g_heapBuffer = 0;
 //////////////////////////////////////////////////////////////////////////
 unsigned int g_heapBufferSize = 0;
 //////////////////////////////////////////////////////////////////////////
-Primitive* g_primitiveBuffer = 0;
-//////////////////////////////////////////////////////////////////////////
-unsigned int g_primitiveBufferSize = 0;
-//////////////////////////////////////////////////////////////////////////
 EdgeIndex* g_sequenceBuffer = 0;
 //////////////////////////////////////////////////////////////////////////
 unsigned int g_sequenceBufferSize = 0;
@@ -22,13 +19,11 @@ VertexIndex* g_visitedBuffer = 0;
 //////////////////////////////////////////////////////////////////////////
 unsigned int g_visitedBufferSize = 0;
 //////////////////////////////////////////////////////////////////////////
-Array<Primitive> g_primitives;
+void extractIsolatedVertex(SortedSet<VertexIndex>& heap, Array<Primitive>& primitives, Vertex* v0);
 //////////////////////////////////////////////////////////////////////////
-void extractIsolatedVertex(SortedSet<VertexIndex>& heap, Vertex* v0);
+void extractFilament(Graph* graph, SortedSet<VertexIndex>& heap, Array<Primitive>& primitives, Vertex* v0, Vertex* v1, EdgeIndex edgeIndex);
 //////////////////////////////////////////////////////////////////////////
-void extractFilament(Graph* graph, SortedSet<VertexIndex>& heap, Vertex* v0, Vertex* v1, EdgeIndex edgeIndex);
-//////////////////////////////////////////////////////////////////////////
-void extractPrimitive(Graph* graph, SortedSet<VertexIndex>& heap, Vertex* v0);
+void extractPrimitive(Graph* graph, SortedSet<VertexIndex>& heap, Array<Primitive>& primitives, Vertex* v0);
 //////////////////////////////////////////////////////////////////////////
 Vertex* getClockwiseMostVertex(Graph* graph, Vertex* previousVertex, Vertex* currentVertex);
 //////////////////////////////////////////////////////////////////////////
@@ -106,18 +101,15 @@ private:
 };
 
 //////////////////////////////////////////////////////////////////////////
-void allocateExtractionBuffers(unsigned int heapBufferSize, unsigned int primitivesBufferSize, unsigned int sequenceBufferSize, unsigned int visitedBufferSize)
+void allocateExtractionBuffers(unsigned int heapBufferSize, unsigned int sequenceBufferSize, unsigned int visitedBufferSize)
 {
 	freeExtractionBuffers();
 	g_heapBufferSize = heapBufferSize;
-	g_primitiveBufferSize = primitivesBufferSize;
 	g_sequenceBufferSize = sequenceBufferSize;
 	g_visitedBufferSize = visitedBufferSize;
 	g_heapBuffer = (VertexIndex*)malloc(sizeof(VertexIndex) * g_heapBufferSize);
-	g_primitiveBuffer = (Primitive*)malloc(sizeof(Primitive) * g_primitiveBufferSize);
 	g_sequenceBuffer = (EdgeIndex*)malloc(sizeof(EdgeIndex) * g_sequenceBufferSize);
 	g_visitedBuffer = (VertexIndex*)malloc(sizeof(VertexIndex) * g_visitedBufferSize);
-	g_primitives.setData(g_primitiveBuffer, g_primitiveBufferSize);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -128,13 +120,6 @@ void freeExtractionBuffers()
 		free(g_heapBuffer);
 		g_heapBuffer = 0;
 		g_heapBufferSize = 0;
-	}
-
-	if (g_primitiveBuffer != 0)
-	{
-		free(g_primitiveBuffer);
-		g_primitiveBuffer = 0;
-		g_primitiveBufferSize = 0;
 	}
 
 	if (g_sequenceBuffer != 0)
@@ -153,9 +138,10 @@ void freeExtractionBuffers()
 }
 
 //////////////////////////////////////////////////////////////////////////
-Array<Primitive>& extractPrimitives(Graph* graph)
+unsigned int extractPrimitives(Graph* graph, Primitive* primitivesBuffer, unsigned int maxPrimitives)
 {
 	SortedSet<VertexIndex> heap(g_heapBuffer, g_heapBufferSize, MinXMinYComparer(graph));
+	Array<Primitive> primitives(primitivesBuffer, maxPrimitives);
 
 	for (VertexIndex vertexIndex = 0; vertexIndex < graph->numVertices; vertexIndex++)
 	{
@@ -168,37 +154,37 @@ Array<Primitive>& extractPrimitives(Graph* graph)
 
 		if (v0->numAdjacencies == 0)
 		{
-			extractIsolatedVertex(heap, v0);
+			extractIsolatedVertex(heap, primitives, v0);
 		}
 
 		else if (v0->numAdjacencies == 1)
 		{
 			Vertex* v1 = &graph->vertices[v0->adjacencies[0]];
-			extractFilament(graph, heap, v0, v1, findEdge(graph, v0, v1));
+			extractFilament(graph, heap, primitives, v0, v1, findEdge(graph, v0, v1));
 		}
 
 		else
 		{
 			// filament or minimal cycle
-			extractPrimitive(graph, heap, v0);
+			extractPrimitive(graph, heap, primitives, v0);
 		}
 	}
 
-	return g_primitives;
+	return primitives.size();
 }
 
 //////////////////////////////////////////////////////////////////////////
-void extractIsolatedVertex(SortedSet<VertexIndex>& heap, Vertex* v0)
+void extractIsolatedVertex(SortedSet<VertexIndex>& heap, Array<Primitive>& primitives, Vertex* v0)
 {
 	Primitive primitive;
 	primitive.type = ISOLATED_VERTEX;
 	insert(primitive, v0->position);
 	heap.remove(v0->index);
-	g_primitives.push(primitive);
+	primitives.push(primitive);
 }
 
 //////////////////////////////////////////////////////////////////////////
-void extractFilament(Graph* graph, SortedSet<VertexIndex>& heap, Vertex* v0, Vertex* v1, EdgeIndex edgeIndex)
+void extractFilament(Graph* graph, SortedSet<VertexIndex>& heap, Array<Primitive>& primitives, Vertex* v0, Vertex* v1, EdgeIndex edgeIndex)
 {
 	if (v0->numAdjacencies == 2)
 	{
@@ -206,10 +192,8 @@ void extractFilament(Graph* graph, SortedSet<VertexIndex>& heap, Vertex* v0, Ver
 		throw std::exception("v0->numAdjacencies == 2");
 	}
 
-	Edge& edge = graph->edges[edgeIndex];
-
 	// is cycle edge
-	if (edge.attr2 == 1)
+	if (graph->edges[edgeIndex].attr2 == 1)
 	{
 		if (v0->numAdjacencies >= 3)
 		{
@@ -226,9 +210,7 @@ void extractFilament(Graph* graph, SortedSet<VertexIndex>& heap, Vertex* v0, Ver
 		{
 			v1 = &graph->vertices[v0->adjacencies[0]];
 			edgeIndex = findEdge(graph, v0, v1);
-			edge = graph->edges[edgeIndex];
-
-			if (edge.attr2 == 1)
+			if (graph->edges[edgeIndex].attr2 == 1)
 			{
 				heap.remove(v0->index);
 				removeEdgeReferencesInVertices(graph, edgeIndex);
@@ -280,16 +262,17 @@ void extractFilament(Graph* graph, SortedSet<VertexIndex>& heap, Vertex* v0, Ver
 			heap.remove(v0->index);
 		}
 
-		g_primitives.push(primitive);
+		primitives.push(primitive);
 	}
 }
 
 //////////////////////////////////////////////////////////////////////////
-void extractPrimitive(Graph* graph, SortedSet<VertexIndex>& heap, Vertex* v0)
+void extractPrimitive(Graph* graph, SortedSet<VertexIndex>& heap, Array<Primitive>& primitives, Vertex* v0)
 {
-	SortedSet<VertexIndex> visited(g_visitedBuffer, g_visitedBufferSize, VertexIndexComparer());
+	//SortedSet<VertexIndex> visited(g_visitedBuffer, g_visitedBufferSize, VertexIndexComparer());
+	Array<VertexIndex> visited(g_visitedBuffer, g_visitedBufferSize);
 	Array<EdgeIndex> sequence(g_sequenceBuffer, g_sequenceBufferSize);
-	Vertex* v1 = getCounterclockwiseMostVertex(graph, 0, v0);
+	Vertex* v1 = getClockwiseMostVertex(graph, 0, v0);
 	Vertex* previousVertex = v0;
 	Vertex* currentVertex = v1;
 
@@ -297,8 +280,9 @@ void extractPrimitive(Graph* graph, SortedSet<VertexIndex>& heap, Vertex* v0)
 	{
 		EdgeIndex edgeIndex = findEdge(graph, previousVertex, currentVertex);
 		sequence.push(edgeIndex);
-		visited.insert(currentVertex->index);
-		Vertex* nextVertex = getClockwiseMostVertex(graph, previousVertex, currentVertex);
+		//visited.insert(currentVertex->index);
+		visited.push(currentVertex->index);
+		Vertex* nextVertex = getCounterclockwiseMostVertex(graph, previousVertex, currentVertex);
 		previousVertex = currentVertex;
 		currentVertex = nextVertex;
 	}
@@ -315,7 +299,7 @@ void extractPrimitive(Graph* graph, SortedSet<VertexIndex>& heap, Vertex* v0)
 
 		v2 = &graph->vertices[previousVertex->adjacencies[0]];
 		// filament found, not necessarily rooted at previousVertex
-		extractFilament(graph, heap, previousVertex, v2, findEdge(graph, previousVertex, v2));
+		extractFilament(graph, heap, primitives, previousVertex, v2, findEdge(graph, previousVertex, v2));
 	}
 
 	else if (currentVertex->index == v0->index)
@@ -327,8 +311,7 @@ void extractPrimitive(Graph* graph, SortedSet<VertexIndex>& heap, Vertex* v0)
 
 		for (unsigned int i = 0; i < sequence.size(); i++)
 		{
-			Edge& edge = graph->edges[sequence[i]];
-			edge.attr2 = 1; // is cycle edge
+			graph->edges[sequence[i]].attr2 = 1; // is cycle edge
 		}
 
 		insert(primitive, currentVertex->position);
@@ -344,17 +327,17 @@ void extractPrimitive(Graph* graph, SortedSet<VertexIndex>& heap, Vertex* v0)
 		{
 			v2 = &graph->vertices[v0->adjacencies[0]];
 			// remove the filament rooted at v0
-			extractFilament(graph, heap, v0, v2, findEdge(graph, v0, v2));
+			extractFilament(graph, heap, primitives, v0, v2, findEdge(graph, v0, v2));
 		}
 
 		if (v1->numAdjacencies == 1)
 		{
 			v2 = &graph->vertices[v1->adjacencies[0]];
 			// remove the filament rooted at v1
-			extractFilament(graph, heap, v1, v2, findEdge(graph, v1, v2));
+			extractFilament(graph, heap, primitives, v1, v2, findEdge(graph, v1, v2));
 		}
 
-		g_primitives.push(primitive);
+		primitives.push(primitive);
 	}
 
 	else // currentVertex was visited earlier
@@ -377,7 +360,7 @@ void extractPrimitive(Graph* graph, SortedSet<VertexIndex>& heap, Vertex* v0)
 			}
 		}
 
-		extractFilament(graph, heap, v0, v1, findEdge(graph, v0, v1));
+		extractFilament(graph, heap, primitives, v0, v1, findEdge(graph, v0, v1));
 	}
 }
 

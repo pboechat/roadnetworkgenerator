@@ -55,7 +55,7 @@ struct Configuration
 	vml_vec4 highwayColor;
 	vml_vec4 streetColor;
 	vml_vec4 quadtreeColor;
-	bool removeDeadEndRoads;
+	bool drawLabels;
 	unsigned int numSpawnPoints;
 	vml_vec2 spawnPoints[MAX_SPAWN_POINTS];
 	unsigned int maxPrimitives;
@@ -139,7 +139,7 @@ struct Configuration
 		highwayColor = getPropertyAsVec4(properties, "highway_color");
 		streetColor = getPropertyAsVec4(properties, "street_color");
 		quadtreeColor = getPropertyAsVec4(properties, "quadtree_color");
-		removeDeadEndRoads = getPropertyAsBool(properties, "remove_dead_end_roads");
+		drawLabels = getPropertyAsBool(properties, "draw_labels");
 		maxPrimitives = getPropertyAsUnsignedInt(properties, "max_primitives");
 		maxEdgeSequences = getPropertyAsUnsignedInt(properties, "max_edge_sequences");
 		maxVisitedVertices = getPropertyAsUnsignedInt(properties, "max_visited_vertices");

@@ -86,9 +86,7 @@ EdgeIndex findEdge(Graph* graph, Vertex& v0, Vertex& v1)
 	for (unsigned int i = 0; i < v0.numOuts; i++)
 	{
 		EdgeIndex edgeIndex = v0.outs[i];
-		Edge& edge = graph->edges[edgeIndex];
-
-		if (edge.destination == v1.index)
+		if (graph->edges[edgeIndex].destination == v1.index)
 		{
 			return edgeIndex;
 		}
@@ -97,9 +95,7 @@ EdgeIndex findEdge(Graph* graph, Vertex& v0, Vertex& v1)
 	for (unsigned int i = 0; i < v0.numIns; i++)
 	{
 		EdgeIndex edgeIndex = v0.ins[i];
-		Edge& edge = graph->edges[edgeIndex];
-
-		if (edge.source == v1.index)
+		if (graph->edges[edgeIndex].source == v1.index)
 		{
 			return edgeIndex;
 		}
@@ -115,9 +111,7 @@ EdgeIndex findEdge(Graph* graph, Vertex* v0, Vertex* v1)
 	for (unsigned int i = 0; i < v0->numOuts; i++)
 	{
 		EdgeIndex edgeIndex = v0->outs[i];
-		Edge& edge = graph->edges[edgeIndex];
-
-		if (edge.destination == v1->index)
+		if (graph->edges[edgeIndex].destination == v1->index)
 		{
 			return edgeIndex;
 		}
@@ -126,9 +120,7 @@ EdgeIndex findEdge(Graph* graph, Vertex* v0, Vertex* v1)
 	for (unsigned int i = 0; i < v0->numIns; i++)
 	{
 		EdgeIndex edgeIndex = v0->ins[i];
-		Edge& edge = graph->edges[edgeIndex];
-
-		if (edge.source == v1->index)
+		if (graph->edges[edgeIndex].source == v1->index)
 		{
 			return edgeIndex;
 		}
@@ -145,9 +137,7 @@ EdgeIndex findEdge(Graph* graph, VertexIndex v0, VertexIndex v1)
 	for (unsigned int i = 0; i < vertex.numOuts; i++)
 	{
 		EdgeIndex edgeIndex = vertex.outs[i];
-		Edge& edge = graph->edges[edgeIndex];
-
-		if (edge.destination == v1)
+		if (graph->edges[edgeIndex].destination == v1)
 		{
 			return edgeIndex;
 		}
@@ -156,9 +146,7 @@ EdgeIndex findEdge(Graph* graph, VertexIndex v0, VertexIndex v1)
 	for (unsigned int i = 0; i < vertex.numIns; i++)
 	{
 		EdgeIndex edgeIndex = vertex.ins[i];
-		Edge& edge = graph->edges[edgeIndex];
-
-		if (edge.source == v1)
+		if (graph->edges[edgeIndex].source == v1)
 		{
 			return edgeIndex;
 		}
@@ -172,6 +160,7 @@ EdgeIndex findEdge(Graph* graph, VertexIndex v0, VertexIndex v1)
 void removeEdgeReferencesInVertices(Graph* graph, EdgeIndex edgeIndex)
 {
 	Edge& edge = graph->edges[edgeIndex];
+
 	Vertex& sourceVertex = graph->vertices[edge.source];
 	Vertex& destinationVertex = graph->vertices[edge.destination];
 

@@ -6,7 +6,6 @@
 #include <Edge.h>
 #include <Graph.h>
 #include <Primitive.h>
-#include <Array.h>
 
 #include <vector_math.h>
 
@@ -14,11 +13,11 @@ namespace RoadNetworkGraph
 {
 
 //////////////////////////////////////////////////////////////////////////
-void allocateExtractionBuffers(unsigned int heapBufferSize, unsigned int primitivesBufferSize, unsigned int sequenceBufferSize, unsigned int visitedBufferSize);
+void allocateExtractionBuffers(unsigned int heapBufferSize, unsigned int sequenceBufferSize, unsigned int visitedBufferSize);
 //////////////////////////////////////////////////////////////////////////
 void freeExtractionBuffers();
 //////////////////////////////////////////////////////////////////////////
-Array<Primitive>& extractPrimitives(Graph* graph);
+unsigned int extractPrimitives(Graph* graph, Primitive* primitivesBuffer, unsigned int maxPrimitives);
 
 }
 

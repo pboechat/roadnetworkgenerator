@@ -201,16 +201,19 @@ public:
 		geometry.draw();
 		solidShader.unbind();
 
-		glDepthMask(GL_FALSE);
-		glEnable(GL_BLEND);
-		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+		if (g_configuration->drawLabels)
+		{
+			glDepthMask(GL_FALSE);
+			glEnable(GL_BLEND);
+			glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-		fontShader.bind();
-		labels.draw(FontShaderSetter(fontShader, view, projection));
-		fontShader.unbind();
+			fontShader.bind();
+			labels.draw(FontShaderSetter(fontShader, view, projection));
+			fontShader.unbind();
 
-		glDisable(GL_BLEND);
-		glDepthMask(GL_TRUE);
+			glDisable(GL_BLEND);
+			glDepthMask(GL_TRUE);
+		}
 	}
 
 	void togglePopulationDensityMap()

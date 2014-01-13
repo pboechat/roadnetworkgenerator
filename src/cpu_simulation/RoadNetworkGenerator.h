@@ -55,14 +55,9 @@ public:
 			std::swap(frontBuffer, backBuffer);
 		}
 
-		if (g_configuration->removeDeadEndRoads)
-		{
-			RoadNetworkGraph::removeDeadEndRoads(g_graph);
-		}
-
-		/*RoadNetworkGraph::allocateExtractionBuffers(g_configuration->maxVertices, g_configuration->maxPrimitives, g_configuration->maxEdgeSequences, g_configuration->maxVisitedVertices);
-		Array<RoadNetworkGraph::Primitive>& primitives = RoadNetworkGraph::extractPrimitives(g_graph);
-		RoadNetworkGraph::freeExtractionBuffers();*/
+		RoadNetworkGraph::allocateExtractionBuffers(g_configuration->maxVertices, g_configuration->maxEdgeSequences, g_configuration->maxVisitedVertices);
+		g_numExtractedPrimitives = RoadNetworkGraph::extractPrimitives(g_graph, g_primitives, g_configuration->maxPrimitives);
+		RoadNetworkGraph::freeExtractionBuffers();
 
 		buffer1.clear();
 		buffer2.clear();

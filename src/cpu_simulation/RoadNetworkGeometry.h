@@ -3,7 +3,7 @@
 
 #include <Geometry.h>
 #include <Globals.h>
-#include <GraphTraversal.h>
+#include <Primitive.h>
 
 #include <vector_math.h>
 #include <GL3/gl3w.h>
@@ -12,38 +12,6 @@
 
 class RoadNetworkGeometry : public Geometry
 {
-private:
-	struct GeometryCreationTraversal : public RoadNetworkGraph::GraphTraversal
-	{
-		std::vector<vml_vec4>& vertices;
-		std::vector<vml_vec4>& colors;
-		std::vector<unsigned int>& indices;
-		vml_vec4 highwayColor;
-		vml_vec4 streetColor;
-
-		GeometryCreationTraversal(std::vector<vml_vec4>& vertices, std::vector<vml_vec4>& colors, std::vector<unsigned int>& indices, const vml_vec4& highwayColor, const vml_vec4& streetColor) : vertices(vertices), colors(colors), indices(indices), highwayColor(highwayColor), streetColor(streetColor) {}
-		~GeometryCreationTraversal() {}
-
-		virtual bool operator () (const RoadNetworkGraph::Vertex& source, const RoadNetworkGraph::Vertex& destination, const RoadNetworkGraph::Edge& edge)
-		{
-			unsigned int i = vertices.size();
-			vertices.push_back(vml_vec4(source.position.x, source.position.y, 0.0f, 1.0f));
-			vertices.push_back(vml_vec4(destination.position.x, destination.position.y, 0.0f, 1.0f));
-			vml_vec4 color = (edge.attr1 == 1) ? highwayColor : streetColor;
-			colors.push_back(color);
-			colors.push_back(color);
-			indices.push_back(i);
-			indices.push_back(i + 1);
-			return true;
-		}
-
-	};
-
-	unsigned int buffers[3];
-	unsigned int vao;
-	unsigned int elementsCount;
-	bool built;
-
 public:
 	RoadNetworkGeometry() : built(false), elementsCount(0)
 	{
@@ -69,7 +37,65 @@ public:
 		std::vector<vml_vec4> vertices;
 		std::vector<vml_vec4> colors;
 		std::vector<unsigned int> indices;
-		RoadNetworkGraph::traverse(g_graph, GeometryCreationTraversal(vertices, colors, indices, g_configuration->highwayColor, g_configuration->streetColor));
+		for (unsigned int i = 0; i < g_numExtractedPrimitives; i++)
+		{
+			RoadNetworkGraph::Primitive& primitive = g_primitives[i];
+
+			switch (primitive.type)
+			{
+			case RoadNetworkGraph::MINIMAL_CYCLE:
+				for (unsigned int j = 0; j < primitive.numVertices; j++)
+				{
+					vml_vec2& v0 = primitive.vertices[j];
+					vml_vec2 v1;
+					if (j == primitive.numVertices - 1)
+					{
+						v1 = primitive.vertices[0];
+					}
+					else
+					{
+						v1 = primitive.vertices[j + 1];
+					}
+
+					unsigned int k = vertices.size();
+
+					vertices.push_back(vml_vec4(v0.x, v0.y, 0.0f, 1.0f));
+					vertices.push_back(vml_vec4(v1.x, v1.y, 0.0f, 1.0f));
+
+					colors.push_back(g_configuration->highwayColor);
+					colors.push_back(g_configuration->highwayColor);
+
+					indices.push_back(k);
+					indices.push_back(k + 1);
+				}
+				break;
+			case RoadNetworkGraph::FILAMENT:
+				for (unsigned int j = 0; j < primitive.numVertices - 1; j++)
+				{
+					vml_vec2& v0 = primitive.vertices[j];
+					vml_vec2& v1 = primitive.vertices[j + 1];
+
+					unsigned int k = vertices.size();
+
+					vertices.push_back(vml_vec4(v0.x, v0.y, 0.0f, 1.0f));
+					vertices.push_back(vml_vec4(v1.x, v1.y, 0.0f, 1.0f));
+
+					colors.push_back(g_configuration->streetColor);
+					colors.push_back(g_configuration->streetColor);
+
+					indices.push_back(k);
+					indices.push_back(k + 1);
+				}
+				break;
+			case RoadNetworkGraph::ISOLATED_VERTEX:
+				unsigned int k = vertices.size();
+				vml_vec2& v0 = primitive.vertices[0];
+				vertices.push_back(vml_vec4(v0.x, v0.y, 0.0f, 1.0f));
+				colors.push_back(g_configuration->highwayColor);
+				indices.push_back(k);
+			}
+		}
+
 		glBindBuffer(GL_ARRAY_BUFFER, buffers[0]);
 		glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(vml_vec4), (void*)&vertices[0], GL_STATIC_DRAW);
 		glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -107,6 +133,13 @@ public:
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 		glBindVertexArray(0);
 	}
+
+private:
+	unsigned int buffers[3];
+	unsigned int vao;
+	unsigned int elementsCount;
+	bool built;
+
 
 };
 

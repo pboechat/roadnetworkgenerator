@@ -15,8 +15,8 @@ namespace RoadNetworkGraph
 #define MAX_VERTICES 28
 #define MAX_EDGES 29
 #define MAX_RESULTS_PER_QUERY 1
+#define MAX_PRIMITIVES 12
 #define HEAP_BUFFER_SIZE 28
-#define PRIMITIVES_BUFFER_SIZE 12
 #define SEQUENCE_BUFFER_SIZE 29
 #define VISITED_BUFFER_SIZE 28
 #define QUADTREE_DEPTH 1
@@ -182,9 +182,10 @@ TEST(minimal_cycle_basis, extract_primitives)
 	initializeQuadtree(&quadtree, WORLD_BOUNDS, QUADTREE_DEPTH, MAX_RESULTS_PER_QUERY, quadrants, quadrantEdges);
 	initializeGraph(&graph, SNAP_RADIUS, MAX_VERTICES, MAX_EDGES, vertices, edges, &quadtree, MAX_RESULTS_PER_QUERY, queryResults);
 	setUpGraph(&graph);
-	allocateExtractionBuffers(HEAP_BUFFER_SIZE, PRIMITIVES_BUFFER_SIZE, SEQUENCE_BUFFER_SIZE, VISITED_BUFFER_SIZE);
-	Array<Primitive>& primitives = extractPrimitives(&graph);
-	EXPECT_EQ(12, primitives.size());
+	allocateExtractionBuffers(HEAP_BUFFER_SIZE, SEQUENCE_BUFFER_SIZE, VISITED_BUFFER_SIZE);
+	Primitive primitives[MAX_PRIMITIVES];
+	unsigned int numExtractedPrimitives = extractPrimitives(&graph, primitives, MAX_PRIMITIVES);
+	EXPECT_EQ(12, numExtractedPrimitives);
 	// v6v5v4 (filament)
 	EXPECT_EQ(3, primitives[0].numVertices);
 	EXPECT_EQ(V6_POS, primitives[0].vertices[0]);
@@ -209,11 +210,11 @@ TEST(minimal_cycle_basis, extract_primitives)
 	EXPECT_EQ(V9_POS, primitives[4].vertices[0]);
 	EXPECT_EQ(V10_POS, primitives[4].vertices[1]);
 	EXPECT_EQ(V8_POS, primitives[4].vertices[2]);
-	// v11v13v12 (minimal cycle basis)
+	// v11v12v13 (minimal cycle basis)
 	EXPECT_EQ(3, primitives[5].numVertices);
 	EXPECT_EQ(V11_POS, primitives[5].vertices[0]);
-	EXPECT_EQ(V13_POS, primitives[5].vertices[1]);
-	EXPECT_EQ(V12_POS, primitives[5].vertices[2]);
+	EXPECT_EQ(V12_POS, primitives[5].vertices[1]);
+	EXPECT_EQ(V13_POS, primitives[5].vertices[2]);
 	// v12v20v19v18v13 (minimal cycle basis)
 	EXPECT_EQ(5, primitives[6].numVertices);
 	EXPECT_EQ(V12_POS, primitives[6].vertices[0]);
@@ -229,16 +230,16 @@ TEST(minimal_cycle_basis, extract_primitives)
 	// v17 (isolated vertex)
 	EXPECT_EQ(1, primitives[8].numVertices);
 	EXPECT_EQ(V17_POS, primitives[8].vertices[0]);
-	// v19v21v20 (minimal cycle basis)
+	// v19v20v21 (minimal cycle basis)
 	EXPECT_EQ(3, primitives[9].numVertices);
 	EXPECT_EQ(V19_POS, primitives[9].vertices[0]);
-	EXPECT_EQ(V21_POS, primitives[9].vertices[1]);
-	EXPECT_EQ(V20_POS, primitives[9].vertices[2]);
-	// v22v24v23v20 (minimal cycle basis)
+	EXPECT_EQ(V20_POS, primitives[9].vertices[1]);
+	EXPECT_EQ(V21_POS, primitives[9].vertices[2]);
+	// v22v23v24v20 (minimal cycle basis)
 	EXPECT_EQ(4, primitives[10].numVertices);
 	EXPECT_EQ(V22_POS, primitives[10].vertices[0]);
-	EXPECT_EQ(V24_POS, primitives[10].vertices[1]);
-	EXPECT_EQ(V23_POS, primitives[10].vertices[2]);
+	EXPECT_EQ(V23_POS, primitives[10].vertices[1]);
+	EXPECT_EQ(V24_POS, primitives[10].vertices[2]);
 	EXPECT_EQ(V20_POS, primitives[10].vertices[3]);
 	// v26v27v25 (minimal cycle basis)
 	EXPECT_EQ(3, primitives[11].numVertices);
