@@ -8,7 +8,8 @@
 #include <WorkQueuesSet.h>
 #include <Road.h>
 #include <RoadAttributes.h>
-#include <RuleAttributes.h>
+#include <StreetRuleAttributes.h>
+#include <HighwayRuleAttributes.h>
 #include <MathExtras.h>
 #include <MinimalCycleBasis.h>
 
@@ -17,7 +18,7 @@
 class RoadNetworkGenerator
 {
 public:
-	RoadNetworkGenerator(unsigned int maxWorkQueueCapacity) : maxWorkQueueCapacity(maxWorkQueueCapacity), buffer1(g_workQueues1, NUM_PROCEDURES), buffer2(g_workQueues2, NUM_PROCEDURES), lastDerivation(0)
+	RoadNetworkGenerator() : buffer1(g_workQueues1, NUM_PROCEDURES), buffer2(g_workQueues2, NUM_PROCEDURES), lastHighwayDerivation(0), lastStreetDerivation(0)
 #ifdef _DEBUG
 		, maxWorkQueueCapacityUsed(0)
 #endif
@@ -29,49 +30,89 @@ public:
 		WorkQueuesSet* frontBuffer = &buffer1;
 		WorkQueuesSet* backBuffer = &buffer2;
 
+		// set highway spawn points
 		for (unsigned int i = 0; i < g_configuration->numSpawnPoints; i++)
 		{
 			vml_vec2 spawnPoint = g_configuration->spawnPoints[i];
 			RoadNetworkGraph::VertexIndex source = RoadNetworkGraph::createVertex(g_graph, spawnPoint);
-			frontBuffer->addWorkItem(EVALUATE_ROAD, Road(0, RoadAttributes(source, g_configuration->highwayLength, 0, true), RuleAttributes(), UNASSIGNED));
-			frontBuffer->addWorkItem(EVALUATE_ROAD, Road(0, RoadAttributes(source, g_configuration->highwayLength, -MathExtras::HALF_PI, true), RuleAttributes(), UNASSIGNED));
-			frontBuffer->addWorkItem(EVALUATE_ROAD, Road(0, RoadAttributes(source, g_configuration->highwayLength, MathExtras::HALF_PI, true), RuleAttributes(), UNASSIGNED));
-			frontBuffer->addWorkItem(EVALUATE_ROAD, Road(0, RoadAttributes(source, g_configuration->highwayLength, MathExtras::PI, true), RuleAttributes(), UNASSIGNED));
+			frontBuffer->addWorkItem(EVALUATE_HIGHWAY, Road<HighwayRuleAttributes>(0, RoadAttributes(source, g_configuration->highwayLength, 0, true), HighwayRuleAttributes(), UNASSIGNED));
+			frontBuffer->addWorkItem(EVALUATE_HIGHWAY, Road<HighwayRuleAttributes>(0, RoadAttributes(source, g_configuration->highwayLength, -MathExtras::HALF_PI, true), HighwayRuleAttributes(), UNASSIGNED));
+			frontBuffer->addWorkItem(EVALUATE_HIGHWAY, Road<HighwayRuleAttributes>(0, RoadAttributes(source, g_configuration->highwayLength, MathExtras::HALF_PI, true), HighwayRuleAttributes(), UNASSIGNED));
+			frontBuffer->addWorkItem(EVALUATE_HIGHWAY, Road<HighwayRuleAttributes>(0, RoadAttributes(source, g_configuration->highwayLength, MathExtras::PI, true), HighwayRuleAttributes(), UNASSIGNED));
 		}
 
-		lastDerivation = 0;
-
-		while (frontBuffer->notEmpty() && lastDerivation++ < g_configuration->maxDerivations)
+		lastHighwayDerivation = 0;
+		while (frontBuffer->notEmpty() && lastHighwayDerivation++ < g_configuration->maxHighwayDerivation)
 		{
 #ifdef _DEBUG
-
 			if (frontBuffer->getNumWorkItems() > maxWorkQueueCapacityUsed)
 			{
 				maxWorkQueueCapacityUsed = frontBuffer->getNumWorkItems();
 			}
-
 #endif
 			frontBuffer->executeAllWorkItems(backBuffer);
 			std::swap(frontBuffer, backBuffer);
 		}
 
+		// extract the allotments
 		RoadNetworkGraph::allocateExtractionBuffers(g_configuration->maxVertices, g_configuration->maxEdgeSequences, g_configuration->maxVisitedVertices);
 		g_numExtractedPrimitives = RoadNetworkGraph::extractPrimitives(g_graph, g_primitives, g_configuration->maxPrimitives);
 		RoadNetworkGraph::freeExtractionBuffers();
 
 		buffer1.clear();
 		buffer2.clear();
+
+		RoadNetworkGraph::clear(g_graph);
+#ifdef USE_QUADTREE
+		RoadNetworkGraph::clear(g_quadtree);
+#endif
+
+		frontBuffer = &buffer1;
+		backBuffer = &buffer2;
+
+		// set street spawn points
+		for (unsigned int i = 0; i < g_numExtractedPrimitives; i++)
+		{
+			RoadNetworkGraph::Primitive& primitive = g_primitives[i];
+
+			if (primitive.type != RoadNetworkGraph::MINIMAL_CYCLE)
+			{
+				continue;
+			}
+
+			vml_vec2 center = MathExtras::getBarycenter(primitive.vertices, primitive.numVertices);
+
+			RoadNetworkGraph::VertexIndex source = RoadNetworkGraph::createVertex(g_graph, center);
+			frontBuffer->addWorkItem(EVALUATE_STREET, Road<StreetRuleAttributes>(0, RoadAttributes(source, g_configuration->streetLength, -MathExtras::HALF_PI, false), StreetRuleAttributes(), UNASSIGNED));
+			frontBuffer->addWorkItem(EVALUATE_STREET, Road<StreetRuleAttributes>(0, RoadAttributes(source, g_configuration->streetLength, MathExtras::HALF_PI, false), StreetRuleAttributes(), UNASSIGNED));
+		}
+
+		lastStreetDerivation = 0;
+		while (frontBuffer->notEmpty() && lastStreetDerivation++ < g_configuration->maxStreetDerivation)
+		{
+#ifdef _DEBUG
+			if (frontBuffer->getNumWorkItems() > maxWorkQueueCapacityUsed)
+			{
+				maxWorkQueueCapacityUsed = frontBuffer->getNumWorkItems();
+			}
+#endif
+			frontBuffer->executeAllWorkItems(backBuffer);
+			std::swap(frontBuffer, backBuffer);
+		}
+
+		buffer1.clear();
+		buffer2.clear();
 	}
 
 #ifdef _DEBUG
-	inline unsigned int getLastStep() const
+	inline unsigned int getLastHighwayDerivation() const
 	{
-		return lastDerivation - 1;
+		return lastHighwayDerivation - 1;
 	}
 
-	inline unsigned int getMaxWorkQueueCapacity() const
+	inline unsigned int getLastStreetDerivation() const
 	{
-		return maxWorkQueueCapacity;
+		return lastStreetDerivation - 1;
 	}
 
 	inline unsigned int getMaxWorkQueueCapacityUsed() const
@@ -84,7 +125,8 @@ private:
 	WorkQueuesSet buffer1;
 	WorkQueuesSet buffer2;
 	unsigned int maxWorkQueueCapacity;
-	unsigned int lastDerivation;
+	unsigned int lastHighwayDerivation;
+	unsigned int lastStreetDerivation;
 #ifdef _DEBUG
 	unsigned int maxWorkQueueCapacityUsed;
 #endif

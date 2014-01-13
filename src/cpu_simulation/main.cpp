@@ -1,5 +1,5 @@
 // memory leak detection
-//#include <vld.h>
+#include <vld.h>
 
 #include "Defines.h"
 #include <RoadNetworkInputController.h>
@@ -83,7 +83,9 @@ void generateAndDisplay(const std::string& configurationFile, SceneRenderer& ren
 #else
 	RoadNetworkGraph::initializeGraph(g_graph, g_configuration->snapRadius, g_configuration->maxVertices, g_configuration->maxEdges, g_vertices, g_edges);
 #endif
-	RoadNetworkGenerator generator(g_configuration->maxWorkQueueCapacity);
+
+	RoadNetworkGenerator generator;
+
 #ifdef _DEBUG
 	Timer timer;
 	timer.start();
@@ -98,8 +100,9 @@ void generateAndDisplay(const std::string& configurationFile, SceneRenderer& ren
 	std::cout << "seed: " << g_configuration->seed << std::endl;
 #endif
 	std::cout << "generation time: " << timer.elapsedTime() << " seconds" << std::endl;
-	std::cout << "steps (max./real): " << g_configuration->maxDerivations << " / " << generator.getLastStep() << std::endl;
-	std::cout << "work queue capacity (max/max. in use): " << generator.getMaxWorkQueueCapacity() << " / " << generator.getMaxWorkQueueCapacityUsed() << std::endl;
+	std::cout << "last highway derivation (max./real): " << g_configuration->maxHighwayDerivation << " / " << generator.getLastHighwayDerivation() << std::endl;
+	std::cout << "last street derivation (max./real): " << g_configuration->maxStreetDerivation << " / " << generator.getLastStreetDerivation() << std::endl;
+	std::cout << "work queue capacity (max/max. in use): " << g_configuration->maxWorkQueueCapacity << " / " << generator.getMaxWorkQueueCapacityUsed() << std::endl;
 	std::cout << "memory (allocated/in use): " << toMegabytes(getAllocatedMemory(g_graph)) << " MB / " << toMegabytes(getMemoryInUse(g_graph)) << " MB" << std::endl;
 	std::cout << "vertices (allocated/in use): " << getAllocatedVertices(g_graph) << " / " << getVerticesInUse(g_graph) << std::endl;
 	std::cout << "edges (allocated/in use): " << getAllocatedEdges(g_graph) << " / " << getEdgesInUse(g_graph) << std::endl;
@@ -113,6 +116,7 @@ void generateAndDisplay(const std::string& configurationFile, SceneRenderer& ren
 	std::cout << "num. collision checks: " << getNumCollisionChecks(g_graph) << std::endl;
 	std::cout  << std::endl << std::endl;
 #endif
+
 	geometry.build();
 	labels.build();
 	camera.centerOnTarget(worldBounds);

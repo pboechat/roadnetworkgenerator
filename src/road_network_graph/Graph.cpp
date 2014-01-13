@@ -54,6 +54,16 @@ void initializeGraph(Graph* graph, float snapRadius, unsigned int maxVertices, u
 #endif
 
 //////////////////////////////////////////////////////////////////////////
+void clear(Graph* graph)
+{
+	graph->numVertices = 0;
+	graph->numEdges = 0;
+#ifdef _DEBUG
+	graph->numCollisionChecks = 0;
+#endif
+}
+
+//////////////////////////////////////////////////////////////////////////
 vml_vec2 getPosition(Graph* graph, VertexIndex vertexIndex)
 {
 	// FIXME: checking invariants
@@ -244,6 +254,7 @@ bool connect(Graph* graph, VertexIndex sourceVertexIndex, VertexIndex destinatio
 	Vertex& sourceVertex = graph->vertices[sourceVertexIndex];
 	Vertex& destinationVertex = graph->vertices[destinationVertexIndex];
 
+	// TODO: unidirectional graph -> get rid of Ins and Outs
 	// avoiding duplicate edges
 	for (unsigned int i = 0; i < sourceVertex.numAdjacencies; i++)
 	{
@@ -279,15 +290,6 @@ bool connect(Graph* graph, VertexIndex sourceVertexIndex, VertexIndex destinatio
 		throw std::exception("max. vertex adjacencies overflow");
 	}
 
-	// FIXME:
-	/*for (unsigned int i = 0; i < sourceVertex.numAdjacencies; i++)
-	{
-		if (sourceVertex.adjacencies[i] == destinationVertexIndex)
-		{
-			throw std::exception("duplicate adjacency");
-		}
-	}*/
-
 	sourceVertex.adjacencies[sourceVertex.numAdjacencies++] = destinationVertexIndex;
 
 	// FIXME: checking boundaries
@@ -303,15 +305,6 @@ bool connect(Graph* graph, VertexIndex sourceVertexIndex, VertexIndex destinatio
 	{
 		throw std::exception("max. vertex adjacencies overflow");
 	}
-
-	// FIXME:
-	/*for (unsigned int i = 0; i < destinationVertex.numAdjacencies; i++)
-	{
-		if (destinationVertex.adjacencies[i] == sourceVertexIndex)
-		{
-			throw std::exception("duplicate adjacency");
-		}
-	}*/
 
 	destinationVertex.adjacencies[destinationVertex.numAdjacencies++] = sourceVertexIndex;
 
@@ -331,14 +324,6 @@ void splitEdge(Graph* graph, EdgeIndex edgeIndex, VertexIndex splitVertexIndex)
 	Vertex& sourceVertex = graph->vertices[edge.source];
 	VertexIndex oldDestinationVertexIndex = edge.destination;
 	Vertex& oldDestinationVertex = graph->vertices[oldDestinationVertexIndex];
-
-	/*for (unsigned int i = 0; i < sourceVertex.numAdjacencies; i++)
-	{
-		if (sourceVertex.adjacencies[i] == splitVertexIndex)
-		{
-			throw std::exception("unexpected situation");
-		}
-	}*/
 	
 	edge.destination = splitVertexIndex;
 	Vertex& splitVertex = graph->vertices[splitVertexIndex];
@@ -363,15 +348,6 @@ void splitEdge(Graph* graph, EdgeIndex edgeIndex, VertexIndex splitVertexIndex)
 	{
 		throw std::exception("max. vertex adjacencies overflow");
 	}
-
-	// FIXME:
-	/*for (unsigned int i = 0; i < splitVertex.numAdjacencies; i++)
-	{
-		if (splitVertex.adjacencies[i] == edge.source)
-		{
-			throw std::exception("duplicate adjacency");
-		}
-	}*/
 
 	splitVertex.adjacencies[splitVertex.numAdjacencies++] = edge.source;
 
@@ -403,15 +379,6 @@ void splitEdge(Graph* graph, EdgeIndex edgeIndex, VertexIndex splitVertexIndex)
 	{
 		throw std::exception("max. vertex adjacencies overflow");
 	}
-
-	// FIXME:
-	/*for (unsigned int i = 0; i < splitVertex.numAdjacencies; i++)
-	{
-		if (splitVertex.adjacencies[i] == oldDestinationVertexIndex)
-		{
-			throw std::exception("duplicate adjacency");
-		}
-	}*/
 
 	splitVertex.adjacencies[splitVertex.numAdjacencies++] = oldDestinationVertexIndex;
 	

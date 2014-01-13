@@ -12,16 +12,28 @@ void WorkQueuesSet::executeAllWorkItems(WorkQueuesSet* backQueues)
 
 		switch (i)
 		{
-		case EVALUATE_BRANCH:
-			executeAllWorkItemsInQueue<EvaluateBranch, Branch>(queue, backQueues);
+		case EVALUATE_HIGHWAY_BRANCH:
+			executeAllWorkItemsInQueue<EvaluateHighwayBranch, Branch<HighwayRuleAttributes> >(queue, backQueues);
 			break;
 
-		case EVALUATE_ROAD:
-			executeAllWorkItemsInQueue<EvaluateRoad, Road>(queue, backQueues);
+		case EVALUATE_HIGHWAY:
+			executeAllWorkItemsInQueue<EvaluateHighway, Road<HighwayRuleAttributes> >(queue, backQueues);
 			break;
 
-		case INSTANTIATE_ROAD:
-			executeAllWorkItemsInQueue<InstantiateRoad, Road>(queue, backQueues);
+		case INSTANTIATE_HIGHWAY:
+			executeAllWorkItemsInQueue<InstantiateHighway, Road<HighwayRuleAttributes> >(queue, backQueues);
+			break;
+
+		case EVALUATE_STREET_BRANCH:
+			executeAllWorkItemsInQueue<EvaluateStreetBranch, Branch<StreetRuleAttributes> >(queue, backQueues);
+			break;
+
+		case EVALUATE_STREET:
+			executeAllWorkItemsInQueue<EvaluateStreet, Road<StreetRuleAttributes> >(queue, backQueues);
+			break;
+
+		case INSTANTIATE_STREET:
+			executeAllWorkItemsInQueue<InstantiateStreet, Road<StreetRuleAttributes> >(queue, backQueues);
 			break;
 
 		default:

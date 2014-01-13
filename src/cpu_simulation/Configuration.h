@@ -32,11 +32,12 @@ struct Configuration
 	unsigned int maxSamplingRayLength;
 	unsigned int streetLength;
 	unsigned int maxStreetBranchDepth;
-	unsigned int highwayBranchingDelay;
+	//unsigned int highwayBranchingDelay;
 	unsigned int minHighwayBranchingDistance;
-	unsigned int minPureHighwayBranchingDistance;
+	//unsigned int minPureHighwayBranchingDistance;
 	unsigned int streetBranchingDelay;
-	unsigned int maxDerivations;
+	unsigned int maxHighwayDerivation;
+	unsigned int maxStreetDerivation;
 	unsigned int maxHighwayGoalDeviation; // degrees
 	unsigned int goalDistanceThreshold;
 	int halfMaxHighwayGoalDeviation; // degrees
@@ -122,11 +123,12 @@ struct Configuration
 		maxSamplingRayLength = getPropertyAsUnsignedInt(properties, "max_sampling_ray_length");
 		streetLength = getPropertyAsUnsignedInt(properties, "street_length");
 		maxStreetBranchDepth = getPropertyAsUnsignedInt(properties, "max_street_branch_depth");
-		highwayBranchingDelay = getPropertyAsUnsignedInt(properties, "highway_branching_delay");
+		//highwayBranchingDelay = getPropertyAsUnsignedInt(properties, "highway_branching_delay");
 		minHighwayBranchingDistance = getPropertyAsUnsignedInt(properties, "min_highway_branching_distance");
-		minPureHighwayBranchingDistance = getPropertyAsUnsignedInt(properties, "min_pure_highway_branching_distance");
+		//minPureHighwayBranchingDistance = getPropertyAsUnsignedInt(properties, "min_pure_highway_branching_distance");
 		streetBranchingDelay = getPropertyAsUnsignedInt(properties, "street_branching_delay");
-		maxDerivations = getPropertyAsUnsignedInt(properties, "max_derivations");
+		maxHighwayDerivation = getPropertyAsUnsignedInt(properties, "max_highway_derivation");
+		maxStreetDerivation = getPropertyAsUnsignedInt(properties, "max_street_derivation");
 		maxHighwayGoalDeviation = getPropertyAsUnsignedInt(properties, "max_highway_goal_deviation");
 		goalDistanceThreshold = getPropertyAsUnsignedInt(properties, "goal_distance_threshold");
 		halfMaxHighwayGoalDeviation = (maxHighwayGoalDeviation + 1) / 2;

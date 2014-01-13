@@ -11,6 +11,7 @@ class GLFontBase
 public:
 	GLFontBase() : initialized(0), buffers(0), vaos(0)
 	{
+		font.characters = 0;
 	}
 
 	virtual ~GLFontBase()
@@ -21,7 +22,6 @@ public:
 protected:
 	void createImpl(const std::string& filePath, unsigned int textureId, bool pixelPerfect = 0)
 	{
-		font.characters = 0;
 		freeResources();
 		FILE* file;
 

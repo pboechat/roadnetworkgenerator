@@ -6,7 +6,8 @@
 #include <random>
 
 //////////////////////////////////////////////////////////////////////////
-void evaluateGlobalGoals(Road& road, RoadNetworkGraph::VertexIndex newOrigin, const vml_vec2& position, int* delays, RoadAttributes* roadAttributes, RuleAttributes* ruleAttributes);
+template<typename RuleAttributesType>
+void evaluateGlobalGoals(Road<RuleAttributesType>& road, RoadNetworkGraph::VertexIndex newOrigin, const vml_vec2& position, int* delays, RoadAttributes* roadAttributes, RuleAttributesType* ruleAttributes);
 //////////////////////////////////////////////////////////////////////////
 void findHighestPopulationDensity(const vml_vec2& start, float startingAngle, vml_vec2& goal, unsigned int& distance);
 //////////////////////////////////////////////////////////////////////////
@@ -14,14 +15,14 @@ Pattern findUnderlyingPattern(const vml_vec2& position);
 //////////////////////////////////////////////////////////////////////////
 void applyHighwayGoalDeviation(RoadAttributes& roadAttributes);
 //////////////////////////////////////////////////////////////////////////
-void applyNaturalPatternRule(const vml_vec2& position, unsigned int goalDistance, int& delay, RoadAttributes& roadAttributes, RuleAttributes& ruleAttributes);
+void applyNaturalPatternRule(const vml_vec2& position, unsigned int goalDistance, int& delay, RoadAttributes& roadAttributes, HighwayRuleAttributes& ruleAttributes);
 //////////////////////////////////////////////////////////////////////////
-void applyRadialPatternRule(const vml_vec2& position, unsigned int goalDistance, int& delay, RoadAttributes& roadAttributes, RuleAttributes& ruleAttributes);
+void applyRadialPatternRule(const vml_vec2& position, unsigned int goalDistance, int& delay, RoadAttributes& roadAttributes, HighwayRuleAttributes& ruleAttributes);
 //////////////////////////////////////////////////////////////////////////
-void applyRasterPatternRule(const vml_vec2& position, unsigned int goalDistance, int& delay, RoadAttributes& roadAttributes, RuleAttributes& ruleAttributes);
+void applyRasterPatternRule(const vml_vec2& position, unsigned int goalDistance, int& delay, RoadAttributes& roadAttributes, HighwayRuleAttributes& ruleAttributes);
 
 //////////////////////////////////////////////////////////////////////////
-void InstantiateRoad::execute(Road& road, WorkQueuesSet* backQueues)
+void InstantiateStreet::execute(Road<StreetRuleAttributes>& road, WorkQueuesSet* backQueues)
 {
 	// p2
 
@@ -37,7 +38,7 @@ void InstantiateRoad::execute(Road& road, WorkQueuesSet* backQueues)
 	bool interrupted = addRoad(g_graph, road.roadAttributes.source, direction, newSource, position, road.roadAttributes.highway);
 	int delays[3];
 	RoadAttributes roadAttributes[3];
-	RuleAttributes ruleAttributes[3];
+	StreetRuleAttributes ruleAttributes[3];
 
 	if (interrupted)
 	{
@@ -51,127 +52,143 @@ void InstantiateRoad::execute(Road& road, WorkQueuesSet* backQueues)
 		evaluateGlobalGoals(road, newSource, position, delays, roadAttributes, ruleAttributes);
 	}
 
-	backQueues->addWorkItem(EVALUATE_BRANCH, Branch(delays[0], roadAttributes[0], ruleAttributes[0]));
-	backQueues->addWorkItem(EVALUATE_BRANCH, Branch(delays[1], roadAttributes[1], ruleAttributes[1]));
-	backQueues->addWorkItem(EVALUATE_ROAD, Road(delays[2], roadAttributes[2], ruleAttributes[2], UNASSIGNED));
+	backQueues->addWorkItem(EVALUATE_STREET_BRANCH, Branch<StreetRuleAttributes>(delays[0], roadAttributes[0], ruleAttributes[0]));
+	backQueues->addWorkItem(EVALUATE_STREET_BRANCH, Branch<StreetRuleAttributes>(delays[1], roadAttributes[1], ruleAttributes[1]));
+	backQueues->addWorkItem(EVALUATE_STREET, Road<StreetRuleAttributes>(delays[2], roadAttributes[2], ruleAttributes[2], UNASSIGNED));
 }
 
 //////////////////////////////////////////////////////////////////////////
-void evaluateGlobalGoals(Road& road, RoadNetworkGraph::VertexIndex source, const vml_vec2& position, int* delays, RoadAttributes* roadAttributes, RuleAttributes* ruleAttributes)
+void InstantiateHighway::execute(Road<HighwayRuleAttributes>& road, WorkQueuesSet* backQueues)
 {
-	if (road.roadAttributes.highway)
+	// p2
+
+	// FIXME: checking invariants
+	if (road.state != SUCCEED)
 	{
-		bool doPureHighwayBranch = (road.ruleAttributes.pureHighwayBranchingDistance == g_configuration->minPureHighwayBranchingDistance);
-		bool doRegularBranch = (road.ruleAttributes.highwayBranchingDistance == g_configuration->minHighwayBranchingDistance);
-		// highway continuation
-		delays[2] = 0;
-		roadAttributes[2].source = source;
-		roadAttributes[2].highway = true;
-		ruleAttributes[2].hasGoal = road.ruleAttributes.hasGoal;
-		ruleAttributes[2].goal = road.ruleAttributes.goal;
-		ruleAttributes[2].highwayBranchingDistance = (doRegularBranch) ? 0 : road.ruleAttributes.highwayBranchingDistance + 1;
-		ruleAttributes[2].pureHighwayBranchingDistance = (doPureHighwayBranch) ? 0 : road.ruleAttributes.pureHighwayBranchingDistance + 1;
-		unsigned int goalDistance;
+		throw std::exception("road.state != SUCCEED");
+	}
 
-		if (!ruleAttributes[2].hasGoal)
-		{
-			findHighestPopulationDensity(position, road.roadAttributes.angle, ruleAttributes[2].goal, goalDistance);
-			ruleAttributes[2].hasGoal = true;
-		}
+	vml_vec2 direction = vml_rotate2D(vml_vec2(0.0f, road.roadAttributes.length), road.roadAttributes.angle);
+	RoadNetworkGraph::VertexIndex newSource;
+	vml_vec2 position;
+	bool interrupted = addRoad(g_graph, road.roadAttributes.source, direction, newSource, position, road.roadAttributes.highway);
+	int delays[3];
+	RoadAttributes roadAttributes[3];
+	HighwayRuleAttributes ruleAttributes[3];
 
-		else
-		{
-			goalDistance = (unsigned int)vml_distance(position, road.ruleAttributes.goal);
-		}
-
-		if (goalDistance <= g_configuration->goalDistanceThreshold)
-		{
-			delays[2] = -1; // remove highway
-		}
-
-		else
-		{
-			Pattern pattern = findUnderlyingPattern(position);
-
-			if (pattern == NATURAL_PATTERN)
-			{
-				applyNaturalPatternRule(position, goalDistance, delays[2], roadAttributes[2], ruleAttributes[2]);
-			}
-
-			else if (pattern == RADIAL_PATTERN)
-			{
-				applyRadialPatternRule(position, goalDistance, delays[2], roadAttributes[2], ruleAttributes[2]);
-			}
-
-			else if (pattern == RASTER_PATTERN)
-			{
-				applyRasterPatternRule(position, goalDistance, delays[2], roadAttributes[2], ruleAttributes[2]);
-			}
-
-			else
-			{
-				// FIXME: checking invariants
-				throw std::exception("invalid pattern");
-			}
-		}
-
-		if (doPureHighwayBranch)
-		{
-			// new highway branch left
-			delays[0] = 0;
-			roadAttributes[0].source = source;
-			roadAttributes[0].length = g_configuration->highwayLength;
-			roadAttributes[0].angle = roadAttributes[2].angle - MathExtras::HALF_PI;
-			roadAttributes[0].highway = true;
-			// new highway branch right
-			delays[1] = 0;
-			roadAttributes[1].source = source;
-			roadAttributes[1].length = g_configuration->highwayLength;
-			roadAttributes[1].angle = roadAttributes[2].angle + MathExtras::HALF_PI;
-			roadAttributes[1].highway = true;
-		}
-
-		else
-		{
-			// new street branch left
-			delays[0] = (doRegularBranch) ? g_configuration->highwayBranchingDelay : -1;
-			roadAttributes[0].source = source;
-			roadAttributes[0].length = g_configuration->streetLength;
-			roadAttributes[0].angle = roadAttributes[2].angle - MathExtras::HALF_PI;
-			roadAttributes[0].highway = false;
-			// new street branch right
-			delays[1] = (doRegularBranch) ? g_configuration->highwayBranchingDelay : -1;
-			roadAttributes[1].source = source;
-			roadAttributes[1].length = g_configuration->streetLength;
-			roadAttributes[1].angle = roadAttributes[2].angle + MathExtras::HALF_PI;
-			roadAttributes[1].highway = false;
-		}
+	if (interrupted)
+	{
+		delays[0] = -1;
+		delays[1] = -1;
+		delays[2] = -1;
 	}
 
 	else
 	{
-		unsigned int newStreetDepth = road.ruleAttributes.streetBranchDepth + 1;
+		evaluateGlobalGoals(road, newSource, position, delays, roadAttributes, ruleAttributes);
+	}
+
+	backQueues->addWorkItem(EVALUATE_HIGHWAY_BRANCH, Branch<HighwayRuleAttributes>(delays[0], roadAttributes[0], ruleAttributes[0]));
+	backQueues->addWorkItem(EVALUATE_HIGHWAY_BRANCH, Branch<HighwayRuleAttributes>(delays[1], roadAttributes[1], ruleAttributes[1]));
+	backQueues->addWorkItem(EVALUATE_HIGHWAY, Road<HighwayRuleAttributes>(delays[2], roadAttributes[2], ruleAttributes[2], UNASSIGNED));
+}
+
+//////////////////////////////////////////////////////////////////////////
+void evaluateGlobalGoals(Road<StreetRuleAttributes>& road, RoadNetworkGraph::VertexIndex source, const vml_vec2& position, int* delays, RoadAttributes* roadAttributes, StreetRuleAttributes* ruleAttributes)
+{
+		unsigned int newDepth = road.ruleAttributes.branchDepth + 1;
 		// street branch left
 		delays[0] = g_configuration->streetBranchingDelay;
 		roadAttributes[0].source = source;
 		roadAttributes[0].length = g_configuration->streetLength;
 		roadAttributes[0].angle = road.roadAttributes.angle - MathExtras::HALF_PI;
 		roadAttributes[0].highway = false;
-		ruleAttributes[0].streetBranchDepth = newStreetDepth;
+		ruleAttributes[0].branchDepth = newDepth;
 		// street branch right
 		delays[1] = g_configuration->streetBranchingDelay;
 		roadAttributes[1].source = source;
 		roadAttributes[1].length = g_configuration->streetLength;
 		roadAttributes[1].angle = road.roadAttributes.angle + MathExtras::HALF_PI;
 		roadAttributes[1].highway = false;
-		ruleAttributes[1].streetBranchDepth = newStreetDepth;
+		ruleAttributes[1].branchDepth = newDepth;
 		// street continuation
 		delays[2] = 0;
 		roadAttributes[2].source = source;
 		roadAttributes[2].length = g_configuration->streetLength;
 		roadAttributes[2].angle = road.roadAttributes.angle;
 		roadAttributes[2].highway = false;
-		ruleAttributes[2].streetBranchDepth = newStreetDepth;
+		ruleAttributes[2].branchDepth = newDepth;
+}
+
+//////////////////////////////////////////////////////////////////////////
+void evaluateGlobalGoals(Road<HighwayRuleAttributes>& road, RoadNetworkGraph::VertexIndex source, const vml_vec2& position, int* delays, RoadAttributes* roadAttributes, HighwayRuleAttributes* ruleAttributes)
+{
+	bool branch = (road.ruleAttributes.branchingDistance == g_configuration->minHighwayBranchingDistance);
+	// highway continuation
+	delays[2] = 0;
+	roadAttributes[2].source = source;
+	roadAttributes[2].highway = true;
+	ruleAttributes[2].hasGoal = road.ruleAttributes.hasGoal;
+	ruleAttributes[2].goal = road.ruleAttributes.goal;
+	ruleAttributes[2].branchingDistance = (branch) ? 0 : road.ruleAttributes.branchingDistance + 1;
+	unsigned int goalDistance;
+
+	if (!ruleAttributes[2].hasGoal)
+	{
+		findHighestPopulationDensity(position, road.roadAttributes.angle, ruleAttributes[2].goal, goalDistance);
+		ruleAttributes[2].hasGoal = true;
+	}
+
+	else
+	{
+		goalDistance = (unsigned int)vml_distance(position, road.ruleAttributes.goal);
+	}
+
+	if (goalDistance <= g_configuration->goalDistanceThreshold)
+	{
+		delays[2] = -1; // remove highway
+	}
+
+	else
+	{
+		Pattern pattern = findUnderlyingPattern(position);
+
+		if (pattern == NATURAL_PATTERN)
+		{
+			applyNaturalPatternRule(position, goalDistance, delays[2], roadAttributes[2], ruleAttributes[2]);
+		}
+
+		else if (pattern == RADIAL_PATTERN)
+		{
+			applyRadialPatternRule(position, goalDistance, delays[2], roadAttributes[2], ruleAttributes[2]);
+		}
+
+		else if (pattern == RASTER_PATTERN)
+		{
+			applyRasterPatternRule(position, goalDistance, delays[2], roadAttributes[2], ruleAttributes[2]);
+		}
+
+		else
+		{
+			// FIXME: checking invariants
+			throw std::exception("invalid pattern");
+		}
+	}
+
+	if (branch) 
+	{
+		// new highway branch left
+		delays[0] = 0;
+		roadAttributes[0].source = source;
+		roadAttributes[0].length = g_configuration->highwayLength;
+		roadAttributes[0].angle = roadAttributes[2].angle - MathExtras::HALF_PI;
+		roadAttributes[0].highway = true;
+		// new highway branch right
+		delays[1] = 0;
+		roadAttributes[1].source = source;
+		roadAttributes[1].length = g_configuration->highwayLength;
+		roadAttributes[1].angle = roadAttributes[2].angle + MathExtras::HALF_PI;
+		roadAttributes[1].highway = true;
 	}
 }
 
@@ -279,7 +296,7 @@ void applyHighwayGoalDeviation(RoadAttributes& roadAttributes)
 }
 
 //////////////////////////////////////////////////////////////////////////
-void applyNaturalPatternRule(const vml_vec2& position, unsigned int goalDistance, int& delay, RoadAttributes& roadAttributes, RuleAttributes& ruleAttributes)
+void applyNaturalPatternRule(const vml_vec2& position, unsigned int goalDistance, int& delay, RoadAttributes& roadAttributes, HighwayRuleAttributes& ruleAttributes)
 {
 	roadAttributes.length = MathExtras::min(goalDistance, g_configuration->highwayLength);
 	roadAttributes.angle = MathExtras::getOrientedAngle(vml_vec2(0.0f, 1.0f), ruleAttributes.goal - position);
@@ -287,13 +304,13 @@ void applyNaturalPatternRule(const vml_vec2& position, unsigned int goalDistance
 }
 
 //////////////////////////////////////////////////////////////////////////
-void applyRadialPatternRule(const vml_vec2& position, unsigned int goalDistance, int& delay, RoadAttributes& roadAttributes, RuleAttributes& ruleAttributes)
+void applyRadialPatternRule(const vml_vec2& position, unsigned int goalDistance, int& delay, RoadAttributes& roadAttributes, HighwayRuleAttributes& ruleAttributes)
 {
 	// TODO:
 }
 
 //////////////////////////////////////////////////////////////////////////
-void applyRasterPatternRule(const vml_vec2& position, unsigned int goalDistance, int& delay, RoadAttributes& roadAttributes, RuleAttributes& ruleAttributes)
+void applyRasterPatternRule(const vml_vec2& position, unsigned int goalDistance, int& delay, RoadAttributes& roadAttributes, HighwayRuleAttributes& ruleAttributes)
 {
 	float angle = MathExtras::getOrientedAngle(vml_vec2(1.0f, 0.0f), ruleAttributes.goal - position);
 	unsigned int horizontalDistance = (unsigned int)abs((float)goalDistance * cos(angle));

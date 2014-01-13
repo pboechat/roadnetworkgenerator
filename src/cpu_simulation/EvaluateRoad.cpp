@@ -3,14 +3,17 @@
 #include <Globals.h>
 
 //////////////////////////////////////////////////////////////////////////
-void evaluateLocalContraints(Road& road);
+template<typename RuleAttributesType>
+void evaluateLocalContraints(Road<RuleAttributesType>& road);
 //////////////////////////////////////////////////////////////////////////
-bool evaluateWaterBodies(Road& road, const vml_vec2& position);
+template<typename RuleAttributesType>
+bool evaluateWaterBodies(Road<RuleAttributesType>& road, const vml_vec2& position);
 //////////////////////////////////////////////////////////////////////////
-bool evaluateBlockades(Road& road, const vml_vec2& position);
+template<typename RuleAttributesType>
+bool evaluateBlockades(Road<RuleAttributesType>& road, const vml_vec2& position);
 
 //////////////////////////////////////////////////////////////////////////
-void EvaluateRoad::execute(Road& road, WorkQueuesSet* backQueues)
+void EvaluateStreet::execute(Road<StreetRuleAttributes>& road, WorkQueuesSet* backQueues)
 {
 	// p1, p3 and p6
 	if (road.delay < 0 || road.state == FAILED)
@@ -32,20 +35,52 @@ void EvaluateRoad::execute(Road& road, WorkQueuesSet* backQueues)
 
 	if (road.state == FAILED)
 	{
-		backQueues->addWorkItem(EVALUATE_ROAD, road);
+		backQueues->addWorkItem(EVALUATE_STREET, road);
 	}
 
 	else if (road.state == SUCCEED)
 	{
-		backQueues->addWorkItem(INSTANTIATE_ROAD, road);
+		backQueues->addWorkItem(INSTANTIATE_STREET, road);
 	}
 }
 
 //////////////////////////////////////////////////////////////////////////
-void evaluateLocalContraints(Road& road)
+void EvaluateHighway::execute(Road<HighwayRuleAttributes>& road, WorkQueuesSet* backQueues)
+{
+	// p1, p3 and p6
+	if (road.delay < 0 || road.state == FAILED)
+	{
+		return;
+	}
+
+	// p8
+	if (road.state == UNASSIGNED)
+	{
+		evaluateLocalContraints(road);
+
+		// FIXME: checking invariants
+		if (road.state == UNASSIGNED)
+		{
+			throw std::exception("road.state == UNASSIGNED");
+		}
+	}
+
+	if (road.state == FAILED)
+	{
+		backQueues->addWorkItem(EVALUATE_HIGHWAY_BRANCH, road);
+	}
+
+	else if (road.state == SUCCEED)
+	{
+		backQueues->addWorkItem(INSTANTIATE_HIGHWAY, road);
+	}
+}
+
+//////////////////////////////////////////////////////////////////////////
+void evaluateLocalContraints(Road<StreetRuleAttributes>& road)
 {
 	// remove streets that have exceeded max street branch depth
-	if (!road.roadAttributes.highway && road.ruleAttributes.streetBranchDepth > g_configuration->maxStreetBranchDepth)
+	if (road.ruleAttributes.branchDepth > g_configuration->maxStreetBranchDepth)
 	{
 		road.state = FAILED;
 		return;
@@ -55,7 +90,7 @@ void evaluateLocalContraints(Road& road)
 
 	// remove roads that cross world boundaries
 	if (position.x < 0 || position.x > (float)g_configuration->worldWidth ||
-			position.y < 0 || position.y > (float)g_configuration->worldHeight)
+		position.y < 0 || position.y > (float)g_configuration->worldHeight)
 	{
 		road.state = FAILED;
 		return;
@@ -75,7 +110,34 @@ void evaluateLocalContraints(Road& road)
 }
 
 //////////////////////////////////////////////////////////////////////////
-bool evaluateWaterBodies(Road& road, const vml_vec2& position)
+void evaluateLocalContraints(Road<HighwayRuleAttributes>& road)
+{
+	vml_vec2 position = getPosition(g_graph, road.roadAttributes.source);
+
+	// remove roads that cross world boundaries
+	if (position.x < 0 || position.x > (float)g_configuration->worldWidth ||
+		position.y < 0 || position.y > (float)g_configuration->worldHeight)
+	{
+		road.state = FAILED;
+		return;
+	}
+
+	if (!evaluateWaterBodies(road, position))
+	{
+		return;
+	}
+
+	if (g_blockadesMap == 0)
+	{
+		return;
+	}
+
+	evaluateBlockades(road, position);
+}
+
+//////////////////////////////////////////////////////////////////////////
+template<typename RuleAttributesType>
+bool evaluateWaterBodies(Road<RuleAttributesType>& road, const vml_vec2& position)
 {
 	// FIXME: checking invariants
 	if (g_waterBodiesMap == 0)
@@ -121,7 +183,8 @@ outside_loops:
 }
 
 //////////////////////////////////////////////////////////////////////////
-bool evaluateBlockades(Road& road, const vml_vec2& position)
+template<typename RuleAttributesType>
+bool evaluateBlockades(Road<RuleAttributesType>& road, const vml_vec2& position)
 {
 	// FIXME: checking invariants
 	if (g_blockadesMap == 0)

@@ -4,6 +4,7 @@
 #include <Geometry.h>
 #include <Globals.h>
 #include <Primitive.h>
+#include <GraphTraversal.h>
 
 #include <vector_math.h>
 #include <GL3/gl3w.h>
@@ -12,6 +13,36 @@
 
 class RoadNetworkGeometry : public Geometry
 {
+private:
+	struct GeometryCreationTraversal : public RoadNetworkGraph::GraphTraversal
+	{
+		std::vector<vml_vec4>& vertices;
+		std::vector<vml_vec4>& colors;
+		std::vector<unsigned int>& indices;
+		vml_vec4 color;
+
+		GeometryCreationTraversal(std::vector<vml_vec4>& vertices, std::vector<vml_vec4>& colors, std::vector<unsigned int>& indices, const vml_vec4& color) : vertices(vertices), colors(colors), indices(indices), color(color) {}
+		~GeometryCreationTraversal() {}
+
+		virtual bool operator () (const RoadNetworkGraph::Vertex& source, const RoadNetworkGraph::Vertex& destination, const RoadNetworkGraph::Edge& edge)
+		{
+			unsigned int i = vertices.size();
+			vertices.push_back(vml_vec4(source.position.x, source.position.y, 0.0f, 1.0f));
+			vertices.push_back(vml_vec4(destination.position.x, destination.position.y, 0.0f, 1.0f));
+			colors.push_back(color);
+			colors.push_back(color);
+			indices.push_back(i);
+			indices.push_back(i + 1);
+			return true;
+		}
+
+	};
+
+	unsigned int buffers[3];
+	unsigned int vao;
+	unsigned int elementsCount;
+	bool built;
+
 public:
 	RoadNetworkGeometry() : built(false), elementsCount(0)
 	{
@@ -96,6 +127,8 @@ public:
 			}
 		}
 
+		RoadNetworkGraph::traverse(g_graph, GeometryCreationTraversal(vertices, colors, indices, g_configuration->streetColor));
+
 		glBindBuffer(GL_ARRAY_BUFFER, buffers[0]);
 		glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(vml_vec4), (void*)&vertices[0], GL_STATIC_DRAW);
 		glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -133,13 +166,6 @@ public:
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 		glBindVertexArray(0);
 	}
-
-private:
-	unsigned int buffers[3];
-	unsigned int vao;
-	unsigned int elementsCount;
-	bool built;
-
 
 };
 

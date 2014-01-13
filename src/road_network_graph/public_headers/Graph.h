@@ -56,6 +56,8 @@ void initializeGraph(Graph* graph, float snapRadius, unsigned int maxVertices, u
 void initializeGraph(Graph* graph, float snapRadius, unsigned int maxVertices, unsigned int maxEdges, Vertex* vertices, Edge* edges);
 #endif
 //////////////////////////////////////////////////////////////////////////
+void clear(Graph* graph);
+//////////////////////////////////////////////////////////////////////////
 vml_vec2 getPosition(Graph* graph, VertexIndex vertexIndex);
 //////////////////////////////////////////////////////////////////////////
 VertexIndex createVertex(Graph* graph, const vml_vec2& position);

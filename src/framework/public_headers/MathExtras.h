@@ -85,6 +85,16 @@ static float getOrientedAngle(const vml_vec2& a, const vml_vec2& b)
 	}
 }
 
+static vml_vec2 getBarycenter(const vml_vec2* vertices, unsigned int numVertices)
+{
+	vml_vec2 center;
+	for (unsigned int i = 0; i < numVertices; i++)
+	{
+		center += vertices[i];
+	}
+	return center / (float)numVertices;
+}
+
 }
 
 #endif
