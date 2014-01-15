@@ -8,8 +8,10 @@
 #include <WorkQueuesSet.h>
 #include <Road.h>
 #include <RoadAttributes.h>
+
 #include <MathExtras.h>
 #include <MinimalCycleBasis.h>
+#include <Box2D.h>
 
 #include <vector_math.h>
 
@@ -39,6 +41,7 @@ public:
 			frontBuffer->addWorkItem(EVALUATE_HIGHWAY, Highway(0, RoadAttributes(source, g_configuration->highwayLength, MathExtras::PI), UNASSIGNED));
 		}
 
+		// generate highways
 		lastHighwayDerivation = 0;
 		while (frontBuffer->notEmpty() && lastHighwayDerivation++ < g_configuration->maxHighwayDerivation)
 		{
@@ -52,18 +55,17 @@ public:
 			std::swap(frontBuffer, backBuffer);
 		}
 
-		// extract the allotments
+		// create lightweight graph copy
+		copyGraphBuffers(g_configuration->maxVertices, g_configuration->maxEdges);
+		RoadNetworkGraph::copy(g_graph, g_graphCopy);
+		
+		// extract the allotments from graph copy
 		RoadNetworkGraph::allocateExtractionBuffers(g_configuration->maxVertices, g_configuration->maxEdgeSequences, g_configuration->maxVisitedVertices);
-		g_numExtractedPrimitives = RoadNetworkGraph::extractPrimitives(g_graph, g_primitives, g_configuration->maxPrimitives);
+		g_numExtractedPrimitives = RoadNetworkGraph::extractPrimitives(g_graphCopy, g_primitives, g_configuration->maxPrimitives);
 		RoadNetworkGraph::freeExtractionBuffers();
 
 		buffer1.clear();
 		buffer2.clear();
-
-		RoadNetworkGraph::clear(g_graph);
-#ifdef USE_QUADTREE
-		RoadNetworkGraph::clear(g_quadtree);
-#endif
 
 		frontBuffer = &buffer1;
 		backBuffer = &buffer2;
@@ -71,20 +73,29 @@ public:
 		// set street spawn points
 		for (unsigned int i = 0; i < g_numExtractedPrimitives; i++)
 		{
-			RoadNetworkGraph::Primitive& primitive = g_primitives[i];
+			const RoadNetworkGraph::Primitive& primitive = g_primitives[i];
 
 			if (primitive.type != RoadNetworkGraph::MINIMAL_CYCLE)
 			{
 				continue;
 			}
 
-			vml_vec2 center = MathExtras::getBarycenter(primitive.vertices, primitive.numVertices);
+			vml_vec2 center;
+			float area;
+			MathExtras::getPolygonInfo(primitive.vertices, primitive.numVertices, area, center);
+			if (area < g_configuration->minBlockArea)
+			{
+				continue;
+			}
 
 			RoadNetworkGraph::VertexIndex source = RoadNetworkGraph::createVertex(g_graph, center);
+			frontBuffer->addWorkItem(EVALUATE_STREET, Street(0, RoadAttributes(source, g_configuration->streetLength, 0), UNASSIGNED));
 			frontBuffer->addWorkItem(EVALUATE_STREET, Street(0, RoadAttributes(source, g_configuration->streetLength, -MathExtras::HALF_PI), UNASSIGNED));
 			frontBuffer->addWorkItem(EVALUATE_STREET, Street(0, RoadAttributes(source, g_configuration->streetLength, MathExtras::HALF_PI), UNASSIGNED));
+			frontBuffer->addWorkItem(EVALUATE_STREET, Street(0, RoadAttributes(source, g_configuration->streetLength, MathExtras::PI), UNASSIGNED));
 		}
 
+		// generate streets
 		lastStreetDerivation = 0;
 		while (frontBuffer->notEmpty() && lastStreetDerivation++ < g_configuration->maxStreetDerivation)
 		{

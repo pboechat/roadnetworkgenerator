@@ -127,48 +127,40 @@ void evaluateGlobalGoals(Highway& road, RoadNetworkGraph::VertexIndex source, co
 	ruleAttributes[2].hasGoal = road.ruleAttributes.hasGoal;
 	ruleAttributes[2].goal = road.ruleAttributes.goal;
 	ruleAttributes[2].branchingDistance = (branch) ? 0 : road.ruleAttributes.branchingDistance + 1;
-	unsigned int goalDistance;
 
-	if (!ruleAttributes[2].hasGoal)
+	unsigned int goalDistance;
+	if (ruleAttributes[2].hasGoal)
+	{
+		goalDistance = (unsigned int)vml_distance(position, road.ruleAttributes.goal);
+	}
+
+	if (!ruleAttributes[2].hasGoal || goalDistance <= g_configuration->goalDistanceThreshold)
 	{
 		findHighestPopulationDensity(position, road.roadAttributes.angle, ruleAttributes[2].goal, goalDistance);
 		ruleAttributes[2].hasGoal = true;
 	}
 
-	else
+	Pattern pattern = findUnderlyingPattern(position);
+
+	if (pattern == NATURAL_PATTERN)
 	{
-		goalDistance = (unsigned int)vml_distance(position, road.ruleAttributes.goal);
+		applyNaturalPatternRule(position, goalDistance, delays[2], roadAttributes[2], ruleAttributes[2]);
 	}
 
-	if (goalDistance <= g_configuration->goalDistanceThreshold)
+	else if (pattern == RADIAL_PATTERN)
 	{
-		delays[2] = -1; // remove highway
+		applyRadialPatternRule(position, goalDistance, delays[2], roadAttributes[2], ruleAttributes[2]);
+	}
+
+	else if (pattern == RASTER_PATTERN)
+	{
+		applyRasterPatternRule(position, goalDistance, delays[2], roadAttributes[2], ruleAttributes[2]);
 	}
 
 	else
 	{
-		Pattern pattern = findUnderlyingPattern(position);
-
-		if (pattern == NATURAL_PATTERN)
-		{
-			applyNaturalPatternRule(position, goalDistance, delays[2], roadAttributes[2], ruleAttributes[2]);
-		}
-
-		else if (pattern == RADIAL_PATTERN)
-		{
-			applyRadialPatternRule(position, goalDistance, delays[2], roadAttributes[2], ruleAttributes[2]);
-		}
-
-		else if (pattern == RASTER_PATTERN)
-		{
-			applyRasterPatternRule(position, goalDistance, delays[2], roadAttributes[2], ruleAttributes[2]);
-		}
-
-		else
-		{
-			// FIXME: checking invariants
-			throw std::exception("invalid pattern");
-		}
+		// FIXME: checking invariants
+		throw std::exception("invalid pattern");
 	}
 
 	if (branch) 

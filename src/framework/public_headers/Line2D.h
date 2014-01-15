@@ -7,7 +7,7 @@
 
 #include <exception>
 
-#define EPSILON 0.001f
+#define EPSILON 0.0000001f
 
 struct Line2D
 {

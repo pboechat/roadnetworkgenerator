@@ -21,14 +21,11 @@ unsigned int getValency(Graph* graph, const Vertex& vertex);
 //////////////////////////////////////////////////////////////////////////
 void initializeGraph(Graph* graph, float snapRadius, unsigned int maxVertices, unsigned int maxEdges, Vertex* vertices, Edge* edges, QuadTree* quadtree, unsigned int maxResultsPerQuery, EdgeIndex* queryResult)
 {
+	initializeBaseGraph(graph, vertices, edges);
 	graph->maxVertices = maxVertices;
 	graph->maxEdges = maxEdges;
 	graph->maxResultsPerQuery = maxResultsPerQuery;
-	graph->numVertices = 0;
-	graph->numEdges = 0;
 	graph->snapRadius = snapRadius;
-	graph->vertices = vertices;
-	graph->edges = edges;
 	graph->quadtree = quadtree;
 	graph->queryResult = queryResult;
 #ifdef _DEBUG
@@ -39,14 +36,11 @@ void initializeGraph(Graph* graph, float snapRadius, unsigned int maxVertices, u
 //////////////////////////////////////////////////////////////////////////
 void initializeGraph(Graph* graph, float snapRadius, unsigned int maxVertices, unsigned int maxEdges, Vertex* vertices, Edge* edges)
 {
+	initializeBaseGraph(graph, vertices, edges);
 	graph->maxVertices = maxVertices;
 	graph->maxEdges = maxEdges;
 	graph->maxResultsPerQuery = maxResultsPerQuery;
-	graph->numVertices = 0;
-	graph->numEdges = 0;
 	graph->snapRadius = snapRadius;
-	graph->vertices = vertices;
-	graph->edges = edges;
 #ifdef _DEBUG
 	graph->numCollisionChecks = 0;
 #endif
@@ -54,13 +48,10 @@ void initializeGraph(Graph* graph, float snapRadius, unsigned int maxVertices, u
 #endif
 
 //////////////////////////////////////////////////////////////////////////
-void clear(Graph* graph)
+void copy(Graph* graph, BaseGraph* other)
 {
-	graph->numVertices = 0;
-	graph->numEdges = 0;
-#ifdef _DEBUG
-	graph->numCollisionChecks = 0;
-#endif
+	other->numEdges = graph->numEdges;
+	other->numVertices = graph->numVertices;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -88,115 +79,6 @@ VertexIndex createVertex(Graph* graph, const vml_vec2& position)
 	newVertex.index = graph->numVertices;
 	newVertex.position = position;
 	return graph->numVertices++;
-}
-
-//////////////////////////////////////////////////////////////////////////
-EdgeIndex findEdge(Graph* graph, Vertex& v0, Vertex& v1)
-{
-	for (unsigned int i = 0; i < v0.numOuts; i++)
-	{
-		EdgeIndex edgeIndex = v0.outs[i];
-		if (graph->edges[edgeIndex].destination == v1.index)
-		{
-			return edgeIndex;
-		}
-	}
-
-	for (unsigned int i = 0; i < v0.numIns; i++)
-	{
-		EdgeIndex edgeIndex = v0.ins[i];
-		if (graph->edges[edgeIndex].source == v1.index)
-		{
-			return edgeIndex;
-		}
-	}
-
-	// FIXME: checking invariants
-	throw std::exception("edge not found");
-}
-
-//////////////////////////////////////////////////////////////////////////
-EdgeIndex findEdge(Graph* graph, Vertex* v0, Vertex* v1)
-{
-	for (unsigned int i = 0; i < v0->numOuts; i++)
-	{
-		EdgeIndex edgeIndex = v0->outs[i];
-		if (graph->edges[edgeIndex].destination == v1->index)
-		{
-			return edgeIndex;
-		}
-	}
-
-	for (unsigned int i = 0; i < v0->numIns; i++)
-	{
-		EdgeIndex edgeIndex = v0->ins[i];
-		if (graph->edges[edgeIndex].source == v1->index)
-		{
-			return edgeIndex;
-		}
-	}
-
-	// FIXME: checking invariants
-	throw std::exception("edge not found");
-}
-
-//////////////////////////////////////////////////////////////////////////
-EdgeIndex findEdge(Graph* graph, VertexIndex v0, VertexIndex v1)
-{
-	Vertex& vertex = graph->vertices[v0];
-	for (unsigned int i = 0; i < vertex.numOuts; i++)
-	{
-		EdgeIndex edgeIndex = vertex.outs[i];
-		if (graph->edges[edgeIndex].destination == v1)
-		{
-			return edgeIndex;
-		}
-	}
-
-	for (unsigned int i = 0; i < vertex.numIns; i++)
-	{
-		EdgeIndex edgeIndex = vertex.ins[i];
-		if (graph->edges[edgeIndex].source == v1)
-		{
-			return edgeIndex;
-		}
-	}
-
-	// FIXME: checking invariants
-	throw std::exception("edge not found");
-}
-
-//////////////////////////////////////////////////////////////////////////
-void removeEdgeReferencesInVertices(Graph* graph, EdgeIndex edgeIndex)
-{
-	Edge& edge = graph->edges[edgeIndex];
-
-	Vertex& sourceVertex = graph->vertices[edge.source];
-	Vertex& destinationVertex = graph->vertices[edge.destination];
-
-	removeAdjacency(sourceVertex, destinationVertex.index);
-	removeAdjacency(destinationVertex, sourceVertex.index);
-
-	removeOutEdge(sourceVertex, edgeIndex);
-	removeInEdge(destinationVertex, edgeIndex);
-}
-
-//////////////////////////////////////////////////////////////////////////
-void removeEdgeReferencesInVertices(Graph* graph, Vertex& v0, Vertex& v1)
-{
-	removeEdgeReferencesInVertices(graph, findEdge(graph, v0, v1));
-}
-
-//////////////////////////////////////////////////////////////////////////
-void removeEdgeReferencesInVertices(Graph* graph, Vertex* v0, Vertex* v1)
-{
-	removeEdgeReferencesInVertices(graph, findEdge(graph, v0, v1));
-}
-
-//////////////////////////////////////////////////////////////////////////
-void removeEdgeReferencesInVertices(Graph* graph, VertexIndex v0, VertexIndex v1)
-{
-	removeEdgeReferencesInVertices(graph, findEdge(graph, v0, v1));
 }
 
 //////////////////////////////////////////////////////////////////////////

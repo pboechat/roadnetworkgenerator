@@ -36,8 +36,6 @@ struct QuadTree
 //////////////////////////////////////////////////////////////////////////
 void initializeQuadtree(QuadTree* quadtree, const Box2D& worldBounds, unsigned int depth, unsigned int maxResultsPerQuery, Quadrant* quadrants, QuadrantEdges* quadrantEdges);
 //////////////////////////////////////////////////////////////////////////
-void clear(QuadTree* quadtree);
-//////////////////////////////////////////////////////////////////////////
 void insert(QuadTree* quadtree, EdgeIndex edgeIndex, const Line2D& edgeLine, unsigned int index = 0, unsigned int offset = 0, unsigned int levelWidth = 1);
 //////////////////////////////////////////////////////////////////////////
 void remove(QuadTree* quadtree, EdgeIndex edgeIndex, const Line2D& edgeLine, unsigned int index = 0, unsigned int offset = 0, unsigned int levelWidth = 1);
@@ -46,11 +44,11 @@ template<typename T>
 void query(QuadTree* quadtree, const T& shape, EdgeIndex* queryResult, unsigned int& size, unsigned int offset = 0)
 {
 	size = offset;
-	recurssiveQuery(quadtree, shape, queryResult, size, 0, 0, 1);
+	recursiveQuery(quadtree, shape, queryResult, size, 0, 0, 1);
 }
 //////////////////////////////////////////////////////////////////////////
 template<typename T>
-void recurssiveQuery(QuadTree* quadtree, const T& shape, EdgeIndex* queryResult, unsigned int& size, unsigned int index, unsigned int offset, unsigned int levelWidth)
+void recursiveQuery(QuadTree* quadtree, const T& shape, EdgeIndex* queryResult, unsigned int& size, unsigned int index, unsigned int offset, unsigned int levelWidth)
 {
 	Quadrant& quadrant = quadtree->quadrants[offset + index];
 
@@ -83,10 +81,10 @@ void recurssiveQuery(QuadTree* quadtree, const T& shape, EdgeIndex* queryResult,
 			unsigned int baseIndex = (index * 4);
 			unsigned int newOffset = offset + levelWidth;
 			unsigned int newLevelWidth = levelWidth * 4;
-			recurssiveQuery(quadtree, shape, queryResult, size, baseIndex, newOffset, newLevelWidth);
-			recurssiveQuery(quadtree, shape, queryResult, size, baseIndex + 1, newOffset, newLevelWidth);
-			recurssiveQuery(quadtree, shape, queryResult, size, baseIndex + 2, newOffset, newLevelWidth);
-			recurssiveQuery(quadtree, shape, queryResult, size, baseIndex + 3, newOffset, newLevelWidth);
+			recursiveQuery(quadtree, shape, queryResult, size, baseIndex, newOffset, newLevelWidth);
+			recursiveQuery(quadtree, shape, queryResult, size, baseIndex + 1, newOffset, newLevelWidth);
+			recursiveQuery(quadtree, shape, queryResult, size, baseIndex + 2, newOffset, newLevelWidth);
+			recursiveQuery(quadtree, shape, queryResult, size, baseIndex + 3, newOffset, newLevelWidth);
 		}
 	}
 
@@ -94,7 +92,6 @@ void recurssiveQuery(QuadTree* quadtree, const T& shape, EdgeIndex* queryResult,
 	quadtree->numCollisionChecks++;
 #endif
 }
-
 #ifdef _DEBUG
 //////////////////////////////////////////////////////////////////////////
 unsigned int getAllocatedMemory(QuadTree* quadtree);

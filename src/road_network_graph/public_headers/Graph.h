@@ -2,8 +2,7 @@
 #define ROADNETWORKGRAPH_GRAPH_H
 
 #include "Defines.h"
-#include <Vertex.h>
-#include <Edge.h>
+#include <BaseGraph.h>
 
 #include <Box2D.h>
 #include <Line2D.h>
@@ -29,15 +28,11 @@ enum IntersectionType
 };
 
 //////////////////////////////////////////////////////////////////////////
-struct Graph
+struct Graph : public BaseGraph
 {
 	unsigned int maxVertices;
 	unsigned int maxEdges;
 	unsigned int maxResultsPerQuery;
-	VertexIndex numVertices;
-	EdgeIndex numEdges;
-	Vertex* vertices;
-	Edge* edges;
 	float snapRadius;
 #ifdef _DEBUG
 	unsigned long numCollisionChecks;
@@ -56,7 +51,7 @@ void initializeGraph(Graph* graph, float snapRadius, unsigned int maxVertices, u
 void initializeGraph(Graph* graph, float snapRadius, unsigned int maxVertices, unsigned int maxEdges, Vertex* vertices, Edge* edges);
 #endif
 //////////////////////////////////////////////////////////////////////////
-void clear(Graph* graph);
+void copy(Graph* graph, BaseGraph* other);
 //////////////////////////////////////////////////////////////////////////
 vml_vec2 getPosition(Graph* graph, VertexIndex vertexIndex);
 //////////////////////////////////////////////////////////////////////////
@@ -65,20 +60,6 @@ VertexIndex createVertex(Graph* graph, const vml_vec2& position);
 bool addRoad(Graph* graph, VertexIndex sourceIndex, const vml_vec2& direction, VertexIndex& newVertexIndex, vml_vec2& end, bool highway);
 //////////////////////////////////////////////////////////////////////////
 bool connect(Graph* graph, VertexIndex source, VertexIndex destination, bool highway);
-//////////////////////////////////////////////////////////////////////////
-EdgeIndex findEdge(Graph* graph, Vertex& v0, Vertex& v1);
-//////////////////////////////////////////////////////////////////////////
-EdgeIndex findEdge(Graph* graph, Vertex* v0, Vertex* v1);
-//////////////////////////////////////////////////////////////////////////
-EdgeIndex findEdge(Graph* graph, Vertex& v0, VertexIndex v1);
-//////////////////////////////////////////////////////////////////////////
-void removeEdgeReferencesInVertices(Graph* graph, VertexIndex v0, VertexIndex v1);
-//////////////////////////////////////////////////////////////////////////
-void removeEdgeReferencesInVertices(Graph* graph, Vertex& v0, Vertex& v1);
-//////////////////////////////////////////////////////////////////////////
-void removeEdgeReferencesInVertices(Graph* graph, Vertex* v0, Vertex* v1);
-//////////////////////////////////////////////////////////////////////////
-void removeEdgeReferencesInVertices(Graph* graph, EdgeIndex edgeIndex);
 //////////////////////////////////////////////////////////////////////////
 void removeDeadEndRoads(Graph* graph);
 //////////////////////////////////////////////////////////////////////////

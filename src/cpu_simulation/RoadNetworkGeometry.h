@@ -26,6 +26,11 @@ private:
 
 		virtual bool operator () (const RoadNetworkGraph::Vertex& source, const RoadNetworkGraph::Vertex& destination, const RoadNetworkGraph::Edge& edge)
 		{
+			if (edge.attr1 != 0)
+			{
+				return true;
+			}
+
 			unsigned int i = vertices.size();
 			vertices.push_back(vml_vec4(source.position.x, source.position.y, 0.0f, 1.0f));
 			vertices.push_back(vml_vec4(destination.position.x, destination.position.y, 0.0f, 1.0f));
@@ -33,6 +38,7 @@ private:
 			colors.push_back(color);
 			indices.push_back(i);
 			indices.push_back(i + 1);
+
 			return true;
 		}
 
@@ -93,8 +99,8 @@ public:
 					vertices.push_back(vml_vec4(v0.x, v0.y, 0.0f, 1.0f));
 					vertices.push_back(vml_vec4(v1.x, v1.y, 0.0f, 1.0f));
 
-					colors.push_back(g_configuration->highwayColor);
-					colors.push_back(g_configuration->highwayColor);
+					colors.push_back(g_configuration->cycleColor);
+					colors.push_back(g_configuration->cycleColor);
 
 					indices.push_back(k);
 					indices.push_back(k + 1);
@@ -111,8 +117,8 @@ public:
 					vertices.push_back(vml_vec4(v0.x, v0.y, 0.0f, 1.0f));
 					vertices.push_back(vml_vec4(v1.x, v1.y, 0.0f, 1.0f));
 
-					colors.push_back(g_configuration->streetColor);
-					colors.push_back(g_configuration->streetColor);
+					colors.push_back(g_configuration->filamentColor);
+					colors.push_back(g_configuration->filamentColor);
 
 					indices.push_back(k);
 					indices.push_back(k + 1);
@@ -122,7 +128,7 @@ public:
 				unsigned int k = vertices.size();
 				vml_vec2& v0 = primitive.vertices[0];
 				vertices.push_back(vml_vec4(v0.x, v0.y, 0.0f, 1.0f));
-				colors.push_back(g_configuration->highwayColor);
+				colors.push_back(g_configuration->isolatedVertexColor);
 				indices.push_back(k);
 			}
 		}

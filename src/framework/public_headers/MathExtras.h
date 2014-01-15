@@ -2,6 +2,7 @@
 #define MATHEXTRAS_H
 
 #include <vector_math.h>
+#include <cfloat>
 
 namespace MathExtras
 {
@@ -34,6 +35,18 @@ inline static vml_vec3 max(vml_vec3 a, vml_vec3 b)
 	return vml_vec3(max(a.x, b.x), max(a.y, b.y), max(a.z, b.z));
 }
 
+static vml_vec2 maxPoint(const vml_vec2* points, unsigned int numPoints)
+{
+	vml_vec2 _max(FLT_MIN, FLT_MIN);
+	for (unsigned int i = 0; i < numPoints; i++)
+	{
+		const vml_vec2& point = points[i];
+		_max.x = max(point.x, _max.x);
+		_max.y = max(point.y, _max.y);
+	}
+	return _max;
+}
+
 template<typename T>
 inline static T min(T a, T b)
 {
@@ -48,6 +61,18 @@ inline static vml_vec2 min(vml_vec2 a, vml_vec2 b)
 inline static vml_vec3 min(vml_vec3 a, vml_vec3 b)
 {
 	return vml_vec3(min(a.x, b.x), min(a.y, b.y), min(a.z, b.z));
+}
+
+static vml_vec2 minPoint(const vml_vec2* points, unsigned int numPoints)
+{
+	vml_vec2 _min(FLT_MAX, FLT_MAX);
+	for (unsigned int i = 0; i < numPoints; i++)
+	{
+		const vml_vec2& point = points[i];
+		_min.x = min(point.x, _min.x);
+		_min.y = min(point.y, _min.y);
+	}
+	return _min;
 }
 
 template<typename T>
@@ -85,14 +110,20 @@ static float getOrientedAngle(const vml_vec2& a, const vml_vec2& b)
 	}
 }
 
-static vml_vec2 getBarycenter(const vml_vec2* vertices, unsigned int numVertices)
+static void getPolygonInfo(const vml_vec2* vertices, unsigned int numVertices, float& area, vml_vec2& center)
 {
-	vml_vec2 center;
-	for (unsigned int i = 0; i < numVertices; i++)
-	{
-		center += vertices[i];
+	float twiceArea = 0, x = 0, y = 0, f = 0;
+	for (unsigned int i = 0, j = numVertices - 1 ; i < numVertices; j = i++) {
+		const vml_vec2& p1 = vertices[i]; 
+		const vml_vec2& p2 = vertices[j];
+		f = p1.x * p2.y - p2.x * p1.y;
+		twiceArea += f;
+		x += (p1.x + p2.x) * f;
+		y += (p1.y + p2.y) * f;
 	}
-	return center / (float)numVertices;
+	area = abs(twiceArea * 0.5f);
+	f = twiceArea * 3.0f;
+	center = vml_vec2(x / f, y / f);
 }
 
 }

@@ -63,9 +63,15 @@ void generateAndDisplay(const std::string& configurationFile, SceneRenderer& ren
 		free(g_graph);
 	}
 
-	g_graph = new RoadNetworkGraph::Graph();
+	if (g_graphCopy != 0)
+	{
+		free(g_graphCopy);
+	}
+
+	g_graph = (RoadNetworkGraph::Graph*)malloc(sizeof(RoadNetworkGraph::Graph));
+	g_graphCopy = (RoadNetworkGraph::BaseGraph*)malloc(sizeof(RoadNetworkGraph::BaseGraph));
+
 	allocateGraphBuffers(g_configuration->maxVertices, g_configuration->maxEdges);
-	allocatePrimitivesBuffer(g_configuration->maxPrimitives);
 #ifdef USE_QUADTREE
 	//////////////////////////////////////////////////////////////////////////
 	//	ALLOCATE QUADTREE
@@ -79,10 +85,14 @@ void generateAndDisplay(const std::string& configurationFile, SceneRenderer& ren
 	g_quadtree = new RoadNetworkGraph::QuadTree();
 	allocateQuadtreeBuffers(g_configuration->maxResultsPerQuery);
 	RoadNetworkGraph::initializeQuadtree(g_quadtree, worldBounds, g_configuration->quadtreeDepth, g_configuration->maxResultsPerQuery, g_quadrants, g_quadrantsEdges);
+
 	RoadNetworkGraph::initializeGraph(g_graph, g_configuration->snapRadius, g_configuration->maxVertices, g_configuration->maxEdges, g_vertices, g_edges, g_quadtree, g_configuration->maxResultsPerQuery, g_queryResults);
 #else
 	RoadNetworkGraph::initializeGraph(g_graph, g_configuration->snapRadius, g_configuration->maxVertices, g_configuration->maxEdges, g_vertices, g_edges);
 #endif
+	RoadNetworkGraph::initializeBaseGraph(g_graphCopy, g_verticesCopy, g_edgesCopy);
+
+	allocatePrimitivesBuffer(g_configuration->maxPrimitives);
 
 	RoadNetworkGenerator generator;
 
@@ -174,14 +184,9 @@ int main(int argc, char** argv)
 		std::cout << std::endl << "Unknown error" << std::endl << std::endl;
 	}
 
-	if (g_configuration != 0)
+	if (g_graphCopy != 0)
 	{
-		delete g_configuration;
-	}
-
-	if (g_graph != 0)
-	{
-		delete g_graph;
+		delete g_graphCopy;
 	}
 
 #ifdef USE_QUADTREE
@@ -193,6 +198,17 @@ int main(int argc, char** argv)
 
 	freeQuadtreeBuffers();
 #endif
+
+	if (g_graph != 0)
+	{
+		delete g_graph;
+	}
+
+	if (g_configuration != 0)
+	{
+		delete g_configuration;
+	}
+
 	freePrimitivesBuffer();
 	freeGraphBuffers();
 	freeImageMaps();

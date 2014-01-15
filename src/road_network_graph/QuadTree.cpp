@@ -36,16 +36,6 @@ void initializeQuadtree(QuadTree* quadtree, const Box2D& worldBounds, unsigned i
 }
 
 //////////////////////////////////////////////////////////////////////////
-void clear(QuadTree* quadtree)
-{
-	quadtree->numCollisionChecks = 0;
-	for (unsigned int i = 0; i < quadtree->numQuadrantEdges; i++)
-	{
-		quadtree->quadrantsEdges[i].lastEdgeIndex = 0;
-	}
-}
-
-//////////////////////////////////////////////////////////////////////////
 void initializeQuadrant(QuadTree* quadtree, const Box2D& quadrantBounds, unsigned int depth, unsigned int index, unsigned int offset, unsigned int levelWidth)
 {
 	Quadrant& quadrant = quadtree->quadrants[offset + index];

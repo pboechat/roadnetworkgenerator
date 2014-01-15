@@ -4,7 +4,7 @@
 #include "Defines.h"
 #include <Vertex.h>
 #include <Edge.h>
-#include <Graph.h>
+#include <BaseGraph.h>
 #include <Primitive.h>
 
 #include <vector_math.h>
@@ -17,7 +17,7 @@ void allocateExtractionBuffers(unsigned int heapBufferSize, unsigned int sequenc
 //////////////////////////////////////////////////////////////////////////
 void freeExtractionBuffers();
 //////////////////////////////////////////////////////////////////////////
-unsigned int extractPrimitives(Graph* graph, Primitive* primitivesBuffer, unsigned int maxPrimitives);
+unsigned int extractPrimitives(BaseGraph* graph, Primitive* primitivesBuffer, unsigned int maxPrimitives);
 
 }
 

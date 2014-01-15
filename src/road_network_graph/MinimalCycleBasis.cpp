@@ -21,13 +21,13 @@ unsigned int g_visitedBufferSize = 0;
 //////////////////////////////////////////////////////////////////////////
 void extractIsolatedVertex(SortedSet<VertexIndex>& heap, Array<Primitive>& primitives, Vertex* v0);
 //////////////////////////////////////////////////////////////////////////
-void extractFilament(Graph* graph, SortedSet<VertexIndex>& heap, Array<Primitive>& primitives, Vertex* v0, Vertex* v1, EdgeIndex edgeIndex);
+void extractFilament(BaseGraph* graph, SortedSet<VertexIndex>& heap, Array<Primitive>& primitives, Vertex* v0, Vertex* v1, EdgeIndex edgeIndex);
 //////////////////////////////////////////////////////////////////////////
-void extractPrimitive(Graph* graph, SortedSet<VertexIndex>& heap, Array<Primitive>& primitives, Vertex* v0);
+void extractPrimitive(BaseGraph* graph, SortedSet<VertexIndex>& heap, Array<Primitive>& primitives, Vertex* v0);
 //////////////////////////////////////////////////////////////////////////
-Vertex* getClockwiseMostVertex(Graph* graph, Vertex* previousVertex, Vertex* currentVertex);
+Vertex* getClockwiseMostVertex(BaseGraph* graph, Vertex* previousVertex, Vertex* currentVertex);
 //////////////////////////////////////////////////////////////////////////
-Vertex* getCounterclockwiseMostVertex(Graph* graph, Vertex* previousVertex, Vertex* currentVertex);
+Vertex* getCounterclockwiseMostVertex(BaseGraph* graph, Vertex* previousVertex, Vertex* currentVertex);
 
 #define left(_v0, _v1) vml_dot_perp(_v0, _v1) > 0
 #define right(_v0, _v1) vml_dot_perp(_v0, _v1) < 0
@@ -59,7 +59,7 @@ struct VertexIndexComparer : public SortedSet<VertexIndex>::Comparer
 //////////////////////////////////////////////////////////////////////////
 struct MinXMinYComparer : public SortedSet<VertexIndex>::Comparer
 {
-	MinXMinYComparer(Graph* graph) : graph(graph) {}
+	MinXMinYComparer(BaseGraph* graph) : graph(graph) {}
 
 	virtual int operator()(const VertexIndex& i0, const VertexIndex& i1) const
 	{
@@ -96,7 +96,7 @@ struct MinXMinYComparer : public SortedSet<VertexIndex>::Comparer
 	}
 
 private:
-	Graph* graph;
+	BaseGraph* graph;
 
 };
 
@@ -138,7 +138,7 @@ void freeExtractionBuffers()
 }
 
 //////////////////////////////////////////////////////////////////////////
-unsigned int extractPrimitives(Graph* graph, Primitive* primitivesBuffer, unsigned int maxPrimitives)
+unsigned int extractPrimitives(BaseGraph* graph, Primitive* primitivesBuffer, unsigned int maxPrimitives)
 {
 	SortedSet<VertexIndex> heap(g_heapBuffer, g_heapBufferSize, MinXMinYComparer(graph));
 	Array<Primitive> primitives(primitivesBuffer, maxPrimitives);
@@ -184,7 +184,7 @@ void extractIsolatedVertex(SortedSet<VertexIndex>& heap, Array<Primitive>& primi
 }
 
 //////////////////////////////////////////////////////////////////////////
-void extractFilament(Graph* graph, SortedSet<VertexIndex>& heap, Array<Primitive>& primitives, Vertex* v0, Vertex* v1, EdgeIndex edgeIndex)
+void extractFilament(BaseGraph* graph, SortedSet<VertexIndex>& heap, Array<Primitive>& primitives, Vertex* v0, Vertex* v1, EdgeIndex edgeIndex)
 {
 	if (v0->numAdjacencies == 2)
 	{
@@ -267,7 +267,7 @@ void extractFilament(Graph* graph, SortedSet<VertexIndex>& heap, Array<Primitive
 }
 
 //////////////////////////////////////////////////////////////////////////
-void extractPrimitive(Graph* graph, SortedSet<VertexIndex>& heap, Array<Primitive>& primitives, Vertex* v0)
+void extractPrimitive(BaseGraph* graph, SortedSet<VertexIndex>& heap, Array<Primitive>& primitives, Vertex* v0)
 {
 	//SortedSet<VertexIndex> visited(g_visitedBuffer, g_visitedBufferSize, VertexIndexComparer());
 	Array<VertexIndex> visited(g_visitedBuffer, g_visitedBufferSize);
@@ -365,7 +365,7 @@ void extractPrimitive(Graph* graph, SortedSet<VertexIndex>& heap, Array<Primitiv
 }
 
 //////////////////////////////////////////////////////////////////////////
-Vertex* getClockwiseMostVertex(Graph* graph, Vertex* previousVertex, Vertex* currentVertex)
+Vertex* getClockwiseMostVertex(BaseGraph* graph, Vertex* previousVertex, Vertex* currentVertex)
 {
 	if (currentVertex->numAdjacencies == 0)
 	{
@@ -441,7 +441,7 @@ Vertex* getClockwiseMostVertex(Graph* graph, Vertex* previousVertex, Vertex* cur
 }
 
 //////////////////////////////////////////////////////////////////////////
-Vertex* getCounterclockwiseMostVertex (Graph* graph, Vertex* previousVertex, Vertex* currentVertex)
+Vertex* getCounterclockwiseMostVertex (BaseGraph* graph, Vertex* previousVertex, Vertex* currentVertex)
 {
 	if (currentVertex->numAdjacencies == 0)
 	{

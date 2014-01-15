@@ -53,7 +53,9 @@ struct Configuration
 	char naturalPatternMapFilePath[MAX_CONFIGURATION_STRING_SIZE];
 	char radialPatternMapFilePath[MAX_CONFIGURATION_STRING_SIZE];
 	char rasterPatternMapFilePath[MAX_CONFIGURATION_STRING_SIZE];
-	vml_vec4 highwayColor;
+	vml_vec4 cycleColor;
+	vml_vec4 filamentColor;
+	vml_vec4 isolatedVertexColor;
 	vml_vec4 streetColor;
 	vml_vec4 quadtreeColor;
 	bool drawLabels;
@@ -62,6 +64,7 @@ struct Configuration
 	unsigned int maxPrimitives;
 	unsigned int maxEdgeSequences;
 	unsigned int maxVisitedVertices;
+	float minBlockArea;
 
 	Configuration() {}
 	~Configuration() {}
@@ -138,13 +141,16 @@ struct Configuration
 		halfSamplingArc = (samplingArc + 1) / 2;
 		quadtreeDepth = getPropertyAsUnsignedInt(properties, "quadtree_depth");
 		snapRadius = getPropertyAsFloat(properties, "snap_radius");
-		highwayColor = getPropertyAsVec4(properties, "highway_color");
+		cycleColor = getPropertyAsVec4(properties, "cycle_color");
+		filamentColor = getPropertyAsVec4(properties, "filament_color");
+		isolatedVertexColor = getPropertyAsVec4(properties, "isolated_vertex_color");
 		streetColor = getPropertyAsVec4(properties, "street_color");
 		quadtreeColor = getPropertyAsVec4(properties, "quadtree_color");
 		drawLabels = getPropertyAsBool(properties, "draw_labels");
 		maxPrimitives = getPropertyAsUnsignedInt(properties, "max_primitives");
 		maxEdgeSequences = getPropertyAsUnsignedInt(properties, "max_edge_sequences");
 		maxVisitedVertices = getPropertyAsUnsignedInt(properties, "max_visited_vertices");
+		minBlockArea = getPropertyAsFloat(properties, "min_block_area");
 		getPropertyAsVec2Array(properties, "spawn_points", spawnPoints, numSpawnPoints, MAX_SPAWN_POINTS);
 		copyProperty(properties, "population_density_map", populationDensityMapFilePath, MAX_CONFIGURATION_STRING_SIZE);
 		copyProperty(properties, "water_bodies_map", waterBodiesMapFilePath, MAX_CONFIGURATION_STRING_SIZE);

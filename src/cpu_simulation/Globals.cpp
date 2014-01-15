@@ -12,6 +12,8 @@ Configuration* g_configuration = 0;
 //////////////////////////////////////////////////////////////////////////
 RoadNetworkGraph::Graph* g_graph = 0;
 //////////////////////////////////////////////////////////////////////////
+RoadNetworkGraph::BaseGraph* g_graphCopy = 0;
+//////////////////////////////////////////////////////////////////////////
 unsigned char* g_workQueuesBuffers1[NUM_PROCEDURES];
 //////////////////////////////////////////////////////////////////////////
 unsigned char* g_workQueuesBuffers2[NUM_PROCEDURES];
@@ -27,6 +29,10 @@ unsigned int* g_distancesSamplingBuffer = 0;
 RoadNetworkGraph::Vertex* g_vertices = 0;
 //////////////////////////////////////////////////////////////////////////
 RoadNetworkGraph::Edge* g_edges = 0;
+//////////////////////////////////////////////////////////////////////////
+RoadNetworkGraph::Vertex* g_verticesCopy = 0;
+//////////////////////////////////////////////////////////////////////////
+RoadNetworkGraph::Edge* g_edgesCopy = 0;
 //////////////////////////////////////////////////////////////////////////
 RoadNetworkGraph::Primitive* g_primitives = 0;
 //////////////////////////////////////////////////////////////////////////
@@ -180,6 +186,15 @@ void allocateGraphBuffers(unsigned int maxVertices, unsigned int maxEdges)
 		throw std::exception("insufficient memory");
 	}
 
+	memset(g_vertices, 0, sizeof(RoadNetworkGraph::Vertex) * maxVertices);
+
+	g_verticesCopy = (RoadNetworkGraph::Vertex*)malloc(sizeof(RoadNetworkGraph::Vertex) * maxVertices);
+
+	if (g_verticesCopy == 0)
+	{
+		throw std::exception("insufficient memory");
+	}
+
 	g_edges = (RoadNetworkGraph::Edge*)malloc(sizeof(RoadNetworkGraph::Edge) * maxEdges);
 
 	if (g_edges == 0)
@@ -187,8 +202,21 @@ void allocateGraphBuffers(unsigned int maxVertices, unsigned int maxEdges)
 		throw std::exception("insufficient memory");
 	}
 
-	memset(g_vertices, 0, sizeof(RoadNetworkGraph::Vertex) * maxVertices);
 	memset(g_edges, 0, sizeof(RoadNetworkGraph::Edge) * maxEdges);
+
+	g_edgesCopy = (RoadNetworkGraph::Edge*)malloc(sizeof(RoadNetworkGraph::Edge) * maxEdges);
+
+	if (g_edgesCopy == 0)
+	{
+		throw std::exception("insufficient memory");
+	}
+}
+
+//////////////////////////////////////////////////////////////////////////
+void copyGraphBuffers(unsigned int maxVertices, unsigned int maxEdges)
+{
+	memcpy(g_verticesCopy, g_vertices, sizeof(RoadNetworkGraph::Vertex) * maxVertices);
+	memcpy(g_edgesCopy, g_edges, sizeof(RoadNetworkGraph::Edge) * maxEdges);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -218,6 +246,18 @@ void freeGraphBuffers()
 	{
 		free(g_edges);
 		g_edges = 0;
+	}
+
+	if (g_verticesCopy != 0)
+	{
+		free(g_verticesCopy);
+		g_verticesCopy = 0;
+	}
+
+	if (g_edgesCopy != 0)
+	{
+		free(g_edgesCopy);
+		g_edgesCopy = 0;
 	}
 }
 
