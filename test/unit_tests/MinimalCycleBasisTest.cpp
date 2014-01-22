@@ -179,7 +179,7 @@ TEST(minimal_cycle_basis, extract_primitives)
 	EdgeIndex queryResults[MAX_RESULTS_PER_QUERY];
 	Quadrant quadrants[MAX_QUADRANTS];
 	QuadrantEdges quadrantEdges[MAX_QUADRANT_EDGES];
-	initializeQuadtree(&quadtree, WORLD_BOUNDS, QUADTREE_DEPTH, MAX_RESULTS_PER_QUERY, quadrants, quadrantEdges);
+	initializeQuadtree(&quadtree, WORLD_BOUNDS, QUADTREE_DEPTH, MAX_RESULTS_PER_QUERY, MAX_QUADRANTS, quadrants, quadrantEdges);
 	initializeGraph(&graph, SNAP_RADIUS, MAX_VERTICES, MAX_EDGES, vertices, edges, &quadtree, MAX_RESULTS_PER_QUERY, queryResults);
 	setUpGraph(&graph);
 	allocateExtractionBuffers(HEAP_BUFFER_SIZE, SEQUENCE_BUFFER_SIZE, VISITED_BUFFER_SIZE);

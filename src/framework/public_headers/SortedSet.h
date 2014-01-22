@@ -21,7 +21,7 @@ public:
 		if (count >= capacity)
 		{
 			// FIXME: checking boundaries
-			throw std::exception("count >= capacity");
+			throw std::exception("SortedSet: count >= capacity");
 		}
 
 		if (count == 0)

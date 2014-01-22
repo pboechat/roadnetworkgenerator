@@ -9,15 +9,20 @@ void initializeQuadrant(QuadTree* quadtree, const Box2D& quadrantBounds, unsigne
 void removeEdgeReferencesInVertices(QuadrantEdges* quadrantEdges, EdgeIndex edgeIndex);
 
 //////////////////////////////////////////////////////////////////////////
-void initializeQuadtree(QuadTree* quadtree, const Box2D& worldBounds, unsigned int depth, unsigned int maxResultsPerQuery, Quadrant* quadrants, QuadrantEdges* quadrantEdges)
+void initializeQuadtree(QuadTree* quadtree, const Box2D& worldBounds, unsigned int depth, unsigned int maxResultsPerQuery, unsigned int maxQuadrants, Quadrant* quadrants, QuadrantEdges* quadrantEdges)
 {
 	quadtree->worldBounds = worldBounds;
 	quadtree->maxDepth = depth;
 	quadtree->maxResultsPerQuery = maxResultsPerQuery;
+	quadtree->maxQuadrants = maxQuadrants;
 	quadtree->quadrants = quadrants;
 	quadtree->quadrantsEdges = quadrantEdges;
 	quadtree->numQuadrantEdges = 0;
+#ifdef _DEBUG
 	quadtree->numCollisionChecks = 0;
+	quadtree->maxEdgesPerQuadrantInUse = 0;
+	quadtree->maxResultsPerQueryInUse = 0;
+#endif
 	quadtree->totalNumQuadrants = 0;
 
 	for (unsigned int i = 0; i < quadtree->maxDepth; i++)
@@ -38,7 +43,15 @@ void initializeQuadtree(QuadTree* quadtree, const Box2D& worldBounds, unsigned i
 //////////////////////////////////////////////////////////////////////////
 void initializeQuadrant(QuadTree* quadtree, const Box2D& quadrantBounds, unsigned int depth, unsigned int index, unsigned int offset, unsigned int levelWidth)
 {
-	Quadrant& quadrant = quadtree->quadrants[offset + index];
+	unsigned int i = offset + index;
+
+	// FIXME: checking boundaries
+	if (i >= quadtree->maxQuadrants)
+	{
+		throw std::exception("max. quadrants overflow");
+	}
+
+	Quadrant& quadrant = quadtree->quadrants[i];
 	quadrant.depth = depth;
 	quadrant.bounds = quadrantBounds;
 
@@ -83,12 +96,16 @@ void insert(QuadTree* quadtree, EdgeIndex edgeIndex, const Line2D& edgeLine, uns
 			QuadrantEdges& quadrantEdges = quadtree->quadrantsEdges[quadrant.edges];
 
 			// FIXME: checking boundaries
-			if (quadrantEdges.lastEdgeIndex == MAX_EDGES_PER_QUADRANT)
+			if (quadrantEdges.lastEdgeIndex >= MAX_EDGES_PER_QUADRANT)
 			{
 				throw std::exception("max. edges per quadrant overflow");
 			}
 
 			quadrantEdges.edges[quadrantEdges.lastEdgeIndex++] = edgeIndex;
+
+#ifdef _DEBUG
+			quadtree->maxEdgesPerQuadrantInUse = MathExtras::max(quadtree->maxEdgesPerQuadrantInUse, quadrantEdges.lastEdgeIndex);
+#endif
 		}
 
 		else
@@ -218,17 +235,13 @@ unsigned long getNumCollisionChecks(QuadTree* quadtree)
 //////////////////////////////////////////////////////////////////////////
 unsigned int getMaxEdgesPerQuadrantInUse(QuadTree* quadtree)
 {
-	unsigned int maxEdgesPerQuadrantInUse = 0;
+	return quadtree->maxEdgesPerQuadrantInUse;
+}
 
-	for (unsigned int i = 0; i < quadtree->numLeafQuadrants; i++)
-	{
-		if (quadtree->quadrantsEdges[i].lastEdgeIndex > maxEdgesPerQuadrantInUse)
-		{
-			maxEdgesPerQuadrantInUse = quadtree->quadrantsEdges[i].lastEdgeIndex;
-		}
-	}
-
-	return maxEdgesPerQuadrantInUse;
+//////////////////////////////////////////////////////////////////////////
+unsigned int getMaxResultsPerQueryInUse(QuadTree* quadtree)
+{
+	return quadtree->maxResultsPerQueryInUse;
 }
 #endif
 

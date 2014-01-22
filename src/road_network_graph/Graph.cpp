@@ -887,20 +887,6 @@ unsigned long getNumCollisionChecks(Graph* graph)
 #endif
 }
 
-#ifdef USE_QUADTREE
-//////////////////////////////////////////////////////////////////////////
-unsigned int getMaxEdgesPerQuadrant(Graph* graph)
-{
-	return MAX_EDGES_PER_QUADRANT;
-}
-
-//////////////////////////////////////////////////////////////////////////
-unsigned int getMaxEdgesPerQuadrantInUse(Graph* graph)
-{
-	return getMaxEdgesPerQuadrantInUse(graph->quadtree);
-}
-#endif
-
 #endif
 
 }

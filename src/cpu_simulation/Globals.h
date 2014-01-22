@@ -90,7 +90,7 @@ void allocateGraphBuffers(unsigned int maxVertices, unsigned int maxEdges);
 void allocatePrimitivesBuffer(unsigned int maxPrimitives);
 #ifdef USE_QUADTREE
 //////////////////////////////////////////////////////////////////////////
-void allocateQuadtreeBuffers(unsigned int maxResultsPerQuery);
+void allocateQuadtreeBuffers(unsigned int maxResultsPerQuery, unsigned int maxQuadrants);
 #endif
 
 //////////////////////////////////////////////////////////////////////////

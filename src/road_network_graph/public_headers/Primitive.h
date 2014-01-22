@@ -3,6 +3,7 @@
 
 #include "Defines.h"
 
+#include <exception>
 #include <vector_math.h>
 
 namespace RoadNetworkGraph
@@ -30,6 +31,12 @@ struct Primitive
 //////////////////////////////////////////////////////////////////////////
 inline void insert(Primitive& primitive, const vml_vec2& vertex)
 {
+	// FIXME: checking boundaries
+	if (primitive.numVertices >= MAX_VERTICES_PER_PRIMITIVE)
+	{
+		throw std::exception("max. number of primitive vertices overflow");
+	}
+
 	primitive.vertices[primitive.numVertices++] = vertex;
 }
 

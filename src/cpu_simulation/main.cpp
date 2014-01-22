@@ -83,8 +83,8 @@ void generateAndDisplay(const std::string& configurationFile, SceneRenderer& ren
 	}
 
 	g_quadtree = new RoadNetworkGraph::QuadTree();
-	allocateQuadtreeBuffers(g_configuration->maxResultsPerQuery);
-	RoadNetworkGraph::initializeQuadtree(g_quadtree, worldBounds, g_configuration->quadtreeDepth, g_configuration->maxResultsPerQuery, g_quadrants, g_quadrantsEdges);
+	allocateQuadtreeBuffers(g_configuration->maxResultsPerQuery, g_configuration->maxQuadrants);
+	RoadNetworkGraph::initializeQuadtree(g_quadtree, worldBounds, g_configuration->quadtreeDepth, g_configuration->maxResultsPerQuery, g_configuration->maxQuadrants, g_quadrants, g_quadrantsEdges);
 
 	RoadNetworkGraph::initializeGraph(g_graph, g_configuration->snapRadius, g_configuration->maxVertices, g_configuration->maxEdges, g_vertices, g_edges, g_quadtree, g_configuration->maxResultsPerQuery, g_queryResults);
 #else
@@ -112,7 +112,7 @@ void generateAndDisplay(const std::string& configurationFile, SceneRenderer& ren
 	std::cout << "generation time: " << timer.elapsedTime() << " seconds" << std::endl;
 	std::cout << "last highway derivation (max./real): " << g_configuration->maxHighwayDerivation << " / " << generator.getLastHighwayDerivation() << std::endl;
 	std::cout << "last street derivation (max./real): " << g_configuration->maxStreetDerivation << " / " << generator.getLastStreetDerivation() << std::endl;
-	std::cout << "work queue capacity (max/max. in use): " << g_configuration->maxWorkQueueCapacity << " / " << generator.getMaxWorkQueueCapacityUsed() << std::endl;
+	std::cout << "work queue capacity (max/max. in use): " << (g_configuration->maxWorkQueueCapacity * NUM_PROCEDURES) << " / " << generator.getMaxWorkQueueCapacityUsed() << std::endl;
 	std::cout << "memory (allocated/in use): " << toMegabytes(getAllocatedMemory(g_graph)) << " MB / " << toMegabytes(getMemoryInUse(g_graph)) << " MB" << std::endl;
 	std::cout << "vertices (allocated/in use): " << getAllocatedVertices(g_graph) << " / " << getVerticesInUse(g_graph) << std::endl;
 	std::cout << "edges (allocated/in use): " << getAllocatedEdges(g_graph) << " / " << getEdgesInUse(g_graph) << std::endl;
@@ -121,8 +121,10 @@ void generateAndDisplay(const std::string& configurationFile, SceneRenderer& ren
 	std::cout << "avg. vertex in connections in use: " << getAverageVertexInConnectionsInUse(g_graph) << std::endl;
 	std::cout << "avg. vertex out connections in use: " << getAverageVertexOutConnectionsInUse(g_graph) << std::endl;
 #ifdef USE_QUADTREE
-	std::cout << "edges per quadrant (max./max. in use): " << getMaxEdgesPerQuadrant(g_graph) << " / " << getMaxEdgesPerQuadrantInUse(g_graph) << std::endl;
+	std::cout << "edges per quadrant (max./max. in use): " << MAX_EDGES_PER_QUADRANT << " / " << getMaxEdgesPerQuadrantInUse(g_quadtree) << std::endl;
+	std::cout << "results per query (max./max. in use): " << g_configuration->maxResultsPerQuery << " / " << getMaxResultsPerQueryInUse(g_quadtree) << std::endl;
 #endif
+	std::cout << "primitive size (max./max. in use): " << MAX_VERTICES_PER_PRIMITIVE << "/" << generator.getMaxPrimitiveSize() << std::endl;
 	std::cout << "num. collision checks: " << getNumCollisionChecks(g_graph) << std::endl;
 	std::cout  << std::endl << std::endl;
 #endif

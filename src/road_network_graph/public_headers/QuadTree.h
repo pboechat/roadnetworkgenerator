@@ -22,6 +22,7 @@ struct QuadTree
 	unsigned int maxResultsPerQuery;
 	Box2D worldBounds;
 	unsigned int maxDepth;
+	unsigned int maxQuadrants;
 	Quadrant* quadrants;
 	QuadrantEdges* quadrantsEdges;
 	unsigned int totalNumQuadrants;
@@ -29,12 +30,14 @@ struct QuadTree
 	QuadrantEdgesIndex numQuadrantEdges;
 #ifdef _DEBUG
 	unsigned long numCollisionChecks;
+	unsigned int maxEdgesPerQuadrantInUse;
+	unsigned int maxResultsPerQueryInUse;
 #endif
 
 };
 
 //////////////////////////////////////////////////////////////////////////
-void initializeQuadtree(QuadTree* quadtree, const Box2D& worldBounds, unsigned int depth, unsigned int maxResultsPerQuery, Quadrant* quadrants, QuadrantEdges* quadrantEdges);
+void initializeQuadtree(QuadTree* quadtree, const Box2D& worldBounds, unsigned int depth, unsigned int maxResultsPerQuery, unsigned int maxQuadrants, Quadrant* quadrants, QuadrantEdges* quadrantEdges);
 //////////////////////////////////////////////////////////////////////////
 void insert(QuadTree* quadtree, EdgeIndex edgeIndex, const Line2D& edgeLine, unsigned int index = 0, unsigned int offset = 0, unsigned int levelWidth = 1);
 //////////////////////////////////////////////////////////////////////////
@@ -50,7 +53,15 @@ void query(QuadTree* quadtree, const T& shape, EdgeIndex* queryResult, unsigned 
 template<typename T>
 void recursiveQuery(QuadTree* quadtree, const T& shape, EdgeIndex* queryResult, unsigned int& size, unsigned int index, unsigned int offset, unsigned int levelWidth)
 {
-	Quadrant& quadrant = quadtree->quadrants[offset + index];
+	QuadrantIndex quadrantIndex = offset + index;
+
+	// FIXME: checking invariants
+	if (quadrantIndex >= (int)quadtree->maxQuadrants)
+	{
+		throw std::exception("quadrantIndex >= quadtree->maxQuadrants");
+	}
+
+	Quadrant& quadrant = quadtree->quadrants[quadrantIndex];
 
 	if (quadrant.bounds.intersects(shape))
 	{
@@ -74,6 +85,10 @@ void recursiveQuery(QuadTree* quadtree, const T& shape, EdgeIndex* queryResult, 
 					throw std::exception("max. results per query overflow");
 				}
 			}
+
+#ifdef _DEBUG
+			quadtree->maxResultsPerQueryInUse = MathExtras::max(quadtree->maxResultsPerQueryInUse, size);
+#endif
 		}
 
 		else
@@ -101,6 +116,8 @@ unsigned int getMemoryInUse(QuadTree* quadtree);
 unsigned long getNumCollisionChecks(QuadTree* quadtree);
 //////////////////////////////////////////////////////////////////////////
 unsigned int getMaxEdgesPerQuadrantInUse(QuadTree* quadtree);
+//////////////////////////////////////////////////////////////////////////
+unsigned int getMaxResultsPerQueryInUse(QuadTree* quadtree);
 #endif
 
 }

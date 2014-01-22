@@ -54,7 +54,7 @@ public:
 		// FIXME: checking invariants
 		if (counter >= capacity)
 		{
-			throw std::exception("counter >= capacity");
+			throw std::exception("StaticMarshallingQueue: counter >= capacity");
 		}
 
 		addItem(tail++ % capacity, item);

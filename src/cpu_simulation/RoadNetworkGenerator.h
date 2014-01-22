@@ -18,7 +18,7 @@
 class RoadNetworkGenerator
 {
 public:
-	RoadNetworkGenerator() : buffer1(g_workQueues1, NUM_PROCEDURES), buffer2(g_workQueues2, NUM_PROCEDURES), lastHighwayDerivation(0), lastStreetDerivation(0)
+	RoadNetworkGenerator() : buffer1(g_workQueues1, NUM_PROCEDURES), buffer2(g_workQueues2, NUM_PROCEDURES), lastHighwayDerivation(0), lastStreetDerivation(0), maxPrimitiveSize(0)
 #ifdef _DEBUG
 		, maxWorkQueueCapacityUsed(0)
 #endif
@@ -70,6 +70,7 @@ public:
 		frontBuffer = &buffer1;
 		backBuffer = &buffer2;
 
+		maxPrimitiveSize = 0;
 		// set street spawn points
 		for (unsigned int i = 0; i < g_numExtractedPrimitives; i++)
 		{
@@ -79,6 +80,8 @@ public:
 			{
 				continue;
 			}
+
+			maxPrimitiveSize = MathExtras::max<unsigned int>(maxPrimitiveSize, primitive.numVertices);
 
 			vml_vec2 center;
 			float area;
@@ -128,12 +131,18 @@ public:
 	{
 		return maxWorkQueueCapacityUsed;
 	}
+
+	inline unsigned int getMaxPrimitiveSize() const
+	{
+		return maxPrimitiveSize;
+	}
 #endif
 
 private:
 	WorkQueuesSet buffer1;
 	WorkQueuesSet buffer2;
 	unsigned int maxWorkQueueCapacity;
+	unsigned int maxPrimitiveSize;
 	unsigned int lastHighwayDerivation;
 	unsigned int lastStreetDerivation;
 #ifdef _DEBUG

@@ -22,7 +22,7 @@ public:
 		if (count >= capacity)
 		{
 			// FIXME: checking boundaries
-			throw std::exception("count >= capacity");
+			throw std::exception("Array: count >= capacity");
 		}
 
 		data[count++] = item;

@@ -104,14 +104,14 @@ void allocateWorkQueues(unsigned int maxWorkQueueCapacity)
 
 		if (g_workQueuesBuffers1[i] == 0)
 		{
-			throw std::exception("insufficient memory");
+			throw std::exception("g_workQueuesBuffers1: insufficient memory");
 		}
 
 		g_workQueuesBuffers2[i] = (unsigned char*)malloc(sizeof(unsigned char) * bufferSize);
 
 		if (g_workQueuesBuffers2[i] == 0)
 		{
-			throw std::exception("insufficient memory");
+			throw std::exception("g_workQueuesBuffers2: insufficient memory");
 		}
 
 		g_workQueues1[i].setBuffer(g_workQueuesBuffers1[i], capacity);
@@ -148,14 +148,14 @@ void allocateSamplingBuffers(unsigned int samplingArc)
 
 	if (g_populationDensitiesSamplingBuffer == 0)
 	{
-		throw std::exception("insufficient memory");
+		throw std::exception("g_populationDensitiesSamplingBuffer: insufficient memory");
 	}
 
 	g_distancesSamplingBuffer = (unsigned int*)malloc(sizeof(unsigned int) * samplingArc);
 
 	if (g_distancesSamplingBuffer == 0)
 	{
-		throw std::exception("insufficient memory");
+		throw std::exception("g_distancesSamplingBuffer: insufficient memory");
 	}
 }
 
@@ -183,7 +183,7 @@ void allocateGraphBuffers(unsigned int maxVertices, unsigned int maxEdges)
 
 	if (g_vertices == 0)
 	{
-		throw std::exception("insufficient memory");
+		throw std::exception("g_vertices: insufficient memory");
 	}
 
 	memset(g_vertices, 0, sizeof(RoadNetworkGraph::Vertex) * maxVertices);
@@ -192,14 +192,14 @@ void allocateGraphBuffers(unsigned int maxVertices, unsigned int maxEdges)
 
 	if (g_verticesCopy == 0)
 	{
-		throw std::exception("insufficient memory");
+		throw std::exception("g_verticesCopy: insufficient memory");
 	}
 
 	g_edges = (RoadNetworkGraph::Edge*)malloc(sizeof(RoadNetworkGraph::Edge) * maxEdges);
 
 	if (g_edges == 0)
 	{
-		throw std::exception("insufficient memory");
+		throw std::exception("g_edges: insufficient memory");
 	}
 
 	memset(g_edges, 0, sizeof(RoadNetworkGraph::Edge) * maxEdges);
@@ -208,7 +208,7 @@ void allocateGraphBuffers(unsigned int maxVertices, unsigned int maxEdges)
 
 	if (g_edgesCopy == 0)
 	{
-		throw std::exception("insufficient memory");
+		throw std::exception("g_edgesCopy: insufficient memory");
 	}
 }
 
@@ -227,7 +227,7 @@ void allocatePrimitivesBuffer(unsigned int maxPrimitives)
 
 	if (g_primitives == 0)
 	{
-		throw std::exception("insufficient memory");
+		throw std::exception("g_primitives: insufficient memory");
 	}
 
 	memset(g_primitives, 0, sizeof(RoadNetworkGraph::Primitive) * maxPrimitives);
@@ -273,33 +273,32 @@ void freePrimitivesBuffer()
 
 #ifdef USE_QUADTREE
 //////////////////////////////////////////////////////////////////////////
-void allocateQuadtreeBuffers(unsigned int maxResultsPerQuery)
+void allocateQuadtreeBuffers(unsigned int maxResultsPerQuery, unsigned int maxQuadrants)
 {
 	freeQuadtreeBuffers();
 	g_queryResults = (RoadNetworkGraph::EdgeIndex*)malloc(sizeof(RoadNetworkGraph::EdgeIndex) * maxResultsPerQuery);
 
 	if (g_queryResults == 0)
 	{
-		throw std::exception("insufficient memory");
+		throw std::exception("g_queryResults: insufficient memory");
 	}
 
-	// TODO: create constants for number of quadrants and number of quadrant edges
-	g_quadrants = (RoadNetworkGraph::Quadrant*)malloc(sizeof(RoadNetworkGraph::Quadrant) * 512);
+	g_quadrants = (RoadNetworkGraph::Quadrant*)malloc(sizeof(RoadNetworkGraph::Quadrant) * maxQuadrants);
 
 	if (g_quadrants == 0)
 	{
-		throw std::exception("insufficient memory");
+		throw std::exception("g_quadrants: insufficient memory");
 	}
 
-	g_quadrantsEdges = (RoadNetworkGraph::QuadrantEdges*)malloc(sizeof(RoadNetworkGraph::QuadrantEdges) * 5000);
+	g_quadrantsEdges = (RoadNetworkGraph::QuadrantEdges*)malloc(sizeof(RoadNetworkGraph::QuadrantEdges) * maxQuadrants);
 
 	if (g_quadrantsEdges == 0)
 	{
-		throw std::exception("insufficient memory");
+		throw std::exception("g_quadrantsEdges: insufficient memory");
 	}
 
-	memset(g_quadrants, 0, sizeof(RoadNetworkGraph::Quadrant) * 512);
-	memset(g_quadrantsEdges, 0, sizeof(RoadNetworkGraph::QuadrantEdges) * 5000);
+	memset(g_quadrants, 0, sizeof(RoadNetworkGraph::Quadrant) * maxQuadrants);
+	memset(g_quadrantsEdges, 0, sizeof(RoadNetworkGraph::QuadrantEdges) * maxQuadrants);
 }
 
 //////////////////////////////////////////////////////////////////////////
