@@ -2,12 +2,11 @@
 #define LINE2D_H
 
 #include <Circle2D.h>
+#include <MathExtras.h>
 
 #include <vector_math.h>
 
 #include <exception>
-
-#define EPSILON 0.0000001f
 
 struct Line2D
 {
@@ -33,7 +32,7 @@ struct Line2D
 	inline bool onSegment(const vml_vec2& p, const vml_vec2& q, const vml_vec2& r) const
 	{
 		if (q.x <= glm::max(p.x, r.x) && q.x >= glm::min(p.x, r.x) &&
-				q.y <= glm::max(p.y, r.y) && q.y >= glm::min(p.y, r.y))
+			q.y <= glm::max(p.y, r.y) && q.y >= glm::min(p.y, r.y))
 		{
 			return true;
 		}
@@ -46,14 +45,14 @@ struct Line2D
 	// 2 -> counterclockwise
 	inline int orientation(const vml_vec2& p, const vml_vec2& q, const vml_vec2& r) const
 	{
-		float val = (r.x - q.x) * (q.y - p.y) - (r.y - q.y) * (q.x - p.x);
+		float value = (r.x - q.x) * (q.y - p.y) - (r.y - q.y) * (q.x - p.x);
 
-		if (val >= -EPSILON && val <= EPSILON)
+		if (MathExtras::isZero(value))
 		{
-			return 0;    // collinear
+			return 0; // collinear
 		}
 
-		return (val > 0) ? 1 : 2; // clock or counterclockwise
+		return (value > 0) ? 1 : 2; // clock or counterclockwise
 	}
 
 	bool intersects(const Line2D& line, vml_vec2& intersection) const
@@ -70,7 +69,7 @@ struct Line2D
 			float determinant = (start.x - end.x) * (line.start.y - line.end.y) - (start.y - end.y) * (line.start.x - line.end.x);
 
 			// FIXME: checking invariants
-			if (determinant == 0)
+			 if (determinant == 0)
 			{
 				throw std::exception("determinant == 0");
 			}
@@ -78,8 +77,10 @@ struct Line2D
 			float pre = (start.x * end.y - start.y * end.x), post = (line.start.x * line.end.y - line.start.y * line.end.x);
 			float x = (pre * (line.start.x - line.end.x) - (start.x - end.x) * post) / determinant;
 			float y = (pre * (line.start.y - line.end.y) - (start.y - end.y) * post) / determinant;
+
 			intersection.x = x;
 			intersection.y = y;
+
 			return true;
 		}
 
@@ -118,7 +119,8 @@ struct Line2D
 	unsigned int intersects(const Circle2D& circle, vml_vec2& intersection1, vml_vec2& intersection2) const
 	{
 		// FIXME: circle == point case
-		if (circle.radius == 0)
+		//if (circle.radius == 0)
+		if (MathExtras::isZero(circle.radius))
 		{
 			return 0;
 		}

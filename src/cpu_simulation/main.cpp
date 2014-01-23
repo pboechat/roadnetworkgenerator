@@ -1,5 +1,5 @@
 // memory leak detection
-//#include <vld.h>
+#include <vld.h>
 
 #include "Defines.h"
 #include <RoadNetworkInputController.h>
@@ -129,8 +129,11 @@ void generateAndDisplay(const std::string& configurationFile, SceneRenderer& ren
 	std::cout  << std::endl << std::endl;
 #endif
 
+	allocateGraphicsBuffers(g_configuration->vertexBufferSize, g_configuration->indexBufferSize);
+
 	geometry.build();
 	labels.build();
+
 	camera.centerOnTarget(worldBounds);
 }
 
@@ -185,6 +188,8 @@ int main(int argc, char** argv)
 	{
 		std::cout << std::endl << "Unknown error" << std::endl << std::endl;
 	}
+
+	freeGraphicsBuffers();
 
 	if (g_graphCopy != 0)
 	{

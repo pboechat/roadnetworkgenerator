@@ -16,12 +16,10 @@ class RoadNetworkGeometry : public Geometry
 private:
 	struct GeometryCreationTraversal : public RoadNetworkGraph::GraphTraversal
 	{
-		std::vector<vml_vec4>& vertices;
-		std::vector<vml_vec4>& colors;
-		std::vector<unsigned int>& indices;
-		vml_vec4 color;
+		unsigned int lastVerticesIndex;
+		unsigned int lastIndicesIndex;
 
-		GeometryCreationTraversal(std::vector<vml_vec4>& vertices, std::vector<vml_vec4>& colors, std::vector<unsigned int>& indices, const vml_vec4& color) : vertices(vertices), colors(colors), indices(indices), color(color) {}
+		GeometryCreationTraversal(unsigned int lastVerticesIndex, unsigned int lastIndicesIndex) : lastVerticesIndex(lastVerticesIndex), lastIndicesIndex(lastIndicesIndex) {}
 		~GeometryCreationTraversal() {}
 
 		virtual bool operator () (const RoadNetworkGraph::Vertex& source, const RoadNetworkGraph::Vertex& destination, const RoadNetworkGraph::Edge& edge)
@@ -31,13 +29,17 @@ private:
 				return true;
 			}
 
-			unsigned int i = vertices.size();
-			vertices.push_back(vml_vec4(source.position.x, source.position.y, 0.0f, 1.0f));
-			vertices.push_back(vml_vec4(destination.position.x, destination.position.y, 0.0f, 1.0f));
-			colors.push_back(color);
-			colors.push_back(color);
-			indices.push_back(i);
-			indices.push_back(i + 1);
+			g_verticesBuffer[lastVerticesIndex] = vml_vec4(source.position.x, source.position.y, 0.0f, 1.0f);
+			g_verticesBuffer[lastVerticesIndex + 1] = vml_vec4(destination.position.x, destination.position.y, 0.0f, 1.0f);
+
+			g_colorsBuffer[lastVerticesIndex] = g_configuration->streetColor;
+			g_colorsBuffer[lastVerticesIndex + 1] = g_configuration->streetColor;
+
+			g_indicesBuffer[lastIndicesIndex] = lastVerticesIndex;
+			g_indicesBuffer[lastIndicesIndex + 1] = lastVerticesIndex + 1;
+
+			lastVerticesIndex += 2;
+			lastIndicesIndex += 2;
 
 			return true;
 		}
@@ -71,90 +73,98 @@ public:
 			glGenVertexArrays(1, &vao);
 		}
 
-		std::vector<vml_vec4> vertices;
-		std::vector<vml_vec4> colors;
-		std::vector<unsigned int> indices;
-		for (unsigned int i = 0; i < g_numExtractedPrimitives; i++)
+		unsigned int lastVerticesIndex = 0, lastIndicesIndex = 0;
+		for (unsigned int j = 0; j < g_numExtractedPrimitives; j++)
 		{
-			RoadNetworkGraph::Primitive& primitive = g_primitives[i];
+			RoadNetworkGraph::Primitive& primitive = g_primitives[j];
 
 			switch (primitive.type)
 			{
 			case RoadNetworkGraph::MINIMAL_CYCLE:
-				for (unsigned int j = 0; j < primitive.numVertices; j++)
+				for (unsigned int k = 0; k < primitive.numVertices; k++)
 				{
-					vml_vec2& v0 = primitive.vertices[j];
+					vml_vec2& v0 = primitive.vertices[k];
 					vml_vec2 v1;
-					if (j == primitive.numVertices - 1)
+					if (k == primitive.numVertices - 1)
 					{
 						v1 = primitive.vertices[0];
 					}
 					else
 					{
-						v1 = primitive.vertices[j + 1];
+						v1 = primitive.vertices[k + 1];
 					}
 
-					unsigned int k = vertices.size();
+					g_verticesBuffer[lastVerticesIndex] = vml_vec4(v0.x, v0.y, 0.0f, 1.0f);
+					g_verticesBuffer[lastVerticesIndex + 1] = vml_vec4(v1.x, v1.y, 0.0f, 1.0f);
 
-					vertices.push_back(vml_vec4(v0.x, v0.y, 0.0f, 1.0f));
-					vertices.push_back(vml_vec4(v1.x, v1.y, 0.0f, 1.0f));
+					g_colorsBuffer[lastVerticesIndex] = g_configuration->cycleColor;
+					g_colorsBuffer[lastVerticesIndex + 1] = g_configuration->cycleColor;
 
-					colors.push_back(g_configuration->cycleColor);
-					colors.push_back(g_configuration->cycleColor);
+					g_indicesBuffer[lastIndicesIndex] = lastVerticesIndex;
+					g_indicesBuffer[lastIndicesIndex + 1] = lastVerticesIndex + 1;
 
-					indices.push_back(k);
-					indices.push_back(k + 1);
+					lastVerticesIndex += 2;
+					lastIndicesIndex += 2;
 				}
 				break;
 			case RoadNetworkGraph::FILAMENT:
-				for (unsigned int j = 0; j < primitive.numVertices - 1; j++)
+				for (unsigned int k = 0; k < primitive.numVertices - 1; k++)
 				{
-					vml_vec2& v0 = primitive.vertices[j];
-					vml_vec2& v1 = primitive.vertices[j + 1];
+					vml_vec2& v0 = primitive.vertices[k];
+					vml_vec2& v1 = primitive.vertices[k + 1];
 
-					unsigned int k = vertices.size();
+					g_verticesBuffer[lastVerticesIndex] = vml_vec4(v0.x, v0.y, 0.0f, 1.0f);
+					g_verticesBuffer[lastVerticesIndex + 1] = vml_vec4(v1.x, v1.y, 0.0f, 1.0f);
 
-					vertices.push_back(vml_vec4(v0.x, v0.y, 0.0f, 1.0f));
-					vertices.push_back(vml_vec4(v1.x, v1.y, 0.0f, 1.0f));
+					g_colorsBuffer[lastVerticesIndex] = g_configuration->filamentColor;
+					g_colorsBuffer[lastVerticesIndex + 1] = g_configuration->filamentColor;
 
-					colors.push_back(g_configuration->filamentColor);
-					colors.push_back(g_configuration->filamentColor);
+					g_indicesBuffer[lastIndicesIndex] = lastVerticesIndex;
+					g_indicesBuffer[lastIndicesIndex + 1] = lastVerticesIndex + 1;
 
-					indices.push_back(k);
-					indices.push_back(k + 1);
+					lastVerticesIndex += 2;
+					lastIndicesIndex += 2;
 				}
 				break;
 			case RoadNetworkGraph::ISOLATED_VERTEX:
-				unsigned int k = vertices.size();
 				vml_vec2& v0 = primitive.vertices[0];
-				vertices.push_back(vml_vec4(v0.x, v0.y, 0.0f, 1.0f));
-				colors.push_back(g_configuration->isolatedVertexColor);
-				indices.push_back(k);
+				g_verticesBuffer[lastVerticesIndex] = vml_vec4(v0.x, v0.y, 0.0f, 1.0f);
+				g_colorsBuffer[lastVerticesIndex] = g_configuration->isolatedVertexColor;
+				g_indicesBuffer[lastIndicesIndex++] = lastVerticesIndex++;
+				break;
 			}
 		}
 
-		RoadNetworkGraph::traverse(g_graph, GeometryCreationTraversal(vertices, colors, indices, g_configuration->streetColor));
+		GeometryCreationTraversal traversal(lastVerticesIndex, lastIndicesIndex);
+		RoadNetworkGraph::traverse(g_graph, traversal);
 
 		glBindBuffer(GL_ARRAY_BUFFER, buffers[0]);
-		glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(vml_vec4), (void*)&vertices[0], GL_STATIC_DRAW);
+		glBufferData(GL_ARRAY_BUFFER, traversal.lastVerticesIndex * sizeof(vml_vec4), (void*)g_verticesBuffer, GL_STATIC_DRAW);
 		glBindBuffer(GL_ARRAY_BUFFER, 0);
+
 		glBindBuffer(GL_ARRAY_BUFFER, buffers[1]);
-		glBufferData(GL_ARRAY_BUFFER, colors.size() * sizeof(vml_vec4), (void*)&colors[0], GL_STATIC_DRAW);
+		glBufferData(GL_ARRAY_BUFFER, traversal.lastVerticesIndex * sizeof(vml_vec4), (void*)g_colorsBuffer, GL_STATIC_DRAW);
 		glBindBuffer(GL_ARRAY_BUFFER, 0);
-		elementsCount = indices.size();
+
+		elementsCount = traversal.lastIndicesIndex;
+
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, buffers[2]);
-		glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), (void*)&indices[0], GL_STATIC_DRAW);
+		glBufferData(GL_ELEMENT_ARRAY_BUFFER, elementsCount * sizeof(unsigned int), (void*)g_indicesBuffer, GL_STATIC_DRAW);
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+
 		glBindVertexArray(vao);
 		glBindBuffer(GL_ARRAY_BUFFER, buffers[0]);
 		glEnableVertexAttribArray(0);
 		glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 0, 0);
+
 		glBindBuffer(GL_ARRAY_BUFFER, 0);
 		glBindBuffer(GL_ARRAY_BUFFER, buffers[1]);
 		glEnableVertexAttribArray(1);
 		glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 0, 0);
+
 		glBindBuffer(GL_ARRAY_BUFFER, 0);
 		glBindVertexArray(0);
+
 		built = true;
 	}
 

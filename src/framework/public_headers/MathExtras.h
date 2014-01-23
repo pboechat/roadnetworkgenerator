@@ -10,6 +10,18 @@ const float TWO_PI = 6.28318530717958647692f;
 const float PI = 3.14159265358979323846f;
 const float HALF_PI = 1.57079632679489661923f;
 const float PI_AND_HALF = 4.71238898038468985769f;
+const float COLLISION_EPSILON = 0.0005f;
+
+inline static bool isZero(float a)
+{
+	return a >= -COLLISION_EPSILON && a <= COLLISION_EPSILON;
+}
+
+template<typename T>
+inline static T acos(T a)
+{
+	return ::acos(a);
+}
 
 template<typename T>
 inline static T swap(T& a, T& b)
@@ -93,13 +105,13 @@ inline static vml_vec3 clamp(T min, T max, vml_vec3 a)
 	return vml_vec3(clamp(min, max, a.x), clamp(min, max, a.y), clamp(min, max, a.z));
 }
 
-static float getOrientedAngle(const vml_vec2& a, const vml_vec2& b)
+static float getAngle(const vml_vec2& a, const vml_vec2& b)
 {
 	float angle = acos(vml_dot(a, b) / (vml_length(a) * vml_length(b)));
 	vml_vec3 e1(a.x, a.y, 0.0f);
 	vml_vec3 e2(b.x, b.y, 0.0f);
 
-	if (vml_cross(e1, e2).z > 0)
+	if (vml_cross(e1, e2).z >= 0)
 	{
 		return angle;
 	}
@@ -107,6 +119,23 @@ static float getOrientedAngle(const vml_vec2& a, const vml_vec2& b)
 	else
 	{
 		return TWO_PI - angle;
+	}
+}
+
+static float getOrientedAngle(const vml_vec2& a, const vml_vec2& b)
+{
+	float angle = acos(vml_dot(a, b) / (vml_length(a) * vml_length(b)));
+	vml_vec3 e1(a.x, a.y, 0.0f);
+	vml_vec3 e2(b.x, b.y, 0.0f);
+
+	if (vml_cross(e1, e2).z >= 0)
+	{
+		return angle;
+	}
+
+	else
+	{
+		return -angle;
 	}
 }
 

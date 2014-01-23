@@ -71,6 +71,12 @@ ImageMap* g_naturalPatternMap = 0;
 ImageMap* g_radialPatternMap = 0;
 //////////////////////////////////////////////////////////////////////////
 ImageMap* g_rasterPatternMap = 0;
+//////////////////////////////////////////////////////////////////////////
+vml_vec4* g_verticesBuffer = 0;
+//////////////////////////////////////////////////////////////////////////
+vml_vec4* g_colorsBuffer = 0;
+//////////////////////////////////////////////////////////////////////////
+unsigned int* g_indicesBuffer = 0;
 
 //////////////////////////////////////////////////////////////////////////
 void loadImage(const char* filePath, int desiredWidth, int desiredHeight, unsigned char* data);
@@ -209,6 +215,33 @@ void allocateGraphBuffers(unsigned int maxVertices, unsigned int maxEdges)
 	if (g_edgesCopy == 0)
 	{
 		throw std::exception("g_edgesCopy: insufficient memory");
+	}
+}
+
+//////////////////////////////////////////////////////////////////////////
+void allocateGraphicsBuffers(unsigned int verticesBufferSize, unsigned int indicesBufferSize)
+{
+	freeGraphicsBuffers();
+
+	g_verticesBuffer = (vml_vec4*)malloc(sizeof(vml_vec4) * verticesBufferSize);
+
+	if (g_verticesBuffer == 0)
+	{
+		throw std::exception("g_verticesBuffer: insufficient memory");
+	}
+
+	g_colorsBuffer = (vml_vec4*)malloc(sizeof(vml_vec4) * verticesBufferSize);
+
+	if (g_colorsBuffer == 0)
+	{
+		throw std::exception("g_colorsBuffer: insufficient memory");
+	}
+
+	g_indicesBuffer = (unsigned int*)malloc(sizeof(unsigned int) * indicesBufferSize);
+
+	if (g_indicesBuffer == 0)
+	{
+		throw std::exception("g_indicesBuffer: insufficient memory");
 	}
 }
 
@@ -389,61 +422,95 @@ void freeImageMaps()
 	if (g_populationDensityMap != 0)
 	{
 		delete g_populationDensityMap;
+		g_populationDensityMap = 0;
 	}
 
 	if (g_waterBodiesMap != 0)
 	{
 		delete g_waterBodiesMap;
+		g_waterBodiesMap = 0;
 	}
 
 	if (g_blockadesMap != 0)
 	{
 		delete g_blockadesMap;
+		g_blockadesMap = 0;
 	}
 
 	if (g_naturalPatternMap != 0)
 	{
 		delete g_naturalPatternMap;
+		g_naturalPatternMap = 0;
 	}
 
 	if (g_radialPatternMap != 0)
 	{
 		delete g_radialPatternMap;
+		g_radialPatternMap = 0;
 	}
 
 	if (g_rasterPatternMap != 0)
 	{
 		delete g_rasterPatternMap;
+		g_rasterPatternMap = 0;
 	}
 
 	if (g_populationDensityMapData != 0)
 	{
 		delete[] g_populationDensityMapData;
+		g_populationDensityMapData = 0;
 	}
 
 	if (g_waterBodiesMapData != 0)
 	{
 		delete[] g_waterBodiesMapData;
+		g_waterBodiesMapData = 0;
 	}
 
 	if (g_blockadesMapData != 0)
 	{
 		delete[] g_blockadesMapData;
+		g_blockadesMapData = 0;
 	}
 
 	if (g_naturalPatternMapData != 0)
 	{
 		delete[] g_naturalPatternMapData;
+		g_naturalPatternMapData = 0;
 	}
 
 	if (g_radialPatternMapData != 0)
 	{
 		delete[] g_radialPatternMapData;
+		g_radialPatternMapData = 0;
 	}
 
 	if (g_rasterPatternMapData != 0)
 	{
 		delete[] g_rasterPatternMapData;
+		g_rasterPatternMapData = 0;
+	}
+}
+
+//////////////////////////////////////////////////////////////////////////
+void freeGraphicsBuffers()
+{
+	if (g_verticesBuffer != 0)
+	{
+		delete[] g_verticesBuffer;
+		g_verticesBuffer = 0;
+	}
+
+	if (g_colorsBuffer != 0)
+	{
+		delete[] g_colorsBuffer;
+		g_colorsBuffer = 0;
+	}
+
+	if (g_indicesBuffer != 0)
+	{
+		delete[] g_indicesBuffer;
+		g_indicesBuffer = 0;
 	}
 }
 

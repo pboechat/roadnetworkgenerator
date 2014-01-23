@@ -66,6 +66,8 @@ struct Configuration
 	unsigned int maxEdgeSequences;
 	unsigned int maxVisitedVertices;
 	float minBlockArea;
+	unsigned int vertexBufferSize;
+	unsigned int indexBufferSize;
 
 	Configuration() {}
 	~Configuration() {}
@@ -153,6 +155,8 @@ struct Configuration
 		maxEdgeSequences = getPropertyAsUnsignedInt(properties, "max_edge_sequences");
 		maxVisitedVertices = getPropertyAsUnsignedInt(properties, "max_visited_vertices");
 		minBlockArea = getPropertyAsFloat(properties, "min_block_area");
+		vertexBufferSize = getPropertyAsUnsignedInt(properties, "vertex_buffer_size");
+		indexBufferSize = getPropertyAsUnsignedInt(properties, "index_buffer_size");
 		getPropertyAsVec2Array(properties, "spawn_points", spawnPoints, numSpawnPoints, MAX_SPAWN_POINTS);
 		copyProperty(properties, "population_density_map", populationDensityMapFilePath, MAX_CONFIGURATION_STRING_SIZE);
 		copyProperty(properties, "water_bodies_map", waterBodiesMapFilePath, MAX_CONFIGURATION_STRING_SIZE);

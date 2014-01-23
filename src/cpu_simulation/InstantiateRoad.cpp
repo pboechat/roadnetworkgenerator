@@ -285,7 +285,7 @@ void applyHighwayGoalDeviation(RoadAttributes& roadAttributes)
 void applyNaturalPatternRule(const vml_vec2& position, unsigned int goalDistance, int& delay, RoadAttributes& roadAttributes, HighwayRuleAttributes& ruleAttributes)
 {
 	roadAttributes.length = MathExtras::min(goalDistance, g_configuration->highwayLength);
-	roadAttributes.angle = MathExtras::getOrientedAngle(vml_vec2(0.0f, 1.0f), ruleAttributes.goal - position);
+	roadAttributes.angle = MathExtras::getAngle(vml_vec2(0.0f, 1.0f), ruleAttributes.goal - position);
 	applyHighwayGoalDeviation(roadAttributes);
 }
 
@@ -298,7 +298,7 @@ void applyRadialPatternRule(const vml_vec2& position, unsigned int goalDistance,
 //////////////////////////////////////////////////////////////////////////
 void applyRasterPatternRule(const vml_vec2& position, unsigned int goalDistance, int& delay, RoadAttributes& roadAttributes, HighwayRuleAttributes& ruleAttributes)
 {
-	float angle = MathExtras::getOrientedAngle(vml_vec2(1.0f, 0.0f), ruleAttributes.goal - position);
+	float angle = MathExtras::getAngle(vml_vec2(1.0f, 0.0f), ruleAttributes.goal - position);
 	unsigned int horizontalDistance = (unsigned int)abs((float)goalDistance * cos(angle));
 	unsigned int verticalDistance = (unsigned int)abs((float)goalDistance * sin(angle));
 	bool canMoveHorizontally = horizontalDistance >= g_configuration->minRoadLength;

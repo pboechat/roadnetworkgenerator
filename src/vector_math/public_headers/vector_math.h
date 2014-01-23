@@ -25,10 +25,21 @@ inline static float dotPerp(const glm::vec2& v0, const glm::vec2& v1)
 	return v0.x * v1.y - v0.y * v1.x;
 }
 
+inline static float angle(const glm::vec2& v0, const glm::vec2& v1)
+{
+	return glm::acos(glm::dot(v0, v1) / (glm::length(v0) * glm::length(v1)));
+}
+
+inline static glm::vec2 perp(const glm::vec2& v)
+{
+	return glm::vec2(v.y, -v.x);
+}
+
 }
 
 typedef glm::mat4 vml_mat4;
 typedef glm::mat3 vml_mat3;
+typedef glm::mat3 vml_mat2;
 typedef glm::vec4 vml_vec4;
 typedef glm::vec3 vml_vec3;
 typedef glm::vec2 vml_vec2;
@@ -48,6 +59,8 @@ typedef glm::quat vml_quat;
 #define vml_distance glm::distance
 #define vml_normalize glm::normalize
 #define vml_dot glm::dot
+#define vml_angle(vec1, vec2) glm_utils::angle(vec1, vec2)
+#define vml_perp(vec1) glm_utils::perp(vec1)
 #define vml_dot_perp(_v0, _v1) glm_utils::dotPerp(_v0, _v1)
 #define vml_length glm::length
 #define vml_cross glm::cross

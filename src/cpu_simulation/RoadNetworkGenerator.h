@@ -12,6 +12,8 @@
 #include <MathExtras.h>
 #include <MinimalCycleBasis.h>
 #include <Box2D.h>
+#include <ConvexHull.h>
+#include <OBB2D.h>
 
 #include <vector_math.h>
 
@@ -83,19 +85,24 @@ public:
 
 			maxPrimitiveSize = MathExtras::max<unsigned int>(maxPrimitiveSize, primitive.numVertices);
 
-			vml_vec2 center;
+			vml_vec2 centroid;
 			float area;
-			MathExtras::getPolygonInfo(primitive.vertices, primitive.numVertices, area, center);
+			MathExtras::getPolygonInfo(primitive.vertices, primitive.numVertices, area, centroid);
 			if (area < g_configuration->minBlockArea)
 			{
 				continue;
 			}
 
-			RoadNetworkGraph::VertexIndex source = RoadNetworkGraph::createVertex(g_graph, center);
-			frontBuffer->addWorkItem(EVALUATE_STREET, Street(0, RoadAttributes(source, g_configuration->streetLength, 0), UNASSIGNED));
-			frontBuffer->addWorkItem(EVALUATE_STREET, Street(0, RoadAttributes(source, g_configuration->streetLength, -MathExtras::HALF_PI), UNASSIGNED));
-			frontBuffer->addWorkItem(EVALUATE_STREET, Street(0, RoadAttributes(source, g_configuration->streetLength, MathExtras::HALF_PI), UNASSIGNED));
-			frontBuffer->addWorkItem(EVALUATE_STREET, Street(0, RoadAttributes(source, g_configuration->streetLength, MathExtras::PI), UNASSIGNED));
+			float angle;
+			ConvexHull convexHull(primitive.vertices, primitive.numVertices);
+			OBB2D obb(convexHull.hullPoints, convexHull.numHullPoints);
+			angle = vml_angle(obb.axis[1], vml_vec2(0.0f, 1.0f));
+			
+			RoadNetworkGraph::VertexIndex source = RoadNetworkGraph::createVertex(g_graph, centroid);
+			frontBuffer->addWorkItem(EVALUATE_STREET, Street(0, RoadAttributes(source, g_configuration->streetLength, angle), UNASSIGNED));
+			frontBuffer->addWorkItem(EVALUATE_STREET, Street(0, RoadAttributes(source, g_configuration->streetLength, -MathExtras::HALF_PI + angle), UNASSIGNED));
+			frontBuffer->addWorkItem(EVALUATE_STREET, Street(0, RoadAttributes(source, g_configuration->streetLength, MathExtras::HALF_PI + angle), UNASSIGNED));
+			frontBuffer->addWorkItem(EVALUATE_STREET, Street(0, RoadAttributes(source, g_configuration->streetLength, MathExtras::PI + angle), UNASSIGNED));
 		}
 
 		// generate streets
