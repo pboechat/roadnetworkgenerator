@@ -29,14 +29,14 @@ private:
 				return true;
 			}
 
-			g_dVerticesBuffer[lastVerticesIndex] = vml_vec4(source.position.x, source.position.y, 0.0f, 1.0f);
-			g_dVerticesBuffer[lastVerticesIndex + 1] = vml_vec4(destination.position.x, destination.position.y, 0.0f, 1.0f);
+			g_hVerticesBuffer[lastVerticesIndex] = vml_vec4(source.position.x, source.position.y, 0.0f, 1.0f);
+			g_hVerticesBuffer[lastVerticesIndex + 1] = vml_vec4(destination.position.x, destination.position.y, 0.0f, 1.0f);
 
-			g_dColorsBuffer[lastVerticesIndex] = g_dConfiguration->streetColor;
-			g_dColorsBuffer[lastVerticesIndex + 1] = g_dConfiguration->streetColor;
+			g_hColorsBuffer[lastVerticesIndex] = g_dConfiguration->streetColor;
+			g_hColorsBuffer[lastVerticesIndex + 1] = g_dConfiguration->streetColor;
 
-			g_dIndicesBuffer[lastIndicesIndex] = lastVerticesIndex;
-			g_dIndicesBuffer[lastIndicesIndex + 1] = lastVerticesIndex + 1;
+			g_hIndicesBuffer[lastIndicesIndex] = lastVerticesIndex;
+			g_hIndicesBuffer[lastIndicesIndex + 1] = lastVerticesIndex + 1;
 
 			lastVerticesIndex += 2;
 			lastIndicesIndex += 2;
@@ -94,14 +94,14 @@ public:
 						v1 = primitive.vertices[k + 1];
 					}
 
-					g_dVerticesBuffer[lastVerticesIndex] = vml_vec4(v0.x, v0.y, 0.0f, 1.0f);
-					g_dVerticesBuffer[lastVerticesIndex + 1] = vml_vec4(v1.x, v1.y, 0.0f, 1.0f);
+					g_hVerticesBuffer[lastVerticesIndex] = vml_vec4(v0.x, v0.y, 0.0f, 1.0f);
+					g_hVerticesBuffer[lastVerticesIndex + 1] = vml_vec4(v1.x, v1.y, 0.0f, 1.0f);
 
-					g_dColorsBuffer[lastVerticesIndex] = g_dConfiguration->cycleColor;
-					g_dColorsBuffer[lastVerticesIndex + 1] = g_dConfiguration->cycleColor;
+					g_hColorsBuffer[lastVerticesIndex] = g_dConfiguration->cycleColor;
+					g_hColorsBuffer[lastVerticesIndex + 1] = g_dConfiguration->cycleColor;
 
-					g_dIndicesBuffer[lastIndicesIndex] = lastVerticesIndex;
-					g_dIndicesBuffer[lastIndicesIndex + 1] = lastVerticesIndex + 1;
+					g_hIndicesBuffer[lastIndicesIndex] = lastVerticesIndex;
+					g_hIndicesBuffer[lastIndicesIndex + 1] = lastVerticesIndex + 1;
 
 					lastVerticesIndex += 2;
 					lastIndicesIndex += 2;
@@ -113,14 +113,14 @@ public:
 					vml_vec2& v0 = primitive.vertices[k];
 					vml_vec2& v1 = primitive.vertices[k + 1];
 
-					g_dVerticesBuffer[lastVerticesIndex] = vml_vec4(v0.x, v0.y, 0.0f, 1.0f);
-					g_dVerticesBuffer[lastVerticesIndex + 1] = vml_vec4(v1.x, v1.y, 0.0f, 1.0f);
+					g_hVerticesBuffer[lastVerticesIndex] = vml_vec4(v0.x, v0.y, 0.0f, 1.0f);
+					g_hVerticesBuffer[lastVerticesIndex + 1] = vml_vec4(v1.x, v1.y, 0.0f, 1.0f);
 
-					g_dColorsBuffer[lastVerticesIndex] = g_dConfiguration->filamentColor;
-					g_dColorsBuffer[lastVerticesIndex + 1] = g_dConfiguration->filamentColor;
+					g_hColorsBuffer[lastVerticesIndex] = g_dConfiguration->filamentColor;
+					g_hColorsBuffer[lastVerticesIndex + 1] = g_dConfiguration->filamentColor;
 
-					g_dIndicesBuffer[lastIndicesIndex] = lastVerticesIndex;
-					g_dIndicesBuffer[lastIndicesIndex + 1] = lastVerticesIndex + 1;
+					g_hIndicesBuffer[lastIndicesIndex] = lastVerticesIndex;
+					g_hIndicesBuffer[lastIndicesIndex + 1] = lastVerticesIndex + 1;
 
 					lastVerticesIndex += 2;
 					lastIndicesIndex += 2;
@@ -128,9 +128,9 @@ public:
 				break;
 			case RoadNetworkGraph::ISOLATED_VERTEX:
 				vml_vec2& v0 = primitive.vertices[0];
-				g_dVerticesBuffer[lastVerticesIndex] = vml_vec4(v0.x, v0.y, 0.0f, 1.0f);
-				g_dColorsBuffer[lastVerticesIndex] = g_dConfiguration->isolatedVertexColor;
-				g_dIndicesBuffer[lastIndicesIndex++] = lastVerticesIndex++;
+				g_hVerticesBuffer[lastVerticesIndex] = vml_vec4(v0.x, v0.y, 0.0f, 1.0f);
+				g_hColorsBuffer[lastVerticesIndex] = g_dConfiguration->isolatedVertexColor;
+				g_hIndicesBuffer[lastIndicesIndex++] = lastVerticesIndex++;
 				break;
 			}
 		}
@@ -139,17 +139,17 @@ public:
 		RoadNetworkGraph::traverse(g_dGraph, traversal);
 
 		glBindBuffer(GL_ARRAY_BUFFER, buffers[0]);
-		glBufferData(GL_ARRAY_BUFFER, traversal.lastVerticesIndex * sizeof(vml_vec4), (void*)g_dVerticesBuffer, GL_STATIC_DRAW);
+		glBufferData(GL_ARRAY_BUFFER, traversal.lastVerticesIndex * sizeof(vml_vec4), (void*)g_hVerticesBuffer, GL_STATIC_DRAW);
 		glBindBuffer(GL_ARRAY_BUFFER, 0);
 
 		glBindBuffer(GL_ARRAY_BUFFER, buffers[1]);
-		glBufferData(GL_ARRAY_BUFFER, traversal.lastVerticesIndex * sizeof(vml_vec4), (void*)g_dColorsBuffer, GL_STATIC_DRAW);
+		glBufferData(GL_ARRAY_BUFFER, traversal.lastVerticesIndex * sizeof(vml_vec4), (void*)g_hColorsBuffer, GL_STATIC_DRAW);
 		glBindBuffer(GL_ARRAY_BUFFER, 0);
 
 		elementsCount = traversal.lastIndicesIndex;
 
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, buffers[2]);
-		glBufferData(GL_ELEMENT_ARRAY_BUFFER, elementsCount * sizeof(unsigned int), (void*)g_dIndicesBuffer, GL_STATIC_DRAW);
+		glBufferData(GL_ELEMENT_ARRAY_BUFFER, elementsCount * sizeof(unsigned int), (void*)g_hIndicesBuffer, GL_STATIC_DRAW);
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 
 		glBindVertexArray(vao);

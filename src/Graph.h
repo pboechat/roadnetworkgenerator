@@ -14,12 +14,12 @@ namespace RoadNetworkGraph
 {
 
 //////////////////////////////////////////////////////////////////////////
-DEVICE_CODE struct QuadTree;
+HOST_AND_DEVICE_CODE  struct QuadTree;
 //////////////////////////////////////////////////////////////////////////
-DEVICE_CODE struct GraphTraversal;
+HOST_AND_DEVICE_CODE  struct GraphTraversal;
 
 //////////////////////////////////////////////////////////////////////////
-DEVICE_CODE enum IntersectionType
+HOST_AND_DEVICE_CODE  enum IntersectionType
 {
 	NONE,
 	SOURCE,
@@ -28,7 +28,7 @@ DEVICE_CODE enum IntersectionType
 };
 
 //////////////////////////////////////////////////////////////////////////
-DEVICE_CODE struct Graph : public BaseGraph
+HOST_AND_DEVICE_CODE  struct Graph : public BaseGraph
 {
 	unsigned int maxVertices;
 	unsigned int maxEdges;
@@ -51,11 +51,13 @@ GLOBAL_CODE void initializeGraph(Graph* graph, float snapRadius, unsigned int ma
 GLOBAL_CODE void initializeGraph(Graph* graph, float snapRadius, unsigned int maxVertices, unsigned int maxEdges, Vertex* vertices, Edge* edges);
 #endif
 //////////////////////////////////////////////////////////////////////////
+GLOBAL_CODE void updateNumVerticesAndNumEdges(Graph* graph, unsigned int numVertices, unsigned int numEdges);
+//////////////////////////////////////////////////////////////////////////
 HOST_CODE void copy(Graph* graph, BaseGraph* other);
 //////////////////////////////////////////////////////////////////////////
-DEVICE_CODE vml_vec2 getPosition(Graph* graph, VertexIndex vertexIndex);
+HOST_AND_DEVICE_CODE vml_vec2 getPosition(Graph* graph, VertexIndex vertexIndex);
 //////////////////////////////////////////////////////////////////////////
-DEVICE_CODE VertexIndex createVertex(Graph* graph, const vml_vec2& position);
+HOST_AND_DEVICE_CODE VertexIndex createVertex(Graph* graph, const vml_vec2& position);
 //////////////////////////////////////////////////////////////////////////
 DEVICE_CODE bool addRoad(Graph* graph, VertexIndex sourceIndex, const vml_vec2& direction, VertexIndex& newVertexIndex, vml_vec2& end, bool highway);
 //////////////////////////////////////////////////////////////////////////

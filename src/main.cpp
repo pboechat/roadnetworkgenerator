@@ -1,5 +1,5 @@
 // memory leak detection
-#include <vld.h>
+//#include <vld.h>
 
 #include "Defines.h"
 #include <RoadNetworkInputController.h>
@@ -32,21 +32,8 @@ void printUsage()
 
 void generateAndDisplay(const std::string& configurationFile, SceneRenderer& renderer, RoadNetworkGeometry& geometry, RoadNetworkLabels& labels, Camera& camera)
 {
-	//////////////////////////////////////////////////////////////////////////
-	//	ALLOCATE CONFIGURATION
-	//////////////////////////////////////////////////////////////////////////
-	if (g_dConfiguration != 0)
-	{
-		FREE_ON_DEVICE(g_dConfiguration);
-		g_dConfiguration = 0;
-	}
-
-	g_hConfiguration = (Configuration*)malloc(sizeof(Configuration));
-	g_hConfiguration->loadFromFile(configurationFile);
-
-	MALLOC_ON_DEVICE(g_dConfiguration, Configuration, 1);
-	MEMCPY_HOST_TO_DEVICE(g_dConfiguration, g_hConfiguration, sizeof(Configuration));
-
+	allocateAndInitializeConfiguration(configurationFile);
+	Box2D worldBounds(0.0f, 0.0f, (float)g_hConfiguration->worldWidth, (float)g_hConfiguration->worldHeight);
 	allocateAndInitializeImageMaps(g_hConfiguration->populationDensityMapFilePath,
 								   g_hConfiguration->waterBodiesMapFilePath,
 								   g_hConfiguration->blockadesMapFilePath,
@@ -55,82 +42,19 @@ void generateAndDisplay(const std::string& configurationFile, SceneRenderer& ren
 								   g_hConfiguration->rasterPatternMapFilePath,
 								   g_hConfiguration->worldWidth,
 								   g_hConfiguration->worldHeight);
-
 	allocateSamplingBuffers(g_hConfiguration->samplingArc);
 	allocateWorkQueues(g_hConfiguration->maxWorkQueueCapacity);
-
-	Box2D worldBounds(0.0f, 0.0f, (float)g_hConfiguration->worldWidth, (float)g_hConfiguration->worldHeight);
-
-	// TODO:
-	renderer.setUpImageMaps(worldBounds, g_dPopulationDensityMap, g_dWaterBodiesMap, g_dBlockadesMap);
-
-	//////////////////////////////////////////////////////////////////////////
-	//	ALLOCATE GRAPH
-	//////////////////////////////////////////////////////////////////////////
-	if (g_dGraph != 0)
-	{
-		FREE_ON_DEVICE(g_dGraph);
-		g_dGraph = 0;
-	}
-
-	MALLOC_ON_DEVICE(g_dGraph, RoadNetworkGraph::Graph, 1);
-
-	if (g_hGraphCopy != 0)
-	{
-		free(g_hGraphCopy);
-		g_hGraphCopy = 0;
-	}
-
-	if (g_hVerticesCopy != 0)
-	{
-		free(g_hVerticesCopy);
-		g_hVerticesCopy = 0;
-	}
-
-	if (g_hEdgesCopy != 0)
-	{
-		free(g_hEdgesCopy);
-		g_hEdgesCopy = 0;
-	}
-
-	g_hGraphCopy = (RoadNetworkGraph::BaseGraph*)malloc(sizeof(RoadNetworkGraph::BaseGraph));
-	g_hVerticesCopy = (RoadNetworkGraph::Vertex*)malloc(sizeof(RoadNetworkGraph::Vertex) * g_hConfiguration->maxVertices);
-	g_hEdgesCopy = (RoadNetworkGraph::Edge*)malloc(sizeof(RoadNetworkGraph::Edge) * g_hConfiguration->maxEdges);
-
-	allocateGraphBuffers(g_hConfiguration->maxVertices, g_hConfiguration->maxEdges);
+	allocateGraph(g_hConfiguration->maxVertices, g_hConfiguration->maxEdges);
 #ifdef USE_QUADTREE
-	//////////////////////////////////////////////////////////////////////////
-	//	ALLOCATE QUADTREE
-	//////////////////////////////////////////////////////////////////////////
-
-	if (g_dQuadtree != 0)
-	{
-		FREE_ON_DEVICE(g_dQuadtree);
-		g_dQuadtree = 0;
-	}
-
-	MALLOC_ON_DEVICE(g_dQuadtree, RoadNetworkGraph::QuadTree, 1);
-
-	allocateQuadtreeBuffers(g_hConfiguration->maxResultsPerQuery, g_hConfiguration->maxQuadrants);
-
+	allocateQuadtree(g_hConfiguration->maxResultsPerQuery, g_hConfiguration->maxQuadrants);
 	INVOKE_GLOBAL_CODE7(RoadNetworkGraph::initializeQuadtree, 1, 1, g_dQuadtree, worldBounds, g_hConfiguration->quadtreeDepth, g_hConfiguration->maxResultsPerQuery, g_hConfiguration->maxQuadrants, g_dQuadrants, g_dQuadrantsEdges);
+#endif
+#ifdef USE_QUADTREE
 	INVOKE_GLOBAL_CODE9(RoadNetworkGraph::initializeGraph, 1, 1, g_dGraph, g_hConfiguration->snapRadius, g_hConfiguration->maxVertices, g_hConfiguration->maxEdges, g_dVertices, g_dEdges, g_dQuadtree, g_hConfiguration->maxResultsPerQuery, g_dQueryResults);
 #else
 	INVOKE_GLOBAL_CODE6(RoadNetworkGraph::initializeGraph, 1, 1, g_dGraph, g_hConfiguration->snapRadius, g_hConfiguration->maxVertices, g_hConfiguration->maxEdges, g_dVertices, g_dEdges);
 #endif
-
-	//////////////////////////////////////////////////////////////////////////
-	//	ALLOCATE PRIMITIVES
-	//////////////////////////////////////////////////////////////////////////
-
-	if (g_hPrimitives != 0)
-	{
-		free(g_hPrimitives);
-		g_hPrimitives = 0;
-	}
-
-	g_hPrimitives = (RoadNetworkGraph::Primitive*)malloc(sizeof(RoadNetworkGraph::Primitive) * g_hConfiguration->maxPrimitives);
-	memset(g_hPrimitives, 0, sizeof(RoadNetworkGraph::Primitive) * g_hConfiguration->maxPrimitives);
+	allocatePrimitives();
 
 	RoadNetworkGenerator generator;
 
@@ -139,59 +63,47 @@ void generateAndDisplay(const std::string& configurationFile, SceneRenderer& ren
 	timer.start();
 #endif
 	generator.execute();
-
-	// TODO:
-	RoadNetworkGraph::Graph* graph = (RoadNetworkGraph::Graph*)malloc(sizeof(RoadNetworkGraph::Graph));
-	MEMCPY_DEVICE_TO_HOST(graph, g_dGraph, sizeof(RoadNetworkGraph::Graph));
-
-	RoadNetworkGraph::QuadTree* quadtree = (RoadNetworkGraph::QuadTree*)malloc(sizeof(RoadNetworkGraph::QuadTree));
-	MEMCPY_DEVICE_TO_HOST(quadtree, g_dQuadtree, sizeof(RoadNetworkGraph::QuadTree));
-
-	// TODO:
-	graph->quadtree = quadtree;
-
 #ifdef _DEBUG
 	timer.end();
+
+#ifdef USE_QUADTREE
+	copyQuadtreeToHost();
+#endif
+
 	std::cout << "*****************************" << std::endl;
 	std::cout << "	DETAILS:				   " << std::endl;
 	std::cout << "*****************************" << std::endl;
 #ifdef _DEBUG
-	std::cout << "seed: " << g_dConfiguration->seed << std::endl;
+	std::cout << "seed: " << g_hConfiguration->seed << std::endl;
 #endif
 	std::cout << "generation time: " << timer.elapsedTime() << " seconds" << std::endl;
 	std::cout << "last highway derivation (max./real): " << g_hConfiguration->maxHighwayDerivation << " / " << generator.getLastHighwayDerivation() << std::endl;
 	std::cout << "last street derivation (max./real): " << g_hConfiguration->maxStreetDerivation << " / " << generator.getLastStreetDerivation() << std::endl;
 	std::cout << "work queue capacity (max/max. in use): " << (g_hConfiguration->maxWorkQueueCapacity * NUM_PROCEDURES) << " / " << generator.getMaxWorkQueueCapacityUsed() << std::endl;
-	std::cout << "memory (allocated/in use): " << toMegabytes(getAllocatedMemory(graph)) << " MB / " << toMegabytes(getMemoryInUse(graph)) << " MB" << std::endl;
-	std::cout << "vertices (allocated/in use): " << getAllocatedVertices(graph) << " / " << getVerticesInUse(graph) << std::endl;
-	std::cout << "edges (allocated/in use): " << getAllocatedEdges(graph) << " / " << getEdgesInUse(graph) << std::endl;
-	std::cout << "vertex in connections (max./max. in use): " << getMaxVertexInConnections(graph) << " / " << getMaxVertexInConnectionsInUse(graph) << std::endl;
-	std::cout << "vertex out connections (max./max. in use): " << getMaxVertexOutConnections(graph) << " / " << getMaxVertexOutConnectionsInUse(graph) << std::endl;
-	std::cout << "avg. vertex in connections in use: " << getAverageVertexInConnectionsInUse(graph) << std::endl;
-	std::cout << "avg. vertex out connections in use: " << getAverageVertexOutConnectionsInUse(graph) << std::endl;
+	std::cout << "memory (allocated/in use): " << toMegabytes(getAllocatedMemory(g_hGraph)) << " MB / " << toMegabytes(getMemoryInUse(g_hGraph)) << " MB" << std::endl;
+	std::cout << "vertices (allocated/in use): " << getAllocatedVertices(g_hGraph) << " / " << getVerticesInUse(g_hGraph) << std::endl;
+	std::cout << "edges (allocated/in use): " << getAllocatedEdges(g_hGraph) << " / " << getEdgesInUse(g_hGraph) << std::endl;
+	std::cout << "vertex in connections (max./max. in use): " << getMaxVertexInConnections(g_hGraph) << " / " << getMaxVertexInConnectionsInUse(g_hGraph) << std::endl;
+	std::cout << "vertex out connections (max./max. in use): " << getMaxVertexOutConnections(g_hGraph) << " / " << getMaxVertexOutConnectionsInUse(g_hGraph) << std::endl;
+	std::cout << "avg. vertex in connections in use: " << getAverageVertexInConnectionsInUse(g_hGraph) << std::endl;
+	std::cout << "avg. vertex out connections in use: " << getAverageVertexOutConnectionsInUse(g_hGraph) << std::endl;
 #ifdef USE_QUADTREE
-	std::cout << "edges per quadrant (max./max. in use): " << MAX_EDGES_PER_QUADRANT << " / " << getMaxEdgesPerQuadrantInUse(quadtree) << std::endl;
-	std::cout << "results per query (max./max. in use): " << g_hConfiguration->maxResultsPerQuery << " / " << getMaxResultsPerQueryInUse(quadtree) << std::endl;
+	std::cout << "edges per quadrant (max./max. in use): " << MAX_EDGES_PER_QUADRANT << " / " << getMaxEdgesPerQuadrantInUse(g_hQuadtree) << std::endl;
+	std::cout << "results per query (max./max. in use): " << g_hConfiguration->maxResultsPerQuery << " / " << getMaxResultsPerQueryInUse(g_hQuadtree) << std::endl;
 #endif
 	std::cout << "primitive size (max./max. in use): " << MAX_VERTICES_PER_PRIMITIVE << "/" << generator.getMaxPrimitiveSize() << std::endl;
-	std::cout << "num. collision checks: " << getNumCollisionChecks(graph) << std::endl;
+	std::cout << "num. collision checks: " << getNumCollisionChecks(g_hGraph) << std::endl;
 	std::cout  << std::endl << std::endl;
 #endif
 
-	//////////////////////////////////////////////////////////////////////////
-	//	ALLOCATE VBOs
-	//////////////////////////////////////////////////////////////////////////
-
 	allocateGraphicsBuffers(g_hConfiguration->vertexBufferSize, g_hConfiguration->indexBufferSize);
 
-	// TODO:
+	renderer.setUpImageMaps(worldBounds, g_hPopulationDensityMap, g_hWaterBodiesMap, g_hBlockadesMap);
+
 	geometry.build();
 	labels.build();
 
 	camera.centerOnTarget(worldBounds);
-
-	free(quadtree);
-	free(graph);
 }
 
 int main(int argc, char** argv)
@@ -248,56 +160,15 @@ int main(int argc, char** argv)
 	}
 
 	freeGraphicsBuffers();
-
-	if (g_hVerticesCopy != 0)
-	{
-		free(g_hVerticesCopy);
-	}
-
-	if (g_hEdgesCopy != 0)
-	{
-		free(g_hEdgesCopy);
-	}
-
-	if (g_hGraphCopy != 0)
-	{
-		free(g_hGraphCopy);
-	}
-
-	if (g_hPrimitives != 0)
-	{
-		free(g_hPrimitives);
-	}
-
+	freePrimitives();
 #ifdef USE_QUADTREE
-
-	if (g_dQuadtree != 0)
-	{
-		FREE_ON_DEVICE(g_dQuadtree);
-	}
-
-	freeQuadtreeBuffers();
+	freeQuadtree();
 #endif
-
-	if (g_dGraph != 0)
-	{
-		FREE_ON_DEVICE(g_dGraph);
-	}
-
-	if (g_dConfiguration != 0)
-	{
-		FREE_ON_DEVICE(g_dConfiguration);
-	}
-
-	if (g_hConfiguration != 0)
-	{
-		free(g_hConfiguration);
-	}
-	
-	freeGraphBuffers();
+	freeGraph();
 	freeImageMaps();
 	freeSamplingBuffers();
 	freeWorkQueues();
+	freeConfiguration();
 
 	// DEBUG:
 	system("pause");

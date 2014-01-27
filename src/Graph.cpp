@@ -54,6 +54,13 @@ GLOBAL_CODE void initializeGraph(Graph* graph, float snapRadius, unsigned int ma
 #endif
 
 //////////////////////////////////////////////////////////////////////////
+GLOBAL_CODE void updateNumVerticesAndNumEdges(Graph* graph, unsigned int numVertices, unsigned int numEdges)
+{
+	graph->numVertices = numVertices;
+	graph->numEdges = numEdges;
+}
+
+//////////////////////////////////////////////////////////////////////////
 HOST_CODE void copy(Graph* graph, BaseGraph* other)
 {
 	other->numEdges = graph->numEdges;
@@ -61,7 +68,7 @@ HOST_CODE void copy(Graph* graph, BaseGraph* other)
 }
 
 //////////////////////////////////////////////////////////////////////////
-DEVICE_CODE vml_vec2 getPosition(Graph* graph, VertexIndex vertexIndex)
+HOST_AND_DEVICE_CODE vml_vec2 getPosition(Graph* graph, VertexIndex vertexIndex)
 {
 	// FIXME: checking invariants
 	if (vertexIndex >= graph->numVertices)
@@ -73,7 +80,7 @@ DEVICE_CODE vml_vec2 getPosition(Graph* graph, VertexIndex vertexIndex)
 }
 
 //////////////////////////////////////////////////////////////////////////
-DEVICE_CODE VertexIndex createVertex(Graph* graph, const vml_vec2& position)
+HOST_AND_DEVICE_CODE VertexIndex createVertex(Graph* graph, const vml_vec2& position)
 {
 	// FIXME: checking boundaries
 	if (graph->numVertices >= (int)graph->maxVertices)
@@ -88,7 +95,7 @@ DEVICE_CODE VertexIndex createVertex(Graph* graph, const vml_vec2& position)
 }
 
 //////////////////////////////////////////////////////////////////////////
-DEVICE_CODE void removeDeadEndRoads(Graph* graph)
+HOST_CODE void removeDeadEndRoads(Graph* graph)
 {
 	bool changed;
 

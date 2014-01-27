@@ -58,11 +58,14 @@ public:
 			std::swap(frontBuffer, backBuffer);
 		}
 
+		// -----------------------------------------------------------------------
+
+		//////////////////////////////////////////////////////////////////////////
+		//	HOST CODE
+		//////////////////////////////////////////////////////////////////////////
+
 		// initialize lightweight graph copy
-		copyGraphBuffers(g_hConfiguration->maxVertices, g_hConfiguration->maxEdges);
-		RoadNetworkGraph::initializeBaseGraph(g_hGraphCopy, g_hVerticesCopy, g_hEdgesCopy);
-		// FIXME:
-		RoadNetworkGraph::copy(g_dGraph, g_hGraphCopy);
+		copyGraphToHost(g_hConfiguration->maxVertices, g_hConfiguration->maxEdges);
 		
 		// extract the allotments from graph copy
 		RoadNetworkGraph::allocateExtractionBuffers(g_hConfiguration->maxVertices, g_hConfiguration->maxEdgeSequences, g_hConfiguration->maxVisitedVertices);
@@ -101,12 +104,24 @@ public:
 			OBB2D obb(convexHull.hullPoints, convexHull.numHullPoints);
 			angle = vml_angle(obb.axis[1], vml_vec2(0.0f, 1.0f));
 			
-			RoadNetworkGraph::VertexIndex source = RoadNetworkGraph::createVertex(g_dGraph, centroid);
-			frontBuffer->addWorkItem(EVALUATE_STREET, Street(0, RoadAttributes(source, g_dConfiguration->streetLength, angle), UNASSIGNED));
-			frontBuffer->addWorkItem(EVALUATE_STREET, Street(0, RoadAttributes(source, g_dConfiguration->streetLength, -MathExtras::HALF_PI + angle), UNASSIGNED));
-			frontBuffer->addWorkItem(EVALUATE_STREET, Street(0, RoadAttributes(source, g_dConfiguration->streetLength, MathExtras::HALF_PI + angle), UNASSIGNED));
-			frontBuffer->addWorkItem(EVALUATE_STREET, Street(0, RoadAttributes(source, g_dConfiguration->streetLength, MathExtras::PI + angle), UNASSIGNED));
+			RoadNetworkGraph::VertexIndex source = RoadNetworkGraph::createVertex(g_hGraph, centroid);
+			frontBuffer->addWorkItem(EVALUATE_STREET, Street(0, RoadAttributes(source, g_hConfiguration->streetLength, angle), UNASSIGNED));
+			frontBuffer->addWorkItem(EVALUATE_STREET, Street(0, RoadAttributes(source, g_hConfiguration->streetLength, -MathExtras::HALF_PI + angle), UNASSIGNED));
+			frontBuffer->addWorkItem(EVALUATE_STREET, Street(0, RoadAttributes(source, g_hConfiguration->streetLength, MathExtras::HALF_PI + angle), UNASSIGNED));
+			frontBuffer->addWorkItem(EVALUATE_STREET, Street(0, RoadAttributes(source, g_hConfiguration->streetLength, MathExtras::PI + angle), UNASSIGNED));
 		}
+
+		copyGraphToDevice(g_hConfiguration->maxVertices, g_hConfiguration->maxEdges);
+
+		//////////////////////////////////////////////////////////////////////////
+		//	HOST CODE
+		//////////////////////////////////////////////////////////////////////////
+
+		// -----------------------------------------------------------------------
+
+		//////////////////////////////////////////////////////////////////////////
+		//	DEVICE CODE
+		//////////////////////////////////////////////////////////////////////////
 
 		// generate streets
 		lastStreetDerivation = 0;
