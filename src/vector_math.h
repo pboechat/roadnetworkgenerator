@@ -4,6 +4,8 @@
 /********************************
  *	VECTOR MATH LIBRARY WRAPPER
  ********************************/
+ 
+#include "CpuGpuCompatibilityDefines.h"
 
 #ifdef USE_GLM
 
@@ -18,22 +20,22 @@
 namespace vml_glm
 {
 
-inline static glm::vec2 rotate2D(const glm::vec2& vec, float rad)
+inline HOST_AND_DEVICE_CODE glm::vec2 rotate2D(const glm::vec2& vec, float rad)
 {
 	return glm::vec2((vec.x * cos(rad)) - (vec.y * sin(rad)), (vec.y * cos(rad)) +  (vec.x * sin(rad)));
 }
 
-inline static float dotPerp(const glm::vec2& v0, const glm::vec2& v1)
+inline HOST_AND_DEVICE_CODE float dotPerp(const glm::vec2& v0, const glm::vec2& v1)
 {
 	return v0.x * v1.y - v0.y * v1.x;
 }
 
-inline static float angle(const glm::vec2& v0, const glm::vec2& v1)
+inline HOST_AND_DEVICE_CODE float angle(const glm::vec2& v0, const glm::vec2& v1)
 {
 	return glm::acos(glm::dot(v0, v1) / (glm::length(v0) * glm::length(v1)));
 }
 
-inline static glm::vec2 perp(const glm::vec2& v)
+inline HOST_AND_DEVICE_CODE glm::vec2 perp(const glm::vec2& v)
 {
 	return glm::vec2(v.y, -v.x);
 }

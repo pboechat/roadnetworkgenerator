@@ -8,18 +8,21 @@ option(CUDA_BUILD_CC35 "Build with compute capability 3.5 support" FALSE)
 option(CUDA_BUILD_INFO "Build with kernel statistics and line numbers" FALSE)
 option(CUDA_BUILD_DEBUG "Build with kernel debug" TRUE)
 
-set(CUDA_NVCC_FLAGS "-use_fast_math;")
+set(CUDA_NVCC_FLAGS "-use_fast_math;-w")
 
 if(CUDA_BUILD_CC20)
 	set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS};-gencode=arch=compute_20,code=sm_20")
+	add_definitions(-DCUDA_CC=20)
 endif()
 
 if(CUDA_BUILD_CC30)
 	set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS};-gencode=arch=compute_30,code=sm_30")
+	add_definitions(-DCUDA_CC=30)
 endif()
 
 if(CUDA_BUILD_CC35)
 	set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS};-gencode=arch=compute_35,code=sm_35;-maxrregcount=64")
+	add_definitions(--DCUDA_CC=35)
 endif()
 
 if(CUDA_BUILD_INFO)
@@ -50,6 +53,8 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}
 )
 
 source_group("Shader Files" FILES ${SHADERS})
+source_group("CUDA Headers" FILES ${CUDA_HEADERS})
+source_group("CUDA Sources" FILES ${CUDA_SOURCES})
 
 if (MSVC)
 	add_definitions(/D "_CRT_SECURE_NO_WARNINGS")
@@ -57,14 +62,18 @@ endif (MSVC)
 
 if (USE_QUADTREE)
 	add_definitions(/D "USE_QUADTREE")
+	set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS};-DUSE_QUADTREE")
 endif(USE_QUADTREE)
 
 add_definitions(/D "USE_GLM")
+set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS};-DUSE_GLM")
 
 if (USE_CUDA)
 	add_definitions(/D "USE_CUDA")
-	add_definitions(/D "GLM_FORCE_CUDA")
+	set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS};-DUSE_CUDA")
 endif(USE_CUDA)
+
+message("CUDA_NVCC_FLAGS: ${CUDA_NVCC_FLAGS}")
 
 cuda_add_executable(
 	roadnetworkgenerator

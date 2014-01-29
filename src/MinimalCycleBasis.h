@@ -2,9 +2,9 @@
 #define ROADNETWORKGRAPH_MINIMALCYCLEBASIS_H
 
 #include "Defines.h"
-#include <Vertex.h>
-#include <Edge.h>
-#include <BaseGraph.h>
+#include <Vertex.cuh>
+#include <Edge.cuh>
+#include <BaseGraph.cuh>
 #include <Primitive.h>
 
 #include <vector_math.h>
@@ -13,11 +13,11 @@ namespace RoadNetworkGraph
 {
 
 //////////////////////////////////////////////////////////////////////////
-HOST_CODE void allocateExtractionBuffers(unsigned int heapBufferSize, unsigned int sequenceBufferSize, unsigned int visitedBufferSize);
+void allocateExtractionBuffers(unsigned int heapBufferSize, unsigned int sequenceBufferSize, unsigned int visitedBufferSize);
 //////////////////////////////////////////////////////////////////////////
-HOST_CODE void freeExtractionBuffers();
+void freeExtractionBuffers();
 //////////////////////////////////////////////////////////////////////////
-HOST_CODE unsigned int extractPrimitives(BaseGraph* graph, Primitive* primitivesBuffer, unsigned int maxPrimitives);
+unsigned int extractPrimitives(BaseGraph* graph, Primitive* primitivesBuffer, unsigned int maxPrimitives);
 
 }
 

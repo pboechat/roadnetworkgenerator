@@ -1,7 +1,7 @@
 #ifndef CONVEXHULL_H
 #define CONVEXHULL_H
 
-#include <MathExtras.h>
+#include <MathExtras.cuh>
 
 #include <vector_math.h>
 

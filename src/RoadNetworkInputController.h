@@ -4,33 +4,30 @@
 #include <Application.h>
 #include <InputController.h>
 #include <SceneRenderer.h>
-#include <Configuration.h>
 #include <Camera.h>
-#include <Graph.h>
-#include <RoadNetworkGenerator.h>
-#include <RoadNetworkGeometry.h>
-#include <RoadNetworkLabels.h>
-#include <Timer.h>
+#include <RoadNetworkGraphGenerator.h>
+#include <RoadNetworkGeometryGenerator.h>
+#include <RoadNetworkLabelsGenerator.h>
 
 #include <string>
 
 class RoadNetworkInputController : public InputController
 {
 public:
-	typedef void (*GenerateAndDisplayCallback)(const std::string&, SceneRenderer&, RoadNetworkGeometry&, RoadNetworkLabels& labels, Camera&);
+	typedef void (*GenerateAndDisplayCallback)(const std::string&, SceneRenderer&, RoadNetworkGeometryGenerator&, RoadNetworkLabelsGenerator& labels, Camera&);
 
 	RoadNetworkInputController(Camera& camera,
 							   const std::string& configurationFile,
 							   SceneRenderer& renderer,
-							   RoadNetworkGeometry& geometry,
-							   RoadNetworkLabels& labels,
+							   RoadNetworkGeometryGenerator& geometryGenerator,
+							   RoadNetworkLabelsGenerator& labelsGenerator,
 							   GenerateAndDisplayCallback callback)
 		:
 		InputController(camera, 100.0f, 10.0f),
 		configurationFile(configurationFile),
 		renderer(renderer),
-		geometry(geometry),
-		labels(labels),
+		geometryGenerator(geometryGenerator),
+		labelsGenerator(labelsGenerator),
 		callback(callback)
 	{
 	}
@@ -89,15 +86,15 @@ public:
 
 		if (getKeyDown(VK_F5))
 		{
-			callback(configurationFile, renderer, geometry, labels, camera);
+			callback(configurationFile, renderer, geometryGenerator, labelsGenerator, camera);
 		}
 	}
 
 private:
 	std::string configurationFile;
 	SceneRenderer& renderer;
-	RoadNetworkGeometry& geometry;
-	RoadNetworkLabels& labels;
+	RoadNetworkGeometryGenerator& geometryGenerator;
+	RoadNetworkLabelsGenerator& labelsGenerator;
 	GenerateAndDisplayCallback callback;
 
 };

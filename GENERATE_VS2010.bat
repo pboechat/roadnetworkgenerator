@@ -17,11 +17,11 @@ if %errorlevel% NEQ 0 goto error
 goto end
 
 :error
-echo Houve um erro. Pressione qualquer tecla para finalizar.
+echo Error build
 pause >nul
 
 :end
 
-REM pause >nul
-
 cd ../../../
+echo Build finished successfully
+pause >nul

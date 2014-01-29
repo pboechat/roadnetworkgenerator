@@ -4,10 +4,10 @@
 #include "Defines.h"
 
 template<typename T>
-HOST_CODE class SortedSet
+class SortedSet
 {
 public:
-	HOST_CODE struct Comparer
+	struct Comparer
 	{
 		virtual int operator()(const T&, const T&) const = 0;
 

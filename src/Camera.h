@@ -2,7 +2,7 @@
 #define CAMERA_H
 
 #include <Transform.h>
-#include <Box2D.h>
+#include <Box2D.cuh>
 
 #include <vector_math.h>
 

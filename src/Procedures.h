@@ -1,0 +1,14 @@
+#ifndef PROCEDURES_H
+#define PROCEDURES_H
+
+#include <ProceduresCodes.h>
+
+//////////////////////////////////////////////////////////////////////////
+// PROCEDURES IMPLEMENTATIONS
+//////////////////////////////////////////////////////////////////////////
+
+#include <EvaluateRoad.cuh>
+#include <EvaluateBranch.cuh>
+#include <InstantiateRoad.cuh>
+
+#endif

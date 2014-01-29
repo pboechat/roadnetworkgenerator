@@ -1,12 +1,13 @@
 #ifndef SCENERENDERER_H
 #define SCENERENDERER_H
 
+#include <Configuration.cuh>
 #include <Renderer.h>
-#include <Configuration.h>
 #include <Camera.h>
 #include <Shader.h>
-#include <RoadNetworkGeometry.h>
-#include <RoadNetworkLabels.h>
+#include <RoadNetworkGeometryGenerator.h>
+#include <RoadNetworkLabelsGenerator.h>
+#include <ImageMap.cuh>
 #include <Quad.h>
 
 #include <glFont.h>
@@ -56,16 +57,17 @@ private:
 	Shader solidShader;
 	Shader imageMapShader;
 	Shader fontShader;
-	RoadNetworkGeometry& geometry;
-	RoadNetworkLabels& labels;
+	RoadNetworkGeometryGenerator& geometry;
+	RoadNetworkLabelsGenerator& labels;
 	Quad* worldSizedQuad;
 	ImageMapRenderData populationDensityMapData;
 	ImageMapRenderData waterBodiesMapData;
 	ImageMapRenderData blockadesMapData;
+	bool drawLabels;
 
-	void setUpImageMapRenderData(const ImageMap* imageMap, ImageMapRenderData& imageMapData, const vml_vec4& color1, const vml_vec4& color2)
+	void setUpImageMapRenderData(const ImageMap& imageMap, ImageMapRenderData& imageMapData, const vml_vec4& color1, const vml_vec4& color2)
 	{
-		imageMapData.texture = new Texture(imageMap->width, imageMap->height, GL_RED, GL_R8, GL_UNSIGNED_BYTE, GL_NEAREST, GL_CLAMP_TO_EDGE, (void*)imageMap->data);
+		imageMapData.texture = new Texture(imageMap.getWidth(), imageMap.getHeight(), GL_RED, GL_R8, GL_UNSIGNED_BYTE, GL_NEAREST, GL_CLAMP_TO_EDGE, (void*)imageMap.getData());
 		imageMapData.color1 = color1;
 		imageMapData.color2 = color2;
 	}
@@ -97,14 +99,15 @@ private:
 	}
 
 public:
-	SceneRenderer(Camera& camera, RoadNetworkGeometry& geometry, RoadNetworkLabels& labels) :
+	SceneRenderer(Camera& camera, RoadNetworkGeometryGenerator& geometry, RoadNetworkLabelsGenerator& labels) :
 		Renderer(camera),
 		solidShader("../../../../shaders/solid.vs.glsl", "../../../../shaders/solid.fs.glsl"),
 		imageMapShader("../../../../shaders/imageMap.vs.glsl", "../../../../shaders/imageMap.fs.glsl"),
 		fontShader("../../../../shaders/font.vs.glsl", "../../../../shaders/font.fs.glsl"),
 		geometry(geometry),
 		labels(labels),
-		worldSizedQuad(0)
+		worldSizedQuad(0),
+		drawLabels(false)
 	{
 		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 		glEnable(GL_PROGRAM_POINT_SIZE);
@@ -123,21 +126,26 @@ public:
 		destroyImageMaps();
 	}
 
-	void setUpImageMaps(const Box2D& worldBounds, const ImageMap* populationDensityMap, const ImageMap* waterBodiesMap, const ImageMap* blockadesMap)
+	void readConfigurations(const Configuration& configuration)
+	{
+		drawLabels = configuration.drawLabels;
+	}
+
+	void setUpImageMaps(const Box2D& worldBounds, const ImageMap& populationDensityMap, const ImageMap& waterBodiesMap, const ImageMap& blockadesMap)
 	{
 		destroyImageMaps();
 
-		if ((populationDensityMapData.enabled = (populationDensityMap != 0)))
+		if ((populationDensityMapData.enabled = (populationDensityMap.hasData())))
 		{
 			setUpImageMapRenderData(populationDensityMap, populationDensityMapData, BLACK_COLOR, WHITE_COLOR);
 		}
 
-		if ((waterBodiesMapData.enabled = (waterBodiesMap != 0)))
+		if ((waterBodiesMapData.enabled = (waterBodiesMap.hasData())))
 		{
 			setUpImageMapRenderData(waterBodiesMap, waterBodiesMapData, vml_vec4(0.0f, 0.0f, 0.0f, 0.0f), WATER_COLOR);
 		}
 
-		if ((blockadesMapData.enabled = (blockadesMap != 0)))
+		if ((blockadesMapData.enabled = (blockadesMap.hasData())))
 		{
 			setUpImageMapRenderData(blockadesMap, blockadesMapData, vml_vec4(0.0f, 0.0f, 0.0f, 0.0f), GRASS_COLOR);
 		}
@@ -201,7 +209,7 @@ public:
 		geometry.draw();
 		solidShader.unbind();
 
-		if (g_dConfiguration->drawLabels)
+		if (drawLabels)
 		{
 			glDepthMask(GL_FALSE);
 			glEnable(GL_BLEND);

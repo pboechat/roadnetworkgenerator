@@ -2,14 +2,13 @@
 #define ROADNETWORKGRAPH_GRAPHTRAVERSAL_H
 
 #include "Defines.h"
-#include <Graph.h>
-
-#include <vector_math.h>
+#include <Vertex.cuh>
+#include <Edge.cuh>
 
 namespace RoadNetworkGraph
 {
 
-HOST_CODE struct GraphTraversal
+struct GraphTraversal
 {
 	virtual bool operator () (const Vertex& source, const Vertex& destination, const Edge& edge) = 0;
 

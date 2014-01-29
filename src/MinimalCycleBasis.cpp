@@ -1,40 +1,40 @@
 #include <MinimalCycleBasis.h>
 
 #include <SortedSet.h>
-#include <Array.h>
+#include <Array.cuh>
 
 namespace RoadNetworkGraph
 {
 
 //////////////////////////////////////////////////////////////////////////
-HOST_CODE VertexIndex* g_heapBuffer = 0;
+VertexIndex* g_heapBuffer = 0;
 //////////////////////////////////////////////////////////////////////////
-HOST_CODE unsigned int g_heapBufferSize = 0;
+unsigned int g_heapBufferSize = 0;
 //////////////////////////////////////////////////////////////////////////
-HOST_CODE EdgeIndex* g_sequenceBuffer = 0;
+EdgeIndex* g_sequenceBuffer = 0;
 //////////////////////////////////////////////////////////////////////////
-HOST_CODE unsigned int g_sequenceBufferSize = 0;
+unsigned int g_sequenceBufferSize = 0;
 //////////////////////////////////////////////////////////////////////////
-HOST_CODE VertexIndex* g_visitedBuffer = 0;
+VertexIndex* g_visitedBuffer = 0;
 //////////////////////////////////////////////////////////////////////////
-HOST_CODE unsigned int g_visitedBufferSize = 0;
+unsigned int g_visitedBufferSize = 0;
 //////////////////////////////////////////////////////////////////////////
-HOST_CODE void extractIsolatedVertex(SortedSet<VertexIndex>& heap, Array<Primitive>& primitives, Vertex* v0);
+void extractIsolatedVertex(SortedSet<VertexIndex>& heap, Array<Primitive>& primitives, Vertex* v0);
 //////////////////////////////////////////////////////////////////////////
-HOST_CODE void extractFilament(BaseGraph* graph, SortedSet<VertexIndex>& heap, Array<Primitive>& primitives, Vertex* v0, Vertex* v1, EdgeIndex edgeIndex);
+void extractFilament(BaseGraph* graph, SortedSet<VertexIndex>& heap, Array<Primitive>& primitives, Vertex* v0, Vertex* v1, EdgeIndex edgeIndex);
 //////////////////////////////////////////////////////////////////////////
-HOST_CODE void extractPrimitive(BaseGraph* graph, SortedSet<VertexIndex>& heap, Array<Primitive>& primitives, Vertex* v0);
+void extractPrimitive(BaseGraph* graph, SortedSet<VertexIndex>& heap, Array<Primitive>& primitives, Vertex* v0);
 //////////////////////////////////////////////////////////////////////////
-HOST_CODE Vertex* getClockwiseMostVertex(BaseGraph* graph, Vertex* previousVertex, Vertex* currentVertex);
+Vertex* getClockwiseMostVertex(BaseGraph* graph, Vertex* previousVertex, Vertex* currentVertex);
 //////////////////////////////////////////////////////////////////////////
-HOST_CODE Vertex* getCounterclockwiseMostVertex(BaseGraph* graph, Vertex* previousVertex, Vertex* currentVertex);
+Vertex* getCounterclockwiseMostVertex(BaseGraph* graph, Vertex* previousVertex, Vertex* currentVertex);
 
 #define left(_v0, _v1) vml_dot_perp(_v0, _v1) > 0
 #define right(_v0, _v1) vml_dot_perp(_v0, _v1) < 0
 #define convex(_v0, _v1) vml_dot_perp(_v0, _v1) >= 0
 
 //////////////////////////////////////////////////////////////////////////
-HOST_CODE struct VertexIndexComparer : public SortedSet<VertexIndex>::Comparer
+struct VertexIndexComparer : public SortedSet<VertexIndex>::Comparer
 {
 	virtual int operator()(const VertexIndex& i0, const VertexIndex& i1) const
 	{
@@ -57,7 +57,7 @@ HOST_CODE struct VertexIndexComparer : public SortedSet<VertexIndex>::Comparer
 };
 
 //////////////////////////////////////////////////////////////////////////
-HOST_CODE struct MinXMinYComparer : public SortedSet<VertexIndex>::Comparer
+struct MinXMinYComparer : public SortedSet<VertexIndex>::Comparer
 {
 	MinXMinYComparer(BaseGraph* graph) : graph(graph) {}
 
@@ -66,19 +66,19 @@ HOST_CODE struct MinXMinYComparer : public SortedSet<VertexIndex>::Comparer
 		const Vertex& v0 = graph->vertices[i0];
 		const Vertex& v1 = graph->vertices[i1];
 
-		if (v0.position.x > v1.position.x)
+		if (v0.getPosition().x > v1.getPosition().x)
 		{
 			return 1;
 		}
 
-		else if (v0.position.x == v1.position.x)
+		else if (v0.getPosition().x == v1.getPosition().x)
 		{
-			if (v0.position.y == v1.position.y)
+			if (v0.getPosition().y == v1.getPosition().y)
 			{
 				return 0;
 			}
 
-			else if (v0.position.y > v1.position.y)
+			else if (v0.getPosition().y > v1.getPosition().y)
 			{
 				return 1;
 			}
@@ -101,7 +101,7 @@ private:
 };
 
 //////////////////////////////////////////////////////////////////////////
-HOST_CODE void allocateExtractionBuffers(unsigned int heapBufferSize, unsigned int sequenceBufferSize, unsigned int visitedBufferSize)
+void allocateExtractionBuffers(unsigned int heapBufferSize, unsigned int sequenceBufferSize, unsigned int visitedBufferSize)
 {
 	freeExtractionBuffers();
 	g_heapBufferSize = heapBufferSize;
@@ -113,7 +113,7 @@ HOST_CODE void allocateExtractionBuffers(unsigned int heapBufferSize, unsigned i
 }
 
 //////////////////////////////////////////////////////////////////////////
-HOST_CODE void freeExtractionBuffers()
+void freeExtractionBuffers()
 {
 	if (g_heapBuffer != 0)
 	{
@@ -138,7 +138,7 @@ HOST_CODE void freeExtractionBuffers()
 }
 
 //////////////////////////////////////////////////////////////////////////
-HOST_CODE unsigned int extractPrimitives(BaseGraph* graph, Primitive* primitivesBuffer, unsigned int maxPrimitives)
+unsigned int extractPrimitives(BaseGraph* graph, Primitive* primitivesBuffer, unsigned int maxPrimitives)
 {
 	SortedSet<VertexIndex> heap(g_heapBuffer, g_heapBufferSize, MinXMinYComparer(graph));
 	Array<Primitive> primitives(primitivesBuffer, maxPrimitives);
@@ -174,17 +174,17 @@ HOST_CODE unsigned int extractPrimitives(BaseGraph* graph, Primitive* primitives
 }
 
 //////////////////////////////////////////////////////////////////////////
-HOST_CODE void extractIsolatedVertex(SortedSet<VertexIndex>& heap, Array<Primitive>& primitives, Vertex* v0)
+void extractIsolatedVertex(SortedSet<VertexIndex>& heap, Array<Primitive>& primitives, Vertex* v0)
 {
 	Primitive primitive;
 	primitive.type = ISOLATED_VERTEX;
-	insert(primitive, v0->position);
+	insert(primitive, v0->getPosition());
 	heap.remove(v0->index);
 	primitives.push(primitive);
 }
 
 //////////////////////////////////////////////////////////////////////////
-HOST_CODE void extractFilament(BaseGraph* graph, SortedSet<VertexIndex>& heap, Array<Primitive>& primitives, Vertex* v0, Vertex* v1, EdgeIndex edgeIndex)
+void extractFilament(BaseGraph* graph, SortedSet<VertexIndex>& heap, Array<Primitive>& primitives, Vertex* v0, Vertex* v1, EdgeIndex edgeIndex)
 {
 	if (v0->numAdjacencies == 2)
 	{
@@ -236,7 +236,7 @@ HOST_CODE void extractFilament(BaseGraph* graph, SortedSet<VertexIndex>& heap, A
 
 		if (v0->numAdjacencies >= 3)
 		{
-			insert(primitive, v0->position);
+			insert(primitive, v0->getPosition());
 			removeEdgeReferencesInVertices(graph, v0, v1);
 			v0 = v1;
 
@@ -248,14 +248,14 @@ HOST_CODE void extractFilament(BaseGraph* graph, SortedSet<VertexIndex>& heap, A
 
 		while (v0->numAdjacencies == 1)
 		{
-			insert(primitive, v0->position);
+			insert(primitive, v0->getPosition());
 			v1 = &graph->vertices[v0->adjacencies[0]];
 			heap.remove(v0->index);
 			removeEdgeReferencesInVertices(graph, v0, v1);
 			v0 = v1;
 		}
 
-		insert(primitive, v0->position);
+		insert(primitive, v0->getPosition());
 
 		if (v0->numAdjacencies == 0)
 		{
@@ -267,7 +267,7 @@ HOST_CODE void extractFilament(BaseGraph* graph, SortedSet<VertexIndex>& heap, A
 }
 
 //////////////////////////////////////////////////////////////////////////
-HOST_CODE void extractPrimitive(BaseGraph* graph, SortedSet<VertexIndex>& heap, Array<Primitive>& primitives, Vertex* v0)
+void extractPrimitive(BaseGraph* graph, SortedSet<VertexIndex>& heap, Array<Primitive>& primitives, Vertex* v0)
 {
 	//SortedSet<VertexIndex> visited(g_visitedBuffer, g_visitedBufferSize, VertexIndexComparer());
 	Array<VertexIndex> visited(g_visitedBuffer, g_visitedBufferSize);
@@ -314,11 +314,11 @@ HOST_CODE void extractPrimitive(BaseGraph* graph, SortedSet<VertexIndex>& heap, 
 			graph->edges[sequence[i]].attr2 = 1; // is cycle edge
 		}
 
-		insert(primitive, currentVertex->position);
+		insert(primitive, currentVertex->getPosition());
 
 		for (int i = (int)visited.size() - 1; i >= 0; i--)
 		{
-			insert(primitive, graph->vertices[visited[i]].position);
+			insert(primitive, graph->vertices[visited[i]].getPosition());
 		}
 
 		removeEdgeReferencesInVertices(graph, v0, v1);
@@ -365,7 +365,7 @@ HOST_CODE void extractPrimitive(BaseGraph* graph, SortedSet<VertexIndex>& heap, 
 }
 
 //////////////////////////////////////////////////////////////////////////
-HOST_CODE Vertex* getClockwiseMostVertex(BaseGraph* graph, Vertex* previousVertex, Vertex* currentVertex)
+Vertex* getClockwiseMostVertex(BaseGraph* graph, Vertex* previousVertex, Vertex* currentVertex)
 {
 	if (currentVertex->numAdjacencies == 0)
 	{
@@ -377,7 +377,7 @@ HOST_CODE Vertex* getClockwiseMostVertex(BaseGraph* graph, Vertex* previousVerte
 
 	if (previousVertex != 0)
 	{
-		currentDirection = previousVertex->position - currentVertex->position;
+		currentDirection = previousVertex->getPosition() - currentVertex->getPosition();
 
 		for (unsigned int i = 0; i < currentVertex->numAdjacencies; i++)
 		{
@@ -402,7 +402,7 @@ HOST_CODE Vertex* getClockwiseMostVertex(BaseGraph* graph, Vertex* previousVerte
 		return 0;
 	}
 
-	vml_vec2 nextDirection = nextVertex->position - currentVertex->position;
+	vml_vec2 nextDirection = nextVertex->getPosition() - currentVertex->getPosition();
 	bool isConvex = convex(nextDirection, currentDirection);
 
 	for (unsigned int i = 0; i < currentVertex->numAdjacencies; i++)
@@ -414,7 +414,7 @@ HOST_CODE Vertex* getClockwiseMostVertex(BaseGraph* graph, Vertex* previousVerte
 			continue;
 		}
 
-		vml_vec2 adjacencyDirection = adjacentVertex->position - currentVertex->position;
+		vml_vec2 adjacencyDirection = adjacentVertex->getPosition() - currentVertex->getPosition();
 
 		if (isConvex)
 		{
@@ -441,7 +441,7 @@ HOST_CODE Vertex* getClockwiseMostVertex(BaseGraph* graph, Vertex* previousVerte
 }
 
 //////////////////////////////////////////////////////////////////////////
-HOST_CODE Vertex* getCounterclockwiseMostVertex (BaseGraph* graph, Vertex* previousVertex, Vertex* currentVertex)
+Vertex* getCounterclockwiseMostVertex (BaseGraph* graph, Vertex* previousVertex, Vertex* currentVertex)
 {
 	if (currentVertex->numAdjacencies == 0)
 	{
@@ -453,7 +453,7 @@ HOST_CODE Vertex* getCounterclockwiseMostVertex (BaseGraph* graph, Vertex* previ
 
 	if (previousVertex != 0)
 	{
-		currentDirection = previousVertex->position - currentVertex->position;
+		currentDirection = previousVertex->getPosition() - currentVertex->getPosition();
 
 		for (unsigned int i = 0; i < currentVertex->numAdjacencies; i++)
 		{
@@ -478,7 +478,7 @@ HOST_CODE Vertex* getCounterclockwiseMostVertex (BaseGraph* graph, Vertex* previ
 		return 0;
 	}
 
-	vml_vec2 nextDirection = nextVertex->position - currentVertex->position;
+	vml_vec2 nextDirection = nextVertex->getPosition() - currentVertex->getPosition();
 	bool isConvex = convex(nextDirection, currentDirection);
 
 	for (unsigned int i = 0; i < currentVertex->numAdjacencies; i++)
@@ -490,7 +490,7 @@ HOST_CODE Vertex* getCounterclockwiseMostVertex (BaseGraph* graph, Vertex* previ
 			continue;
 		}
 
-		vml_vec2 adjacencyDirection = adjacentVertex->position - currentVertex->position;
+		vml_vec2 adjacencyDirection = adjacentVertex->getPosition() - currentVertex->getPosition();
 
 		if (isConvex)
 		{
