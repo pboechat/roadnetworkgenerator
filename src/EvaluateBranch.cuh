@@ -7,13 +7,14 @@
 #include <Road.h>
 #include <Branch.h>
 #include <ProceduresCodes.h>
+#include <Context.cuh>
 #include <WorkQueue.cuh>
 
 //////////////////////////////////////////////////////////////////////////
 struct EvaluateStreetBranch
 {
 	//////////////////////////////////////////////////////////////////////////
-	static DEVICE_CODE void execute(StreetBranch& branch, WorkQueue* backQueues)
+	static DEVICE_CODE void execute(StreetBranch& branch, Context* context, WorkQueue* backQueues)
 	{
 		// p6
 		if (branch.delay < 0)
@@ -40,7 +41,7 @@ struct EvaluateStreetBranch
 struct EvaluateHighwayBranch
 {
 	//////////////////////////////////////////////////////////////////////////
-	static DEVICE_CODE void execute(HighwayBranch& branch, WorkQueue* backQueues)
+	static DEVICE_CODE void execute(HighwayBranch& branch, Context* context, WorkQueue* backQueues)
 	{
 		// p6
 		if (branch.delay < 0)

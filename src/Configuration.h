@@ -11,13 +11,16 @@ struct Configuration
 {
 	char name[MAX_CONFIGURATION_STRING_SIZE];
 	int seed;
+#ifdef USE_CUDA
+	unsigned int randZ;
+	unsigned int randW;
+#endif
 	unsigned int worldWidth;
 	unsigned int worldHeight;
 	unsigned int maxVertices;
 	unsigned int maxEdges;
 	unsigned int maxResultsPerQuery;
 	unsigned int maxQuadrants;
-	//unsigned int maxWorkQueueCapacity;
 	unsigned int highwayLength;
 	unsigned int minSamplingRayLength;
 	unsigned int maxSamplingRayLength;

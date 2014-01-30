@@ -7,31 +7,31 @@
 #include <Road.h>
 #include <Branch.h>
 #include <ProceduresCodes.h>
-#include <GlobalVariables.cuh>
+#include <Context.cuh>
 #include <WorkQueue.cuh>
 #include <GraphFunctions.cuh>
 
 //////////////////////////////////////////////////////////////////////////
 template<typename RuleAttributesType>
-DEVICE_CODE bool evaluateWaterBodies(Road<RuleAttributesType>& road, const vml_vec2& position)
+DEVICE_CODE bool evaluateWaterBodies(Road<RuleAttributesType>& road, const vml_vec2& position, Context* context)
 {
 	// FIXME: checking invariants
-	if (g_dWaterBodiesMap == 0)
+	if (context->waterBodiesMap == 0)
 	{
-		THROW_EXCEPTION("g_dWaterBodiesMap == 0");
+		THROW_EXCEPTION("context->waterBodiesMap == 0");
 	}
 
 	bool found = false;
 	unsigned int angleIncrement = 0;
 	unsigned int length = road.roadAttributes.length;
 
-	while (length >= g_dConfiguration->minRoadLength)
+	while (length >= context->configuration->minRoadLength)
 	{
 		do
 		{
 			vml_vec2 direction = vml_normalize(vml_rotate2D(vml_vec2(0.0f, 1.0f), road.roadAttributes.angle + vml_radians((float)angleIncrement)));
 
-			if (g_dWaterBodiesMap->castRay(position, direction, length, 0))
+			if (context->waterBodiesMap->castRay(position, direction, length, 0))
 			{
 				road.state = SUCCEED;
 				found = true;
@@ -40,7 +40,7 @@ DEVICE_CODE bool evaluateWaterBodies(Road<RuleAttributesType>& road, const vml_v
 
 			angleIncrement++;;
 		}
-		while (angleIncrement <= g_dConfiguration->maxObstacleDeviationAngle);
+		while (angleIncrement <= context->configuration->maxObstacleDeviationAngle);
 
 		length--;
 	}
@@ -60,25 +60,25 @@ outside_loops:
 
 //////////////////////////////////////////////////////////////////////////
 template<typename RuleAttributesType>
-DEVICE_CODE bool evaluateBlockades(Road<RuleAttributesType>& road, const vml_vec2& position)
+DEVICE_CODE bool evaluateBlockades(Road<RuleAttributesType>& road, const vml_vec2& position, Context* context)
 {
 	// FIXME: checking invariants
-	if (g_dBlockadesMap == 0)
+	if (context->blockadesMap == 0)
 	{
-		THROW_EXCEPTION("g_dBlockadesMap == 0");
+		THROW_EXCEPTION("context->blockadesMap == 0");
 	}
 
 	bool found = false;
 	unsigned int angleIncrement = 0;
 	unsigned int length = road.roadAttributes.length;
 
-	while (length >= g_dConfiguration->minRoadLength)
+	while (length >= context->configuration->minRoadLength)
 	{
 		do
 		{
 			vml_vec2 direction = vml_normalize(vml_rotate2D(vml_vec2(0.0f, 1.0f), road.roadAttributes.angle + vml_radians((float)angleIncrement)));
 
-			if (g_dBlockadesMap->castRay(position, direction, length, 0))
+			if (context->blockadesMap->castRay(position, direction, length, 0))
 			{
 				road.state = SUCCEED;
 				found = true;
@@ -87,7 +87,7 @@ DEVICE_CODE bool evaluateBlockades(Road<RuleAttributesType>& road, const vml_vec
 
 			angleIncrement++;;
 		}
-		while (angleIncrement <= g_dConfiguration->maxObstacleDeviationAngle);
+		while (angleIncrement <= context->configuration->maxObstacleDeviationAngle);
 
 		length--;
 	}
@@ -107,72 +107,72 @@ outside_loops:
 
 //////////////////////////////////////////////////////////////////////////
 template<typename RuleAttributesType>
-DEVICE_CODE void evaluateLocalContraints(Road<RuleAttributesType>& road);
+DEVICE_CODE void evaluateLocalContraints(Road<RuleAttributesType>& road, Context* context);
 
 //////////////////////////////////////////////////////////////////////////
-DEVICE_CODE void evaluateLocalContraints(Road<StreetRuleAttributes>& road)
+DEVICE_CODE void evaluateLocalContraints(Road<StreetRuleAttributes>& road, Context* context)
 {
 	// remove streets that have exceeded max street branch depth
-	if (road.ruleAttributes.branchDepth > g_dConfiguration->maxStreetBranchDepth)
+	if (road.ruleAttributes.branchDepth > context->configuration->maxStreetBranchDepth)
 	{
 		road.state = FAILED;
 		return;
 	}
 
-	vml_vec2 position = getPosition(g_dGraph, road.roadAttributes.source);
+	vml_vec2 position = getPosition(context->graph, road.roadAttributes.source);
 
 	// remove roads that cross world boundaries
-	if (position.x < 0 || position.x > (float)g_dConfiguration->worldWidth ||
-		position.y < 0 || position.y > (float)g_dConfiguration->worldHeight)
+	if (position.x < 0 || position.x > (float)context->configuration->worldWidth ||
+		position.y < 0 || position.y > (float)context->configuration->worldHeight)
 	{
 		road.state = FAILED;
 		return;
 	}
 
-	if (!evaluateWaterBodies(road, position))
+	if (!evaluateWaterBodies(road, position, context))
 	{
 		return;
 	}
 
-	if (g_dBlockadesMap == 0)
+	if (context->blockadesMap == 0)
 	{
 		return;
 	}
 
-	evaluateBlockades(road, position);
+	evaluateBlockades(road, position, context);
 }
 
 //////////////////////////////////////////////////////////////////////////
-DEVICE_CODE void evaluateLocalContraints(Road<HighwayRuleAttributes>& road)
+DEVICE_CODE void evaluateLocalContraints(Road<HighwayRuleAttributes>& road, Context* context)
 {
-	vml_vec2 position = getPosition(g_dGraph, road.roadAttributes.source);
+	vml_vec2 position = getPosition(context->graph, road.roadAttributes.source);
 
 	// remove roads that cross world boundaries
-	if (position.x < 0 || position.x > (float)g_dConfiguration->worldWidth ||
-		position.y < 0 || position.y > (float)g_dConfiguration->worldHeight)
+	if (position.x < 0 || position.x > (float)context->configuration->worldWidth ||
+		position.y < 0 || position.y > (float)context->configuration->worldHeight)
 	{
 		road.state = FAILED;
 		return;
 	}
 
-	if (!evaluateWaterBodies(road, position))
+	if (!evaluateWaterBodies(road, position, context))
 	{
 		return;
 	}
 
-	if (g_dBlockadesMap == 0)
+	if (context->blockadesMap == 0)
 	{
 		return;
 	}
 
-	evaluateBlockades(road, position);
+	evaluateBlockades(road, position, context);
 }
 
 //////////////////////////////////////////////////////////////////////////
 struct EvaluateStreet
 {
 	//////////////////////////////////////////////////////////////////////////
-	static DEVICE_CODE void execute(Street& road, WorkQueue* backQueues)
+	static DEVICE_CODE void execute(Street& road, Context* context, WorkQueue* backQueues)
 	{
 		// p1, p3 and p6
 		if (road.delay < 0 || road.state == FAILED)
@@ -183,7 +183,7 @@ struct EvaluateStreet
 		// p8
 		if (road.state == UNASSIGNED)
 		{
-			evaluateLocalContraints(road);
+			evaluateLocalContraints(road, context);
 
 			// FIXME: checking invariants
 			if (road.state == UNASSIGNED)
@@ -208,7 +208,7 @@ struct EvaluateStreet
 struct EvaluateHighway
 {
 	//////////////////////////////////////////////////////////////////////////
-	static DEVICE_CODE void execute(Highway& road, WorkQueue* backQueues)
+	static DEVICE_CODE void execute(Highway& road, Context* context, WorkQueue* backQueues)
 	{
 		// p1, p3 and p6
 		if (road.delay < 0 || road.state == FAILED)
@@ -219,7 +219,7 @@ struct EvaluateHighway
 		// p8
 		if (road.state == UNASSIGNED)
 		{
-			evaluateLocalContraints(road);
+			evaluateLocalContraints(road, context);
 
 			// FIXME: checking invariants
 			if (road.state == UNASSIGNED)

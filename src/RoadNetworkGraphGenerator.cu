@@ -16,7 +16,7 @@
 #include <ConvexHull.h>
 #include <OBB2D.h>
 #include <VectorMath.h>
-#include <GlobalVariables.cuh>
+#include <Context.cuh>
 #include <WorkQueue.cuh>
 
 #include <memory>
@@ -26,7 +26,7 @@
 	__variable = (__type*)malloc(sizeof(__type) * __amount); \
 	if (__variable == 0) \
 	{ \
-		throw std::exception("insufficient memory"); \
+		throw std::exception("#__variable: insufficient memory"); \
 	}
 
 #ifdef USE_CUDA
@@ -80,7 +80,7 @@
 	__variable = (__type*)malloc(sizeof(__type) * __amount); \
 	if (__variable == 0) \
 	{ \
-		throw std::exception("insufficient memory"); \
+		throw std::exception("#__variable: insufficient memory"); \
 	}
 #define SAFE_FREE_ON_DEVICE(__variable) free(__variable)
 #define MEMCPY_HOST_TO_DEVICE(__destination, __source, __size) memcpy(__destination, __source, __size)
@@ -105,6 +105,28 @@
 //	DEVICE VARIABLES
 //////////////////////////////////////////////////////////////////////////
 
+//////////////////////////////////////////////////////////////////////////
+DEVICE_CODE Graph* g_dGraph;
+//////////////////////////////////////////////////////////////////////////
+DEVICE_CODE Configuration* g_dConfiguration;
+//////////////////////////////////////////////////////////////////////////
+DEVICE_CODE unsigned char* g_dPopulationDensitiesSamplingBuffer;
+//////////////////////////////////////////////////////////////////////////
+DEVICE_CODE unsigned int* g_dDistancesSamplingBuffer;
+//////////////////////////////////////////////////////////////////////////
+DEVICE_CODE ImageMap* g_dPopulationDensityMap;
+//////////////////////////////////////////////////////////////////////////
+DEVICE_CODE ImageMap* g_dWaterBodiesMap;
+//////////////////////////////////////////////////////////////////////////
+DEVICE_CODE ImageMap* g_dBlockadesMap;
+//////////////////////////////////////////////////////////////////////////
+DEVICE_CODE ImageMap* g_dNaturalPatternMap;
+//////////////////////////////////////////////////////////////////////////
+DEVICE_CODE ImageMap* g_dRadialPatternMap;
+//////////////////////////////////////////////////////////////////////////
+DEVICE_CODE ImageMap* g_dRasterPatternMap;
+//////////////////////////////////////////////////////////////////////////
+DEVICE_CODE Context* g_dContext;
 //////////////////////////////////////////////////////////////////////////
 DEVICE_CODE WorkQueue* g_dWorkQueues1;
 //////////////////////////////////////////////////////////////////////////
@@ -142,6 +164,31 @@ GLOBAL_CODE void initializeImageMapOnDevice(ImageMap* imageMap, unsigned int wid
 	imageMap->setWidth(width);
 	imageMap->setHeight(height);
 	imageMap->setData(data);
+}
+
+//////////////////////////////////////////////////////////////////////////
+GLOBAL_CODE void initializeContext(Context* context,
+								   Graph* graph,
+								   Configuration* configuration,
+								   unsigned char* populationDensitiesSamplingBuffer,
+								   unsigned int* distancesSamplingBuffer,
+								   ImageMap* populationDensityMap,
+								   ImageMap* waterBodiesMap,
+								   ImageMap* blockadesMap,
+								   ImageMap* naturalPatternMap,
+								   ImageMap* radialPatternMap,
+								   ImageMap* rasterPatternMap)
+{
+	context->graph = graph;
+	context->configuration = configuration;
+	context->populationDensitiesSamplingBuffer = populationDensitiesSamplingBuffer;
+	context->distancesSamplingBuffer = distancesSamplingBuffer;
+	context->populationDensityMap = populationDensityMap;
+	context->waterBodiesMap = waterBodiesMap;
+	context->blockadesMap = blockadesMap;
+	context->naturalPatternMap = naturalPatternMap;
+	context->radialPatternMap = radialPatternMap;
+	context->rasterPatternMap = rasterPatternMap;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -270,8 +317,8 @@ void RoadNetworkGraphGenerator::execute()
 	SAFE_MALLOC_ON_DEVICE(g_dWorkQueues1, WorkQueue, 6);
 	SAFE_MALLOC_ON_DEVICE(g_dWorkQueues2, WorkQueue, 6);
 
-	MEMSET_ON_DEVICE(g_dWorkQueues1, 0, sizeof(WorkQueue) * NUM_PROCEDURES);
-	MEMSET_ON_DEVICE(g_dWorkQueues2, 0, sizeof(WorkQueue) * NUM_PROCEDURES);
+	//MEMSET_ON_DEVICE(g_dWorkQueues1, 0, sizeof(WorkQueue) * NUM_PROCEDURES);
+	//MEMSET_ON_DEVICE(g_dWorkQueues2, 0, sizeof(WorkQueue) * NUM_PROCEDURES);
 
 	WorkQueue* workQueues1;
 	WorkQueue* workQueues2;
@@ -299,6 +346,20 @@ void RoadNetworkGraphGenerator::execute()
 
 	SAFE_MALLOC_ON_DEVICE(g_dConfiguration, Configuration, 1);
 	MEMCPY_HOST_TO_DEVICE(g_dConfiguration, const_cast<Configuration*>(&configuration), sizeof(Configuration));
+
+	SAFE_MALLOC_ON_DEVICE(g_dContext, Context, 1);
+	INVOKE_GLOBAL_CODE11(initializeContext, 1, 1, 
+		g_dContext,
+		g_dGraph, 
+		g_dConfiguration, 
+		g_dPopulationDensitiesSamplingBuffer, 
+		g_dDistancesSamplingBuffer, 
+		g_dPopulationDensityMap,
+		g_dWaterBodiesMap,
+		g_dBlockadesMap,
+		g_dNaturalPatternMap,
+		g_dRadialPatternMap,
+		g_dRasterPatternMap);
 
 	expand(configuration.maxHighwayDerivation);
 
@@ -385,8 +446,10 @@ void RoadNetworkGraphGenerator::execute()
 
 	notifyObservers(graph, numPrimitives, primitives);
 
+	SAFE_FREE_ON_DEVICE(g_dContext);
 	SAFE_FREE_ON_DEVICE(g_dConfiguration);
-
+	SAFE_FREE_ON_DEVICE(g_dWorkQueues1);
+	SAFE_FREE_ON_DEVICE(g_dWorkQueues2);
 	SAFE_FREE_ON_DEVICE(g_dPopulationDensityMap);
 	SAFE_FREE_ON_DEVICE(g_dWaterBodiesMap);
 	SAFE_FREE_ON_DEVICE(g_dBlockadesMap);
@@ -441,18 +504,19 @@ __global__ void initializeKernel()
 }
 
 //////////////////////////////////////////////////////////////////////////
-__global__ void kernel(unsigned int numDerivations);
+__global__ void kernel(unsigned int numDerivations, WorkQueue* workQueues1, WorkQueue* workQueues2, Context* context);
 
+//////////////////////////////////////////////////////////////////////////
 void RoadNetworkGraphGenerator::expand(unsigned int numDerivations)
 {
 	initializeKernel<<<1, 1>>>();
 	cudaCheckError();
-	kernel<<<NUM_PROCEDURES, NUM_THREADS>>>(configuration.maxStreetDerivation);
+	kernel<<<NUM_PROCEDURES, NUM_THREADS>>>(configuration.maxStreetDerivation, g_dWorkQueues1, g_dWorkQueues2, g_dContext);
 	cudaCheckError();
 }
 
 //////////////////////////////////////////////////////////////////////////
-__global__ void kernel(unsigned int numDerivations)
+__global__ void kernel(unsigned int numDerivations, WorkQueue* workQueues1, WorkQueue* workQueues2, Context* context)
 {
 	__shared__ WorkQueue* frontQueues;
 	__shared__ WorkQueue* backQueues;
@@ -465,8 +529,8 @@ __global__ void kernel(unsigned int numDerivations)
 	if (threadIdx.x == 0)
 	{
 		derivation = 0;
-		frontQueues = g_dWorkQueues1;
-		backQueues = g_dWorkQueues2;
+		frontQueues = workQueues1;
+		backQueues = workQueues2;
 	}
 
 	__syncthreads();
@@ -509,42 +573,42 @@ __global__ void kernel(unsigned int numDerivations)
 					{
 						HighwayBranch highwayBranch;
 						frontQueues[EVALUATE_HIGHWAY_BRANCH].popReserved(head + threadIdx.x, highwayBranch);
-						EvaluateHighwayBranch::execute(highwayBranch, backQueues);
+						EvaluateHighwayBranch::execute(highwayBranch, context, backQueues);
 					}
 					break;
 				case EVALUATE_HIGHWAY:
 					{
 						Highway highway;
 						frontQueues[EVALUATE_HIGHWAY].popReserved(head + threadIdx.x, highway);
-						EvaluateHighway::execute(highway, backQueues);
+						EvaluateHighway::execute(highway, context, backQueues);
 					}
 					break;
 				case INSTANTIATE_HIGHWAY:
 					{
 						Highway highway;
 						frontQueues[INSTANTIATE_HIGHWAY].popReserved(head + threadIdx.x, highway);
-						InstantiateHighway::execute(highway, backQueues);
+						InstantiateHighway::execute(highway, context, backQueues);
 					}
 					break;
 				case EVALUATE_STREET_BRANCH:
 					{
 						StreetBranch streetBranch;
 						frontQueues[EVALUATE_STREET_BRANCH].popReserved(head + threadIdx.x, streetBranch);
-						EvaluateStreetBranch::execute(streetBranch, backQueues);
+						EvaluateStreetBranch::execute(streetBranch, context, backQueues);
 					}
 					break;
 				case EVALUATE_STREET:
 					{
 						Street street;
 						frontQueues[EVALUATE_STREET].popReserved(head + threadIdx.x, street);
-						EvaluateStreet::execute(street, backQueues);
+						EvaluateStreet::execute(street, context, backQueues);
 					}
 					break;
 				case INSTANTIATE_STREET:
 					{
 						Street street;
 						frontQueues[INSTANTIATE_STREET].popReserved(head + threadIdx.x, street);
-						InstantiateStreet::execute(street, backQueues);
+						InstantiateStreet::execute(street, context, backQueues);
 					}
 					break;
 				default:
@@ -595,11 +659,21 @@ __global__ void kernel(unsigned int numDerivations)
 	}
 }
 #else
+//////////////////////////////////////////////////////////////////////////
+void cpuKernel(unsigned int numDerivations, WorkQueue* workQueues1, WorkQueue* workQueues2, Context* context);
+
+//////////////////////////////////////////////////////////////////////////
 void RoadNetworkGraphGenerator::expand(unsigned int numDerivations)
 {
+	cpuKernel(numDerivations, g_dWorkQueues1, g_dWorkQueues2, g_dContext);
+}
+
+//////////////////////////////////////////////////////////////////////////
+void cpuKernel(unsigned int numDerivations, WorkQueue* workQueues1, WorkQueue* workQueues2, Context* context)
+{
 	unsigned int derivations = 0;
-	WorkQueue* frontQueues = g_dWorkQueues1;
-	WorkQueue* backQueues = g_dWorkQueues2;
+	WorkQueue* frontQueues = workQueues1;
+	WorkQueue* backQueues = workQueues2;
 
 	while (derivations < numDerivations)
 	{
@@ -613,7 +687,7 @@ void RoadNetworkGraphGenerator::expand(unsigned int numDerivations)
 					while (frontQueues[EVALUATE_HIGHWAY_BRANCH].count > 0)
 					{
 						frontQueues[EVALUATE_HIGHWAY_BRANCH].unsafePop(highwayBranch);
-						EvaluateHighwayBranch::execute(highwayBranch, backQueues);
+						EvaluateHighwayBranch::execute(highwayBranch, context, backQueues);
 					}
 				}
 				break;
@@ -623,7 +697,7 @@ void RoadNetworkGraphGenerator::expand(unsigned int numDerivations)
 					while (frontQueues[EVALUATE_HIGHWAY].count > 0)
 					{
 						frontQueues[EVALUATE_HIGHWAY].unsafePop(highway);
-						EvaluateHighway::execute(highway, backQueues);
+						EvaluateHighway::execute(highway, context, backQueues);
 					}
 				}
 				break;
@@ -633,7 +707,7 @@ void RoadNetworkGraphGenerator::expand(unsigned int numDerivations)
 					while (frontQueues[INSTANTIATE_HIGHWAY].count > 0)
 					{
 						frontQueues[INSTANTIATE_HIGHWAY].unsafePop(highway);
-						InstantiateHighway::execute(highway, backQueues);
+						InstantiateHighway::execute(highway, context, backQueues);
 					}
 				}
 				break;
@@ -643,7 +717,7 @@ void RoadNetworkGraphGenerator::expand(unsigned int numDerivations)
 					while (frontQueues[EVALUATE_STREET_BRANCH].count > 0)
 					{
 						frontQueues[EVALUATE_STREET_BRANCH].unsafePop(streetBranch);
-						EvaluateStreetBranch::execute(streetBranch, backQueues);
+						EvaluateStreetBranch::execute(streetBranch, context, backQueues);
 					}
 				}
 				break;
@@ -653,7 +727,7 @@ void RoadNetworkGraphGenerator::expand(unsigned int numDerivations)
 					while (frontQueues[EVALUATE_STREET].count > 0)
 					{
 						frontQueues[EVALUATE_STREET].unsafePop(street);
-						EvaluateStreet::execute(street, backQueues);
+						EvaluateStreet::execute(street, context, backQueues);
 					}
 				}
 				break;
@@ -663,7 +737,7 @@ void RoadNetworkGraphGenerator::expand(unsigned int numDerivations)
 					while (frontQueues[INSTANTIATE_STREET].count > 0)
 					{
 						frontQueues[INSTANTIATE_STREET].unsafePop(street);
-						InstantiateStreet::execute(street, backQueues);
+						InstantiateStreet::execute(street, context, backQueues);
 					}
 				}
 				break;

@@ -161,13 +161,16 @@ void loadFromFile(Configuration& configuration, const std::string& filePath)
 	}
 
 	srand(configuration.seed);
+#ifdef USE_CUDA
+	configuration.randZ = rand();
+	configuration.randW = rand();
+#endif
 	configuration.worldWidth = getPropertyAsUnsignedInt(properties, "world_width");
 	configuration.worldHeight = getPropertyAsUnsignedInt(properties, "world_height");
 	configuration.maxVertices = getPropertyAsUnsignedInt(properties, "max_vertices");
 	configuration.maxEdges = getPropertyAsUnsignedInt(properties, "max_edges");
 	configuration.maxResultsPerQuery = getPropertyAsUnsignedInt(properties, "max_results_per_query");
 	configuration.maxQuadrants = getPropertyAsUnsignedInt(properties, "max_quadrants");
-	//configuration.maxWorkQueueCapacity = getPropertyAsUnsignedInt(properties, "max_work_queue_capacity");
 	configuration.highwayLength = getPropertyAsUnsignedInt(properties, "highway_length");
 	configuration.minSamplingRayLength = getPropertyAsUnsignedInt(properties, "max_sampling_ray_length");
 	configuration.maxSamplingRayLength = getPropertyAsUnsignedInt(properties, "max_sampling_ray_length");
