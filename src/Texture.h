@@ -1,6 +1,8 @@
 #ifndef TEXTURE_H
 #define TEXTURE_H
 
+#pragma once
+
 #include <GL3/gl3w.h>
 #include <FreeImage.h>
 

@@ -1,7 +1,9 @@
 #ifndef SORTEDSET_H
 #define SORTEDSET_H
 
-#include "Defines.h"
+#pragma once
+
+#include <exception>
 
 template<typename T>
 class SortedSet
@@ -13,15 +15,15 @@ public:
 
 	};
 
-	HOST_CODE SortedSet(T* data, unsigned int capacity, const Comparer& cmp) : data(data), capacity(capacity), count(0), cmp(cmp) {}
-	HOST_CODE ~SortedSet() {}
+	SortedSet(T* data, unsigned int capacity, const Comparer& cmp) : data(data), capacity(capacity), count(0), cmp(cmp) {}
+	~SortedSet() {}
 
-	HOST_CODE void insert(const T& item)
+	void insert(const T& item)
 	{
 		if (count >= capacity)
 		{
 			// FIXME: checking boundaries
-			THROW_EXCEPTION("SortedSet: count >= capacity");
+			throw std::exception("SortedSet: count >= capacity");
 		}
 
 		if (count == 0)
@@ -46,7 +48,7 @@ public:
 		}
 	}
 
-	HOST_CODE void remove(const T& item)
+	void remove(const T& item)
 	{
 		unsigned int i = indexOf(item);
 
@@ -63,7 +65,7 @@ public:
 		count--;
 	}
 
-	HOST_CODE int indexOf(const T& item) const
+	int indexOf(const T& item) const
 	{
 		if (count == 0)
 		{
@@ -85,17 +87,17 @@ public:
 		}
 	}
 
-	inline HOST_CODE unsigned int size() const
+	inline unsigned int size() const
 	{
 		return count;
 	}
 
-	inline HOST_CODE T& operator[] (unsigned int i)
+	inline T& operator[] (unsigned int i)
 	{
 		return data[i];
 	}
 
-	inline HOST_CODE const T& operator[] (unsigned int i) const
+	inline const T& operator[] (unsigned int i) const
 	{
 		return data[i];
 	}
@@ -106,7 +108,7 @@ private:
 	unsigned int count;
 	const Comparer& cmp;
 
-	HOST_CODE void binarySearch(const T& item, int& min, int& max) const
+	void binarySearch(const T& item, int& min, int& max) const
 	{
 		min = 0;
 		max = count;

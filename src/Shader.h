@@ -1,10 +1,12 @@
 #ifndef SHADER_H
 #define SHADER_H
 
+#pragma once
+
 #include <FileReader.h>
 #include <Texture.h>
 
-#include <vector_math.h>
+#include <VectorMath.h>
 
 #include <GL3/gl3w.h>
 #include <GL/utils/gl.h>

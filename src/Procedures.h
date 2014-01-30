@@ -1,6 +1,8 @@
 #ifndef PROCEDURES_H
 #define PROCEDURES_H
 
+#pragma once
+
 #include <ProceduresCodes.h>
 
 //////////////////////////////////////////////////////////////////////////

@@ -1,40 +1,10 @@
-#ifndef ROADNETWORKGRAPH_BASEGRAPH_CUH
-#define ROADNETWORKGRAPH_BASEGRAPH_CUH
+#ifndef BASEGRAPHFUNCTIONS_CUH
+#define BASEGRAPHFUNCTIONS_CUH
 
-#include "Defines.h"
-#include <Vertex.cuh>
-#include <Edge.cuh>
+#pragma once
 
-namespace RoadNetworkGraph
-{
-
-struct BaseGraph
-{
-	VertexIndex numVertices;
-	EdgeIndex numEdges;
-	Vertex* vertices;
-	Edge* edges;
-
-};
-
-/*
-//////////////////////////////////////////////////////////////////////////
-GLOBAL_CODE void initializeBaseGraph(BaseGraph* graph, Vertex* vertices, Edge* edges);
-//////////////////////////////////////////////////////////////////////////
-DEVICE_CODE EdgeIndex findEdge(BaseGraph* graph, Vertex& v0, Vertex& v1);
-//////////////////////////////////////////////////////////////////////////
-DEVICE_CODE EdgeIndex findEdge(BaseGraph* graph, Vertex* v0, Vertex* v1);
-//////////////////////////////////////////////////////////////////////////
-DEVICE_CODE EdgeIndex findEdge(BaseGraph* graph, Vertex& v0, VertexIndex v1);
-//////////////////////////////////////////////////////////////////////////
-DEVICE_CODE void removeEdgeReferencesInVertices(BaseGraph* graph, VertexIndex v0, VertexIndex v1);
-//////////////////////////////////////////////////////////////////////////
-DEVICE_CODE void removeEdgeReferencesInVertices(BaseGraph* graph, Vertex& v0, Vertex& v1);
-//////////////////////////////////////////////////////////////////////////
-DEVICE_CODE void removeEdgeReferencesInVertices(BaseGraph* graph, Vertex* v0, Vertex* v1);
-//////////////////////////////////////////////////////////////////////////
-DEVICE_CODE void removeEdgeReferencesInVertices(BaseGraph* graph, EdgeIndex edgeIndex);
-*/
+#include <BaseGraph.h>
+#include <VertexFunctions.cuh>
 
 //////////////////////////////////////////////////////////////////////////
 GLOBAL_CODE void initializeBaseGraph(BaseGraph* graph, Vertex* vertices, Edge* edges)
@@ -46,11 +16,11 @@ GLOBAL_CODE void initializeBaseGraph(BaseGraph* graph, Vertex* vertices, Edge* e
 }
 
 //////////////////////////////////////////////////////////////////////////
-DEVICE_CODE EdgeIndex findEdge(BaseGraph* graph, Vertex& v0, Vertex& v1)
+HOST_AND_DEVICE_CODE int findEdge(BaseGraph* graph, Vertex& v0, Vertex& v1)
 {
 	for (unsigned int i = 0; i < v0.numOuts; i++)
 	{
-		EdgeIndex edgeIndex = v0.outs[i];
+		int edgeIndex = v0.outs[i];
 		if (graph->edges[edgeIndex].destination == v1.index)
 		{
 			return edgeIndex;
@@ -59,7 +29,7 @@ DEVICE_CODE EdgeIndex findEdge(BaseGraph* graph, Vertex& v0, Vertex& v1)
 
 	for (unsigned int i = 0; i < v0.numIns; i++)
 	{
-		EdgeIndex edgeIndex = v0.ins[i];
+		int edgeIndex = v0.ins[i];
 		if (graph->edges[edgeIndex].source == v1.index)
 		{
 			return edgeIndex;
@@ -73,11 +43,11 @@ DEVICE_CODE EdgeIndex findEdge(BaseGraph* graph, Vertex& v0, Vertex& v1)
 }
 
 //////////////////////////////////////////////////////////////////////////
-DEVICE_CODE EdgeIndex findEdge(BaseGraph* graph, Vertex* v0, Vertex* v1)
+HOST_AND_DEVICE_CODE int findEdge(BaseGraph* graph, Vertex* v0, Vertex* v1)
 {
 	for (unsigned int i = 0; i < v0->numOuts; i++)
 	{
-		EdgeIndex edgeIndex = v0->outs[i];
+		int edgeIndex = v0->outs[i];
 		if (graph->edges[edgeIndex].destination == v1->index)
 		{
 			return edgeIndex;
@@ -86,7 +56,7 @@ DEVICE_CODE EdgeIndex findEdge(BaseGraph* graph, Vertex* v0, Vertex* v1)
 
 	for (unsigned int i = 0; i < v0->numIns; i++)
 	{
-		EdgeIndex edgeIndex = v0->ins[i];
+		int edgeIndex = v0->ins[i];
 		if (graph->edges[edgeIndex].source == v1->index)
 		{
 			return edgeIndex;
@@ -100,12 +70,12 @@ DEVICE_CODE EdgeIndex findEdge(BaseGraph* graph, Vertex* v0, Vertex* v1)
 }
 
 //////////////////////////////////////////////////////////////////////////
-DEVICE_CODE EdgeIndex findEdge(BaseGraph* graph, VertexIndex vertexIndex0, VertexIndex vertexIndex1)
+HOST_AND_DEVICE_CODE int findEdge(BaseGraph* graph, int vertexIndex0, int vertexIndex1)
 {
 	Vertex& v0 = graph->vertices[vertexIndex0];
 	for (unsigned int i = 0; i < v0.numOuts; i++)
 	{
-		EdgeIndex edgeIndex = v0.outs[i];
+		int edgeIndex = v0.outs[i];
 		if (graph->edges[edgeIndex].destination == vertexIndex1)
 		{
 			return edgeIndex;
@@ -114,7 +84,7 @@ DEVICE_CODE EdgeIndex findEdge(BaseGraph* graph, VertexIndex vertexIndex0, Verte
 
 	for (unsigned int i = 0; i < v0.numIns; i++)
 	{
-		EdgeIndex edgeIndex = v0.ins[i];
+		int edgeIndex = v0.ins[i];
 		if (graph->edges[edgeIndex].source == vertexIndex1)
 		{
 			return edgeIndex;
@@ -128,7 +98,7 @@ DEVICE_CODE EdgeIndex findEdge(BaseGraph* graph, VertexIndex vertexIndex0, Verte
 }
 
 //////////////////////////////////////////////////////////////////////////
-DEVICE_CODE void removeEdgeReferencesInVertices(BaseGraph* graph, EdgeIndex edgeIndex)
+HOST_AND_DEVICE_CODE void removeEdgeReferencesInVertices(BaseGraph* graph, int edgeIndex)
 {
 	Edge& edge = graph->edges[edgeIndex];
 
@@ -143,9 +113,9 @@ DEVICE_CODE void removeEdgeReferencesInVertices(BaseGraph* graph, EdgeIndex edge
 }
 
 //////////////////////////////////////////////////////////////////////////
-DEVICE_CODE void removeEdgeReferencesInVertices(BaseGraph* graph, Vertex& v0, Vertex& v1)
+HOST_AND_DEVICE_CODE void removeEdgeReferencesInVertices(BaseGraph* graph, Vertex& v0, Vertex& v1)
 {
-	EdgeIndex edgeIndex = findEdge(graph, v0, v1);
+	int edgeIndex = findEdge(graph, v0, v1);
 	Edge& edge = graph->edges[edgeIndex];
 
 	Vertex& sourceVertex = graph->vertices[edge.source];
@@ -159,9 +129,9 @@ DEVICE_CODE void removeEdgeReferencesInVertices(BaseGraph* graph, Vertex& v0, Ve
 }
 
 //////////////////////////////////////////////////////////////////////////
-DEVICE_CODE void removeEdgeReferencesInVertices(BaseGraph* graph, Vertex* v0, Vertex* v1)
+HOST_AND_DEVICE_CODE void removeEdgeReferencesInVertices(BaseGraph* graph, Vertex* v0, Vertex* v1)
 {
-	EdgeIndex edgeIndex = findEdge(graph, v0, v1);
+	int edgeIndex = findEdge(graph, v0, v1);
 	Edge& edge = graph->edges[edgeIndex];
 
 	Vertex& sourceVertex = graph->vertices[edge.source];
@@ -175,9 +145,9 @@ DEVICE_CODE void removeEdgeReferencesInVertices(BaseGraph* graph, Vertex* v0, Ve
 }
 
 //////////////////////////////////////////////////////////////////////////
-DEVICE_CODE void removeEdgeReferencesInVertices(BaseGraph* graph, VertexIndex v0, VertexIndex v1)
+HOST_AND_DEVICE_CODE void removeEdgeReferencesInVertices(BaseGraph* graph, int v0, int v1)
 {
-	EdgeIndex edgeIndex = findEdge(graph, v0, v1);
+	int edgeIndex = findEdge(graph, v0, v1);
 	Edge& edge = graph->edges[edgeIndex];
 
 	Vertex& sourceVertex = graph->vertices[edge.source];
@@ -190,6 +160,5 @@ DEVICE_CODE void removeEdgeReferencesInVertices(BaseGraph* graph, VertexIndex v0
 	removeInEdge(destinationVertex, edgeIndex);
 }
 
-}
 
 #endif

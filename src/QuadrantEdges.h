@@ -1,14 +1,14 @@
-#ifndef ROADNETWORKGRAPH_QUADRANTEDGES_CUH
-#define ROADNETWORKGRAPH_QUADRANTEDGES_CUH
+#ifndef QUADRANTEDGES_H
+#define QUADRANTEDGES_H
 
-#include "Defines.h"
+#pragma once
 
-namespace RoadNetworkGraph
-{
+#include <Constants.h>
+#include <CpuGpuCompatibility.h>
 
 struct QuadrantEdges
 {
-	EdgeIndex edges[MAX_EDGES_PER_QUADRANT];
+	int edges[MAX_EDGES_PER_QUADRANT];
 	unsigned int lastEdgeIndex;
 
 	HOST_AND_DEVICE_CODE QuadrantEdges() : lastEdgeIndex(0) {}
@@ -22,7 +22,5 @@ struct QuadrantEdges
 	}*/
 
 };
-
-}
 
 #endif

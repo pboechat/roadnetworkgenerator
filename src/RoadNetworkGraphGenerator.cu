@@ -1,49 +1,127 @@
 #include <RoadNetworkGraphGenerator.h>
+#include <Constants.h>
+#include <CpuGpuCompatibility.h>
 #include <Procedures.h>
-#include <Road.cuh>
-#include <Branch.cuh>
+#include <Road.h>
+#include <Branch.h>
 #ifdef USE_QUADTREE
-#include <Quadtree.cuh>
+#include <Quadtree.h>
 #endif
-#include <WorkQueue.cuh>
 #include <Primitive.h>
-#include <BaseGraph.cuh>
-#include <Graph.cuh>
-#include <GlobalVariables.cuh>
-
-#include <MathExtras.cuh>
-#include <Box2D.cuh>
+#include <BaseGraph.h>
+#include <Graph.h>
+#include <MathExtras.h>
+#include <Box2D.h>
 #include <MinimalCycleBasis.h>
 #include <ConvexHull.h>
 #include <OBB2D.h>
+#include <VectorMath.h>
+#include <GlobalVariables.cuh>
+#include <WorkQueue.cuh>
 
-#include <vector_math.h>
+#include <memory>
+
+#define SAFE_MALLOC_ON_HOST(__variable, __type, __amount) \
+	__variable = 0; \
+	__variable = (__type*)malloc(sizeof(__type) * __amount); \
+	if (__variable == 0) \
+	{ \
+		throw std::exception("insufficient memory"); \
+	}
+
+#ifdef USE_CUDA
+#include <cutil.h>
+#define NUM_THREADS 512
+#define SAFE_MALLOC_ON_DEVICE(__variable, __type, __amount) cudaCheckedCall(cudaMalloc((void**)&__variable, sizeof(__type) * __amount))
+#define SAFE_FREE_ON_DEVICE(__variable) cudaCheckedCall(cudaFree(__variable))
+#define MEMCPY_HOST_TO_DEVICE(__destination, __source, __size) cudaCheckedCall(cudaMemcpy(__destination, __source, __size, cudaMemcpyHostToDevice))
+#define MEMCPY_DEVICE_TO_DEVICE(__destination, __source, __size) cudaCheckedCall(cudaMemcpy(__destination, __source, __size, cudaMemcpyDeviceToDevice))
+#define MEMCPY_DEVICE_TO_HOST(__destination, __source, __size) cudaCheckedCall(cudaMemcpy(__destination, __source, __size, cudaMemcpyDeviceToHost))
+#define MEMSET_ON_DEVICE(__variable, __value, __size) cudaCheckedCall(cudaMemset(__variable, __value, __size))
+#define INVOKE_GLOBAL_CODE(__function, __numBlocks, __numThreads) \
+	__function<<<__numBlocks, __numThreads>>>(); \
+	cudaCheckError()
+#define INVOKE_GLOBAL_CODE1(__function, __numBlocks, __numThreads, __arg1) \
+	__function<<<__numBlocks, __numThreads>>>(__arg1); \
+	cudaCheckError()
+#define INVOKE_GLOBAL_CODE2(__function, __numBlocks, __numThreads, __arg1, __arg2) \
+	__function<<<__numBlocks, __numThreads>>>(__arg1, __arg2); \
+	cudaCheckError()
+#define INVOKE_GLOBAL_CODE3(__function, __numBlocks, __numThreads, __arg1, __arg2, __arg3) \
+	__function<<<__numBlocks, __numThreads>>>(__arg1, __arg2, __arg3); \
+	cudaCheckError()
+#define INVOKE_GLOBAL_CODE4(__function, __numBlocks, __numThreads, __arg1, __arg2, __arg3, __arg4) \
+	__function<<<__numBlocks, __numThreads>>>(__arg1, __arg2, __arg3, __arg4); \
+	cudaCheckError()
+#define INVOKE_GLOBAL_CODE5(__function, __numBlocks, __numThreads, __arg1, __arg2, __arg3, __arg4, __arg5) \
+	__function<<<__numBlocks, __numThreads>>>(__arg1, __arg2, __arg3, __arg4, __arg5); \
+	cudaCheckError()
+#define INVOKE_GLOBAL_CODE6(__function, __numBlocks, __numThreads, __arg1, __arg2, __arg3, __arg4, __arg5, __arg6) \
+	__function<<<__numBlocks, __numThreads>>>(__arg1, __arg2, __arg3, __arg4, __arg5, __arg6); \
+	cudaCheckError()
+#define INVOKE_GLOBAL_CODE7(__function, __numBlocks, __numThreads, __arg1, __arg2, __arg3, __arg4, __arg5, __arg6, __arg7) \
+	__function<<<__numBlocks, __numThreads>>>(__arg1, __arg2, __arg3, __arg4, __arg5, __arg6, __arg7); \
+	cudaCheckError()
+#define INVOKE_GLOBAL_CODE8(__function, __numBlocks, __numThreads, __arg1, __arg2, __arg3, __arg4, __arg5, __arg6, __arg7, __arg8) \
+	__function<<<__numBlocks, __numThreads>>>(__arg1, __arg2, __arg3, __arg4, __arg5, __arg6, __arg7, __arg8); \
+	cudaCheckError()
+#define INVOKE_GLOBAL_CODE9(__function, __numBlocks, __numThreads, __arg1, __arg2, __arg3, __arg4, __arg5, __arg6, __arg7, __arg8, __arg9) \
+	__function<<<__numBlocks, __numThreads>>>(__arg1, __arg2, __arg3, __arg4, __arg5, __arg6, __arg7, __arg8, __arg9); \
+	cudaCheckError()
+#define INVOKE_GLOBAL_CODE10(__function, __numBlocks, __numThreads, __arg1, __arg2, __arg3, __arg4, __arg5, __arg6, __arg7, __arg8, __arg9, __arg10) \
+	__function<<<__numBlocks, __numThreads>>>(__arg1, __arg2, __arg3, __arg4, __arg5, __arg6, __arg7, __arg8, __arg9, __arg10); \
+	cudaCheckError()
+#define INVOKE_GLOBAL_CODE11(__function, __numBlocks, __numThreads, __arg1, __arg2, __arg3, __arg4, __arg5, __arg6, __arg7, __arg8, __arg9, __arg10, __arg11) \
+	__function<<<__numBlocks, __numThreads>>>(__arg1, __arg2, __arg3, __arg4, __arg5, __arg6, __arg7, __arg8, __arg9, __arg10, __arg11); \
+	cudaCheckError()
+#else
+#define SAFE_MALLOC_ON_DEVICE(__variable, __type, __amount) \
+	__variable = 0; \
+	__variable = (__type*)malloc(sizeof(__type) * __amount); \
+	if (__variable == 0) \
+	{ \
+		throw std::exception("insufficient memory"); \
+	}
+#define SAFE_FREE_ON_DEVICE(__variable) free(__variable)
+#define MEMCPY_HOST_TO_DEVICE(__destination, __source, __size) memcpy(__destination, __source, __size)
+#define MEMCPY_DEVICE_TO_DEVICE(__destination, __source, __size) memcpy(__destination, __source, __size)
+#define MEMCPY_DEVICE_TO_HOST(__destination, __source, __size) memcpy(__destination, __source, __size)
+#define MEMSET_ON_DEVICE(__variable, __value, __size) memset(__variable, __value, __size)
+#define INVOKE_GLOBAL_CODE(__function, __numBlocks, __numThreads) __function()
+#define INVOKE_GLOBAL_CODE1(__function, __numBlocks, __numThreads, __arg1) __function(__arg1)
+#define INVOKE_GLOBAL_CODE2(__function, __numBlocks, __numThreads, __arg1, __arg2) __function(__arg1, __arg2)
+#define INVOKE_GLOBAL_CODE3(__function, __numBlocks, __numThreads, __arg1, __arg2, __arg3) __function(__arg1, __arg2, __arg3)
+#define INVOKE_GLOBAL_CODE4(__function, __numBlocks, __numThreads, __arg1, __arg2, __arg3, __arg4) __function(__arg1, __arg2, __arg3, __arg4)
+#define INVOKE_GLOBAL_CODE5(__function, __numBlocks, __numThreads, __arg1, __arg2, __arg3, __arg4, __arg5) __function(__arg1, __arg2, __arg3, __arg4, __arg5)
+#define INVOKE_GLOBAL_CODE6(__function, __numBlocks, __numThreads, __arg1, __arg2, __arg3, __arg4, __arg5, __arg6) __function(__arg1, __arg2, __arg3, __arg4, __arg5, __arg6)
+#define INVOKE_GLOBAL_CODE7(__function, __numBlocks, __numThreads, __arg1, __arg2, __arg3, __arg4, __arg5, __arg6, __arg7) __function(__arg1, __arg2, __arg3, __arg4, __arg5, __arg6, __arg7)
+#define INVOKE_GLOBAL_CODE8(__function, __numBlocks, __numThreads, __arg1, __arg2, __arg3, __arg4, __arg5, __arg6, __arg7, __arg8) __function(__arg1, __arg2, __arg3, __arg4, __arg5, __arg6, __arg7, __arg8)
+#define INVOKE_GLOBAL_CODE9(__function, __numBlocks, __numThreads, __arg1, __arg2, __arg3, __arg4, __arg5, __arg6, __arg7, __arg8, __arg9) __function(__arg1, __arg2, __arg3, __arg4, __arg5, __arg6, __arg7, __arg8, __arg9)
+#define INVOKE_GLOBAL_CODE10(__function, __numBlocks, __numThreads, __arg1, __arg2, __arg3, __arg4, __arg5, __arg6, __arg7, __arg8, __arg9, __arg10) __function(__arg1, __arg2, __arg3, __arg4, __arg5, __arg6, __arg7, __arg8, __arg9, __arg10)
+#define INVOKE_GLOBAL_CODE11(__function, __numBlocks, __numThreads, __arg1, __arg2, __arg3, __arg4, __arg5, __arg6, __arg7, __arg8, __arg9, __arg10, __arg11) __function(__arg1, __arg2, __arg3, __arg4, __arg5, __arg6, __arg7, __arg8, __arg9, __arg10, __arg11)
+#endif
 
 //////////////////////////////////////////////////////////////////////////
 //	DEVICE VARIABLES
 //////////////////////////////////////////////////////////////////////////
 
 //////////////////////////////////////////////////////////////////////////
-DEVICE_CODE WorkQueue g_dWorkQueues1[NUM_PROCEDURES];
+DEVICE_CODE WorkQueue* g_dWorkQueues1;
 //////////////////////////////////////////////////////////////////////////
-DEVICE_CODE WorkQueue g_dWorkQueues2[NUM_PROCEDURES];
+DEVICE_CODE WorkQueue* g_dWorkQueues2;
 //////////////////////////////////////////////////////////////////////////
-WorkQueue g_hWorkQueues1[NUM_PROCEDURES];
+DEVICE_CODE Vertex* g_dVertices;
 //////////////////////////////////////////////////////////////////////////
-WorkQueue g_hWorkQueues2[NUM_PROCEDURES];
-//////////////////////////////////////////////////////////////////////////
-DEVICE_CODE RoadNetworkGraph::Vertex* g_dVertices;
-//////////////////////////////////////////////////////////////////////////
-DEVICE_CODE RoadNetworkGraph::Edge* g_dEdges;
+DEVICE_CODE Edge* g_dEdges;
 #ifdef USE_QUADTREE
 //////////////////////////////////////////////////////////////////////////
-DEVICE_CODE RoadNetworkGraph::QuadTree* g_dQuadtree;
+DEVICE_CODE QuadTree* g_dQuadtree;
 //////////////////////////////////////////////////////////////////////////
-DEVICE_CODE RoadNetworkGraph::Quadrant* g_dQuadrants;
+DEVICE_CODE Quadrant* g_dQuadrants;
 //////////////////////////////////////////////////////////////////////////
-DEVICE_CODE RoadNetworkGraph::QuadrantEdges* g_dQuadrantsEdges;
+DEVICE_CODE QuadrantEdges* g_dQuadrantsEdges;
 //////////////////////////////////////////////////////////////////////////
-DEVICE_CODE RoadNetworkGraph::EdgeIndex* g_dQueryResults;
+DEVICE_CODE int* g_dQueryResults;
 #endif
 //////////////////////////////////////////////////////////////////////////
 DEVICE_CODE unsigned char* g_dPopulationDensityMapData;
@@ -59,17 +137,26 @@ DEVICE_CODE unsigned char* g_dRadialPatternMapData;
 DEVICE_CODE unsigned char* g_dRasterPatternMapData;
 
 //////////////////////////////////////////////////////////////////////////
+GLOBAL_CODE void initializeImageMapOnDevice(ImageMap* imageMap, unsigned int width, unsigned int height, unsigned char* data)
+{
+	imageMap->setWidth(width);
+	imageMap->setHeight(height);
+	imageMap->setData(data);
+}
+
+//////////////////////////////////////////////////////////////////////////
 #define allocateAndInitializeImageMap(__name1, __name2) \
 	if (__name1##Map.hasData()) \
 	{ \
 		unsigned int mapSize = __name1##Map.getWidth() * __name1##Map.getHeight(); \
-		MALLOC_ON_DEVICE(g_d##__name2##MapData, unsigned char, mapSize); \
+		SAFE_MALLOC_ON_DEVICE(g_d##__name2##MapData, unsigned char, mapSize); \
 		MEMCPY_HOST_TO_DEVICE(g_d##__name2##MapData, __name1##Map.getData(), sizeof(unsigned char) * mapSize); \
-		MALLOC_ON_DEVICE(g_d##__name2##Map, ImageMap, 1); \
+		SAFE_MALLOC_ON_DEVICE(g_d##__name2##Map, ImageMap, 1); \
+		INVOKE_GLOBAL_CODE4(initializeImageMapOnDevice, 1, 1, g_d##__name2##Map, __name1##Map.getWidth(), __name1##Map.getHeight(), g_d##__name2##MapData); \
 	}
 
 //////////////////////////////////////////////////////////////////////////
-void RoadNetworkGraphGenerator::notifyObservers(RoadNetworkGraph::Graph* graph, unsigned int numPrimitives, RoadNetworkGraph::Primitive* primitives)
+void RoadNetworkGraphGenerator::notifyObservers(Graph* graph, unsigned int numPrimitives, Primitive* primitives)
 {
 	for (unsigned int i = 0; i < observers.size(); i++)
 	{
@@ -78,39 +165,39 @@ void RoadNetworkGraphGenerator::notifyObservers(RoadNetworkGraph::Graph* graph, 
 }
 
 //////////////////////////////////////////////////////////////////////////
-void RoadNetworkGraphGenerator::copyGraphToDevice(RoadNetworkGraph::Graph* graph)
+void RoadNetworkGraphGenerator::copyGraphToDevice(Graph* graph)
 {
 #ifdef USE_QUADTREE
-	MEMCPY_HOST_TO_DEVICE(g_dQuadrants, graph->quadtree->quadrants, sizeof(RoadNetworkGraph::Quadrant) * configuration.maxQuadrants);
-	MEMCPY_HOST_TO_DEVICE(g_dQuadrantsEdges, graph->quadtree->quadrantsEdges, sizeof(RoadNetworkGraph::QuadrantEdges) * configuration.maxQuadrants);
+	MEMCPY_HOST_TO_DEVICE(g_dQuadrants, graph->quadtree->quadrants, sizeof(Quadrant) * configuration.maxQuadrants);
+	MEMCPY_HOST_TO_DEVICE(g_dQuadrantsEdges, graph->quadtree->quadrantsEdges, sizeof(QuadrantEdges) * configuration.maxQuadrants);
 #ifdef _DEBUG
-	//INVOKE_GLOBAL_CODE11(RoadNetworkGraph::updateNonPointerFields, 1, 1, g_dQuadtree, g_hQuadtree->numQuadrantEdges, g_hQuadtree->maxResultsPerQuery, g_hQuadtree->worldBounds, g_hQuadtree->maxDepth, g_hQuadtree->maxQuadrants, g_hQuadtree->totalNumQuadrants, g_hQuadtree->numLeafQuadrants, g_hQuadtree->numCollisionChecks, g_hQuadtree->maxEdgesPerQuadrantInUse, g_hQuadtree->maxResultsPerQueryInUse);
+	INVOKE_GLOBAL_CODE11(updateNonPointerFields, 1, 1, g_dQuadtree, graph->quadtree->numQuadrantEdges, graph->quadtree->maxResultsPerQuery, graph->quadtree->worldBounds, graph->quadtree->maxDepth, graph->quadtree->maxQuadrants, graph->quadtree->totalNumQuadrants, graph->quadtree->numLeafQuadrants, graph->quadtree->numCollisionChecks, graph->quadtree->maxEdgesPerQuadrantInUse, graph->quadtree->maxResultsPerQueryInUse);
 #else
-	//INVOKE_GLOBAL_CODE8(RoadNetworkGraph::updateNonPointerFields, 1, 1, g_dQuadtree, g_hQuadtree->numQuadrantEdges, g_hQuadtree->maxResultsPerQuery, g_hQuadtree->worldBounds, g_hQuadtree->maxDepth, g_hQuadtree->maxQuadrants, g_hQuadtree->totalNumQuadrants, g_hQuadtree->numLeafQuadrants);
+	INVOKE_GLOBAL_CODE8(updateNonPointerFields, 1, 1, g_dQuadtree, graph->quadtree->numQuadrantEdges, graph->quadtree->maxResultsPerQuery, graph->quadtree->worldBounds, graph->quadtree->maxDepth, graph->quadtree->maxQuadrants, graph->quadtree->totalNumQuadrants, graph->quadtree->numLeafQuadrants);
 #endif
 #endif
 
-	MEMCPY_HOST_TO_DEVICE(g_dVertices, graph->vertices, sizeof(RoadNetworkGraph::Vertex) * configuration.maxVertices);
-	MEMCPY_HOST_TO_DEVICE(g_dEdges, graph->edges, sizeof(RoadNetworkGraph::Edge) * configuration.maxEdges);
+	MEMCPY_HOST_TO_DEVICE(g_dVertices, graph->vertices, sizeof(Vertex) * configuration.maxVertices);
+	MEMCPY_HOST_TO_DEVICE(g_dEdges, graph->edges, sizeof(Edge) * configuration.maxEdges);
 #ifdef _DEBUG
-	//INVOKE_GLOBAL_CODE7(RoadNetworkGraph::updateNonPointerFields, 1, 1, g_dGraph, g_hGraph->numVertices, g_hGraph->numEdges, g_hGraph->maxVertices, g_hGraph->maxEdges, g_hGraph->maxResultsPerQuery, g_hGraph->numCollisionChecks);
+	INVOKE_GLOBAL_CODE7(updateNonPointerFields, 1, 1, g_dGraph, graph->numVertices, graph->numEdges, graph->maxVertices, graph->maxEdges, graph->maxResultsPerQuery, graph->numCollisionChecks);
 #else
-	//INVOKE_GLOBAL_CODE6(RoadNetworkGraph::updateNonPointerFields, 1, 1, g_dGraph, g_hGraph->numVertices, g_hGraph->numEdges, g_hGraph->maxVertices, g_hGraph->maxEdges, g_hGraph->maxResultsPerQuery);
+	INVOKE_GLOBAL_CODE6(updateNonPointerFields, 1, 1, g_dGraph, graph->numVertices, graph->numEdges, graph->maxVertices, graph->maxEdges, graph->maxResultsPerQuery);
 #endif
 }
 
 //////////////////////////////////////////////////////////////////////////
-void RoadNetworkGraphGenerator::copyGraphToHost(RoadNetworkGraph::Graph* graph)
+void RoadNetworkGraphGenerator::copyGraphToHost(Graph* graph)
 {
 #ifdef USE_QUADTREE
-	MEMCPY_HOST_TO_DEVICE(graph->quadtree->quadrants, g_dQuadrants, sizeof(RoadNetworkGraph::Quadrant) * configuration.maxQuadrants);
-	MEMCPY_HOST_TO_DEVICE(graph->quadtree->quadrantsEdges, g_dQuadrantsEdges, sizeof(RoadNetworkGraph::QuadrantEdges) * configuration.maxQuadrants);
-	MEMCPY_DEVICE_TO_HOST(graph->quadtree, g_dQuadtree, sizeof(RoadNetworkGraph::QuadTree));
+	MEMCPY_DEVICE_TO_HOST(graph->quadtree->quadrants, g_dQuadrants, sizeof(Quadrant) * configuration.maxQuadrants);
+	MEMCPY_DEVICE_TO_HOST(graph->quadtree->quadrantsEdges, g_dQuadrantsEdges, sizeof(QuadrantEdges) * configuration.maxQuadrants);
+	MEMCPY_DEVICE_TO_HOST(graph->quadtree, g_dQuadtree, sizeof(QuadTree));
 #endif
 
-	MEMCPY_DEVICE_TO_HOST(graph->vertices, g_dVertices, sizeof(RoadNetworkGraph::Vertex) * configuration.maxVertices);
-	MEMCPY_DEVICE_TO_HOST(graph->edges, g_dEdges, sizeof(RoadNetworkGraph::Edge) * configuration.maxEdges);
-	MEMCPY_DEVICE_TO_HOST(graph, g_dGraph, sizeof(RoadNetworkGraph::Graph));
+	MEMCPY_DEVICE_TO_HOST(graph->vertices, g_dVertices, sizeof(Vertex) * configuration.maxVertices);
+	MEMCPY_DEVICE_TO_HOST(graph->edges, g_dEdges, sizeof(Edge) * configuration.maxEdges);
+	MEMCPY_DEVICE_TO_HOST(graph, g_dGraph, sizeof(Graph));
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -123,121 +210,150 @@ void RoadNetworkGraphGenerator::execute()
 	allocateAndInitializeImageMap(radialPattern, RadialPattern);
 	allocateAndInitializeImageMap(rasterPattern, RasterPattern);
 
-	MALLOC_ON_DEVICE(g_dPopulationDensitiesSamplingBuffer, unsigned char, configuration.samplingArc);
-	MALLOC_ON_DEVICE(g_dDistancesSamplingBuffer, unsigned int, configuration.samplingArc);
+	SAFE_MALLOC_ON_DEVICE(g_dPopulationDensitiesSamplingBuffer, unsigned char, configuration.samplingArc);
+	SAFE_MALLOC_ON_DEVICE(g_dDistancesSamplingBuffer, unsigned int, configuration.samplingArc);
 
 #ifdef USE_QUADTREE
-	RoadNetworkGraph::QuadTree* quadtree = (RoadNetworkGraph::QuadTree*)malloc(sizeof(RoadNetworkGraph::QuadTree));
-	RoadNetworkGraph::EdgeIndex* queryResults = (RoadNetworkGraph::EdgeIndex*)malloc(sizeof(RoadNetworkGraph::EdgeIndex) * configuration.maxResultsPerQuery);
-	RoadNetworkGraph::Quadrant* quadrants = (RoadNetworkGraph::Quadrant*)malloc(sizeof(RoadNetworkGraph::Quadrant) * configuration.maxQuadrants);
-	RoadNetworkGraph::QuadrantEdges* quadrantsEdges = (RoadNetworkGraph::QuadrantEdges*)malloc(sizeof(RoadNetworkGraph::QuadrantEdges) * configuration.maxQuadrants);
+	QuadTree* quadtree;
+	int* queryResults;
+	Quadrant* quadrants;
+	QuadrantEdges* quadrantsEdges;
 
-	memset(quadrants, 0, sizeof(RoadNetworkGraph::Quadrant) * configuration.maxQuadrants);
-	memset(quadrantsEdges, 0, sizeof(RoadNetworkGraph::QuadrantEdges) * configuration.maxQuadrants);
+	SAFE_MALLOC_ON_HOST(quadtree, QuadTree, 1);
+	SAFE_MALLOC_ON_HOST(queryResults, int, configuration.maxResultsPerQuery);
+	SAFE_MALLOC_ON_HOST(quadrants, Quadrant, configuration.maxQuadrants);
+	SAFE_MALLOC_ON_HOST(quadrantsEdges, QuadrantEdges, configuration.maxQuadrants);
 
-	MALLOC_ON_DEVICE(g_dQuadtree, RoadNetworkGraph::QuadTree, 1);
-	MALLOC_ON_DEVICE(g_dQueryResults, RoadNetworkGraph::EdgeIndex, configuration.maxResultsPerQuery);
-	MALLOC_ON_DEVICE(g_dQuadrants, RoadNetworkGraph::Quadrant, configuration.maxQuadrants);
-	MALLOC_ON_DEVICE(g_dQuadrantsEdges, RoadNetworkGraph::QuadrantEdges, configuration.maxQuadrants);
+	memset(quadrants, 0, sizeof(Quadrant) * configuration.maxQuadrants);
+	memset(quadrantsEdges, 0, sizeof(QuadrantEdges) * configuration.maxQuadrants);
 
-	MEMSET_ON_DEVICE(g_dQuadrants, 0, sizeof(RoadNetworkGraph::Quadrant) * configuration.maxQuadrants);
-	MEMSET_ON_DEVICE(g_dQuadrantsEdges, 0, sizeof(RoadNetworkGraph::QuadrantEdges) * configuration.maxQuadrants);
+	SAFE_MALLOC_ON_DEVICE(g_dQuadtree, QuadTree, 1);
+	SAFE_MALLOC_ON_DEVICE(g_dQueryResults, int, configuration.maxResultsPerQuery);
+	SAFE_MALLOC_ON_DEVICE(g_dQuadrants, Quadrant, configuration.maxQuadrants);
+	SAFE_MALLOC_ON_DEVICE(g_dQuadrantsEdges, QuadrantEdges, configuration.maxQuadrants);
+
+	MEMSET_ON_DEVICE(g_dQuadrants, 0, sizeof(Quadrant) * configuration.maxQuadrants);
+	MEMSET_ON_DEVICE(g_dQuadrantsEdges, 0, sizeof(QuadrantEdges) * configuration.maxQuadrants);
 
 	Box2D worldBounds(0.0f, 0.0f, (float)configuration.worldWidth, (float)configuration.worldHeight);
 
-	//INVOKE_GLOBAL_CODE7(RoadNetworkGraph::initializeQuadtreeOnDevice, 1, 1, g_dQuadtree, worldBounds, configuration.quadtreeDepth, configuration.maxResultsPerQuery, configuration.maxQuadrants, g_dQuadrants, g_dQuadrantsEdges);
-	//RoadNetworkGraph::initializeQuadtreeOnHost(quadtree, worldBounds, configuration.quadtreeDepth, configuration.maxResultsPerQuery, configuration.maxQuadrants, quadrants, quadrantsEdges);
+	initializeQuadtreeOnHost(quadtree, worldBounds, configuration.quadtreeDepth, configuration.maxResultsPerQuery, configuration.maxQuadrants, quadrants, quadrantsEdges);
+	INVOKE_GLOBAL_CODE7(initializeQuadtreeOnDevice, 1, 1, g_dQuadtree, worldBounds, configuration.quadtreeDepth, configuration.maxResultsPerQuery, configuration.maxQuadrants, g_dQuadrants, g_dQuadrantsEdges);
 #endif
 
-	RoadNetworkGraph::Graph* graph = (RoadNetworkGraph::Graph*)malloc(sizeof(RoadNetworkGraph::Graph));
-	RoadNetworkGraph::Vertex* vertices = (RoadNetworkGraph::Vertex*)malloc(sizeof(RoadNetworkGraph::Vertex) * configuration.maxVertices);
-	RoadNetworkGraph::Edge* edges = (RoadNetworkGraph::Edge*)malloc(sizeof(RoadNetworkGraph::Edge) * configuration.maxEdges);
+	Graph* graph;
+	Vertex* vertices;
+	Edge* edges;
 
-	memset(vertices, 0, sizeof(RoadNetworkGraph::Vertex) * configuration.maxVertices);
-	memset(edges, 0, sizeof(RoadNetworkGraph::Edge) * configuration.maxEdges);
+	SAFE_MALLOC_ON_HOST(graph, Graph, 1);
+	SAFE_MALLOC_ON_HOST(vertices, Vertex, configuration.maxVertices);
+	SAFE_MALLOC_ON_HOST(edges, Edge, configuration.maxEdges);
 
-	MALLOC_ON_DEVICE(g_dGraph, RoadNetworkGraph::Graph, 1);
-	MALLOC_ON_DEVICE(g_dVertices, RoadNetworkGraph::Vertex, configuration.maxVertices);
-	MALLOC_ON_DEVICE(g_dEdges, RoadNetworkGraph::Edge, configuration.maxEdges);
+	memset(vertices, 0, sizeof(Vertex) * configuration.maxVertices);
+	memset(edges, 0, sizeof(Edge) * configuration.maxEdges);
 
-	MEMSET_ON_DEVICE(g_dVertices, 0, sizeof(RoadNetworkGraph::Vertex) * configuration.maxVertices);
-	MEMSET_ON_DEVICE(g_dEdges, 0, sizeof(RoadNetworkGraph::Edge) * configuration.maxEdges);
+	SAFE_MALLOC_ON_DEVICE(g_dGraph, Graph, 1);
+	SAFE_MALLOC_ON_DEVICE(g_dVertices, Vertex, configuration.maxVertices);
+	SAFE_MALLOC_ON_DEVICE(g_dEdges, Edge, configuration.maxEdges);
+
+	MEMSET_ON_DEVICE(g_dVertices, 0, sizeof(Vertex) * configuration.maxVertices);
+	MEMSET_ON_DEVICE(g_dEdges, 0, sizeof(Edge) * configuration.maxEdges);
 	
 #ifdef USE_QUADTREE
-	RoadNetworkGraph::initializeGraphOnHost(graph, configuration.snapRadius, configuration.maxVertices, configuration.maxEdges, vertices, edges, quadtree, configuration.maxResultsPerQuery, queryResults);
-	//INVOKE_GLOBAL_CODE9(RoadNetworkGraph::initializeGraphOnDevice, 1, 1, g_dGraph, configuration.snapRadius, configuration.maxVertices, configuration.maxEdges, g_dVertices, g_dEdges, g_dQuadtree, configuration.maxResultsPerQuery, g_dQueryResults);
+	initializeGraphOnHost(graph, configuration.snapRadius, configuration.maxVertices, configuration.maxEdges, vertices, edges, quadtree, configuration.maxResultsPerQuery, queryResults);
+	INVOKE_GLOBAL_CODE9(initializeGraphOnDevice, 1, 1, g_dGraph, configuration.snapRadius, configuration.maxVertices, configuration.maxEdges, g_dVertices, g_dEdges, g_dQuadtree, configuration.maxResultsPerQuery, g_dQueryResults);
 #else
-	RoadNetworkGraph::initializeGraphOnHost(g_hGraph, configuration.snapRadius, configuration.maxVertices, configuration.maxEdges, vertices, eEdges);
-	//INVOKE_GLOBAL_CODE6(RoadNetworkGraph::initializeGraphOnDevice, 1, 1, g_dGraph, configuration.snapRadius, configuration.maxVertices, configuration.maxEdges, g_dVertices, g_dEdges);
+	initializeGraphOnHost(graph, configuration.snapRadius, configuration.maxVertices, configuration.maxEdges, vertices, eEdges);
+	INVOKE_GLOBAL_CODE6(initializeGraphOnDevice, 1, 1, g_dGraph, configuration.snapRadius, configuration.maxVertices, configuration.maxEdges, g_dVertices, g_dEdges);
 #endif
 
-	memset(g_hWorkQueues1, 0, sizeof(WorkQueue) * NUM_PROCEDURES);
-	memset(g_hWorkQueues2, 0, sizeof(WorkQueue) * NUM_PROCEDURES);
+	SAFE_MALLOC_ON_DEVICE(g_dWorkQueues1, WorkQueue, 6);
+	SAFE_MALLOC_ON_DEVICE(g_dWorkQueues2, WorkQueue, 6);
 
 	MEMSET_ON_DEVICE(g_dWorkQueues1, 0, sizeof(WorkQueue) * NUM_PROCEDURES);
 	MEMSET_ON_DEVICE(g_dWorkQueues2, 0, sizeof(WorkQueue) * NUM_PROCEDURES);
 
-	WorkQueue workQueues1[NUM_PROCEDURES];
-	WorkQueue workQueues2[NUM_PROCEDURES];
+	WorkQueue* workQueues1;
+	WorkQueue* workQueues2;
+
+	SAFE_MALLOC_ON_HOST(workQueues1, WorkQueue, NUM_PROCEDURES);
+	SAFE_MALLOC_ON_HOST(workQueues2, WorkQueue, NUM_PROCEDURES);
+
+	memset(workQueues1, 0, sizeof(WorkQueue) * NUM_PROCEDURES);
+	memset(workQueues2, 0, sizeof(WorkQueue) * NUM_PROCEDURES);
 
 	// set highway spawn points
 	for (unsigned int i = 0; i < configuration.numSpawnPoints; i++)
 	{
 		vml_vec2 spawnPoint = configuration.spawnPoints[i];
-		RoadNetworkGraph::VertexIndex source = RoadNetworkGraph::createVertex(graph, spawnPoint);
-		workQueues1[EVALUATE_HIGHWAY].pushOnHost(Highway(0, RoadAttributes(source, configuration.highwayLength, 0), UNASSIGNED));
-		workQueues1[EVALUATE_HIGHWAY].pushOnHost(Highway(0, RoadAttributes(source, configuration.highwayLength, -HALF_PI), UNASSIGNED));
-		workQueues1[EVALUATE_HIGHWAY].pushOnHost(Highway(0, RoadAttributes(source, configuration.highwayLength, HALF_PI), UNASSIGNED));
-		workQueues1[EVALUATE_HIGHWAY].pushOnHost(Highway(0, RoadAttributes(source, configuration.highwayLength, PI), UNASSIGNED));
+		int source = createVertex(graph, spawnPoint);
+		workQueues1[EVALUATE_HIGHWAY].unsafePush(Highway(0, RoadAttributes(source, configuration.highwayLength, 0), UNASSIGNED));
+		workQueues1[EVALUATE_HIGHWAY].unsafePush(Highway(0, RoadAttributes(source, configuration.highwayLength, -HALF_PI), UNASSIGNED));
+		workQueues1[EVALUATE_HIGHWAY].unsafePush(Highway(0, RoadAttributes(source, configuration.highwayLength, HALF_PI), UNASSIGNED));
+		workQueues1[EVALUATE_HIGHWAY].unsafePush(Highway(0, RoadAttributes(source, configuration.highwayLength, PI), UNASSIGNED));
 	}
 	copyGraphToDevice(graph);
 
 	MEMCPY_HOST_TO_DEVICE(g_dWorkQueues1, workQueues1, sizeof(WorkQueue) * NUM_PROCEDURES);
 	MEMCPY_HOST_TO_DEVICE(g_dWorkQueues2, workQueues2, sizeof(WorkQueue) * NUM_PROCEDURES);
 
+	SAFE_MALLOC_ON_DEVICE(g_dConfiguration, Configuration, 1);
+	MEMCPY_HOST_TO_DEVICE(g_dConfiguration, const_cast<Configuration*>(&configuration), sizeof(Configuration));
+
 	expand(configuration.maxHighwayDerivation);
 
 	copyGraphToHost(graph);
 
-	RoadNetworkGraph::BaseGraph* graphCopy = (RoadNetworkGraph::BaseGraph*)malloc(sizeof(RoadNetworkGraph::BaseGraph));
-	RoadNetworkGraph::Vertex* verticesCopy = (RoadNetworkGraph::Vertex*)malloc(sizeof(RoadNetworkGraph::Vertex) * configuration.maxVertices);
-	RoadNetworkGraph::Edge* edgesCopy = (RoadNetworkGraph::Edge*)malloc(sizeof(RoadNetworkGraph::Edge) * configuration.maxEdges);
+	BaseGraph* graphCopy;
+	Vertex* verticesCopy;
+	Edge* edgesCopy;
+
+	SAFE_MALLOC_ON_HOST(graphCopy, BaseGraph, 1);
+	SAFE_MALLOC_ON_HOST(verticesCopy, Vertex, configuration.maxVertices);
+	SAFE_MALLOC_ON_HOST(edgesCopy, Edge, configuration.maxEdges);
 
 	graphCopy->vertices = verticesCopy;
 	graphCopy->edges = edgesCopy;
 
-	memcpy(graphCopy->vertices, graph->vertices, sizeof(RoadNetworkGraph::Vertex) * configuration.maxVertices);
-	memcpy(graphCopy->edges, graph->edges, sizeof(RoadNetworkGraph::Edge) * configuration.maxEdges);
+	memcpy(graphCopy->vertices, graph->vertices, sizeof(Vertex) * configuration.maxVertices);
+	memcpy(graphCopy->edges, graph->edges, sizeof(Edge) * configuration.maxEdges);
 	
 	graphCopy->numVertices = graph->numVertices;
 	graphCopy->numEdges = graph->numEdges;
 
-	RoadNetworkGraph::Primitive* primitives = (RoadNetworkGraph::Primitive*)malloc(sizeof(RoadNetworkGraph::Primitive) * configuration.maxPrimitives);
-	memset(primitives, 0, sizeof(RoadNetworkGraph::Primitive) * configuration.maxPrimitives);
+	Primitive* primitives;
+	
+	SAFE_MALLOC_ON_HOST(primitives, Primitive, configuration.maxPrimitives);
+
+	memset(primitives, 0, sizeof(Primitive) * configuration.maxPrimitives);
 
 	// extract the allotments from graph copy
-	RoadNetworkGraph::allocateExtractionBuffers(configuration.maxVertices, configuration.maxEdgeSequences, configuration.maxVisitedVertices);
-	unsigned int numPrimitives = RoadNetworkGraph::extractPrimitives(graphCopy, primitives, configuration.maxPrimitives);
-	RoadNetworkGraph::freeExtractionBuffers();
+	allocateExtractionBuffers(configuration.maxVertices, configuration.maxEdgeSequences, configuration.maxVisitedVertices);
+	unsigned int numPrimitives = extractPrimitives(graphCopy, primitives, configuration.maxPrimitives);
+	freeExtractionBuffers();
 
 	free(graphCopy);
 	free(verticesCopy);
 	free(edgesCopy);
 
-	//clearWorkQueuesOnHost();
+	for (unsigned int i = 0; i < NUM_PROCEDURES; i++)
+	{
+		workQueues1[i].clear();
+		workQueues2[i].clear();
+	}
 
 	maxPrimitiveSize = 0;
 	// set street spawn points
 	for (unsigned int i = 0; i < numPrimitives; i++)
 	{
-		const RoadNetworkGraph::Primitive& primitive = primitives[i];
+		const Primitive& primitive = primitives[i];
 
-		if (primitive.type != RoadNetworkGraph::MINIMAL_CYCLE)
+		if (primitive.type != MINIMAL_CYCLE)
 		{
 			continue;
 		}
 
-		maxPrimitiveSize = MathExtras::max<unsigned int>(maxPrimitiveSize, primitive.numVertices);
+		maxPrimitiveSize = MathExtras::max(maxPrimitiveSize, primitive.numVertices);
 
 		vml_vec2 centroid;
 		float area;
@@ -252,11 +368,11 @@ void RoadNetworkGraphGenerator::execute()
 		OBB2D obb(convexHull.hullPoints, convexHull.numHullPoints);
 		angle = vml_angle(obb.axis[1], vml_vec2(0.0f, 1.0f));
 
-		RoadNetworkGraph::VertexIndex source = RoadNetworkGraph::createVertex(graph, centroid);
-		workQueues1[EVALUATE_STREET].pushOnHost(Street(0, RoadAttributes(source, configuration.streetLength, angle), UNASSIGNED));
-		workQueues1[EVALUATE_STREET].pushOnHost(Street(0, RoadAttributes(source, configuration.streetLength, -HALF_PI + angle), UNASSIGNED));
-		workQueues1[EVALUATE_STREET].pushOnHost(Street(0, RoadAttributes(source, configuration.streetLength, HALF_PI + angle), UNASSIGNED));
-		workQueues1[EVALUATE_STREET].pushOnHost(Street(0, RoadAttributes(source, configuration.streetLength, PI + angle), UNASSIGNED));
+		int source = createVertex(graph, centroid);
+		workQueues1[EVALUATE_STREET].unsafePush(Street(0, RoadAttributes(source, configuration.streetLength, angle), UNASSIGNED));
+		workQueues1[EVALUATE_STREET].unsafePush(Street(0, RoadAttributes(source, configuration.streetLength, -HALF_PI + angle), UNASSIGNED));
+		workQueues1[EVALUATE_STREET].unsafePush(Street(0, RoadAttributes(source, configuration.streetLength, HALF_PI + angle), UNASSIGNED));
+		workQueues1[EVALUATE_STREET].unsafePush(Street(0, RoadAttributes(source, configuration.streetLength, PI + angle), UNASSIGNED));
 	}
 	copyGraphToDevice(graph);
 
@@ -269,32 +385,37 @@ void RoadNetworkGraphGenerator::execute()
 
 	notifyObservers(graph, numPrimitives, primitives);
 
-	FREE_ON_DEVICE(g_dPopulationDensityMap);
-	FREE_ON_DEVICE(g_dWaterBodiesMap);
-	FREE_ON_DEVICE(g_dBlockadesMap);
-	FREE_ON_DEVICE(g_dNaturalPatternMap);
-	FREE_ON_DEVICE(g_dRadialPatternMap);
-	FREE_ON_DEVICE(g_dRasterPatternMap);
-	FREE_ON_DEVICE(g_dPopulationDensityMapData);
-	FREE_ON_DEVICE(g_dWaterBodiesMapData);
-	FREE_ON_DEVICE(g_dBlockadesMapData);
-	FREE_ON_DEVICE(g_dNaturalPatternMapData);
-	FREE_ON_DEVICE(g_dRadialPatternMapData);
-	FREE_ON_DEVICE(g_dRasterPatternMapData);
+	SAFE_FREE_ON_DEVICE(g_dConfiguration);
 
-	FREE_ON_DEVICE(g_dPopulationDensitiesSamplingBuffer);
-	FREE_ON_DEVICE(g_dDistancesSamplingBuffer);
+	SAFE_FREE_ON_DEVICE(g_dPopulationDensityMap);
+	SAFE_FREE_ON_DEVICE(g_dWaterBodiesMap);
+	SAFE_FREE_ON_DEVICE(g_dBlockadesMap);
+	SAFE_FREE_ON_DEVICE(g_dNaturalPatternMap);
+	SAFE_FREE_ON_DEVICE(g_dRadialPatternMap);
+	SAFE_FREE_ON_DEVICE(g_dRasterPatternMap);
+	SAFE_FREE_ON_DEVICE(g_dPopulationDensityMapData);
+	SAFE_FREE_ON_DEVICE(g_dWaterBodiesMapData);
+	SAFE_FREE_ON_DEVICE(g_dBlockadesMapData);
+	SAFE_FREE_ON_DEVICE(g_dNaturalPatternMapData);
+	SAFE_FREE_ON_DEVICE(g_dRadialPatternMapData);
+	SAFE_FREE_ON_DEVICE(g_dRasterPatternMapData);
+
+	SAFE_FREE_ON_DEVICE(g_dPopulationDensitiesSamplingBuffer);
+	SAFE_FREE_ON_DEVICE(g_dDistancesSamplingBuffer);
 
 #ifdef USE_QUADTREE
-	FREE_ON_DEVICE(g_dQuadrants);
-	FREE_ON_DEVICE(g_dQuadrantsEdges);
-	FREE_ON_DEVICE(g_dQueryResults);
-	FREE_ON_DEVICE(g_dQuadtree);
+	SAFE_FREE_ON_DEVICE(g_dQuadrants);
+	SAFE_FREE_ON_DEVICE(g_dQuadrantsEdges);
+	SAFE_FREE_ON_DEVICE(g_dQueryResults);
+	SAFE_FREE_ON_DEVICE(g_dQuadtree);
 #endif
-	FREE_ON_DEVICE(g_dVertices);
-	FREE_ON_DEVICE(g_dEdges);
-	FREE_ON_DEVICE(g_dGraph);
+	SAFE_FREE_ON_DEVICE(g_dVertices);
+	SAFE_FREE_ON_DEVICE(g_dEdges);
+	SAFE_FREE_ON_DEVICE(g_dGraph);
 
+	free(primitives);
+	free(workQueues1);
+	free(workQueues2);
 #ifdef USE_QUADTREE
 	free(quadrants);
 	free(quadrantsEdges);
@@ -326,7 +447,7 @@ void RoadNetworkGraphGenerator::expand(unsigned int numDerivations)
 {
 	initializeKernel<<<1, 1>>>();
 	cudaCheckError();
-	kernel<<<NUM_PROCEDURES, NUM_THREADS>>>(g_dConfiguration->maxStreetDerivation);
+	kernel<<<NUM_PROCEDURES, NUM_THREADS>>>(configuration.maxStreetDerivation);
 	cudaCheckError();
 }
 
@@ -491,7 +612,7 @@ void RoadNetworkGraphGenerator::expand(unsigned int numDerivations)
 					HighwayBranch highwayBranch;
 					while (frontQueues[EVALUATE_HIGHWAY_BRANCH].count > 0)
 					{
-						frontQueues[EVALUATE_HIGHWAY_BRANCH].pop(highwayBranch);
+						frontQueues[EVALUATE_HIGHWAY_BRANCH].unsafePop(highwayBranch);
 						EvaluateHighwayBranch::execute(highwayBranch, backQueues);
 					}
 				}
@@ -501,7 +622,7 @@ void RoadNetworkGraphGenerator::expand(unsigned int numDerivations)
 					Highway highway;
 					while (frontQueues[EVALUATE_HIGHWAY].count > 0)
 					{
-						frontQueues[EVALUATE_HIGHWAY].pop(highway);
+						frontQueues[EVALUATE_HIGHWAY].unsafePop(highway);
 						EvaluateHighway::execute(highway, backQueues);
 					}
 				}
@@ -511,7 +632,7 @@ void RoadNetworkGraphGenerator::expand(unsigned int numDerivations)
 					Highway highway;
 					while (frontQueues[INSTANTIATE_HIGHWAY].count > 0)
 					{
-						frontQueues[INSTANTIATE_HIGHWAY].pop(highway);
+						frontQueues[INSTANTIATE_HIGHWAY].unsafePop(highway);
 						InstantiateHighway::execute(highway, backQueues);
 					}
 				}
@@ -521,7 +642,7 @@ void RoadNetworkGraphGenerator::expand(unsigned int numDerivations)
 					StreetBranch streetBranch;
 					while (frontQueues[EVALUATE_STREET_BRANCH].count > 0)
 					{
-						frontQueues[EVALUATE_STREET_BRANCH].pop(streetBranch);
+						frontQueues[EVALUATE_STREET_BRANCH].unsafePop(streetBranch);
 						EvaluateStreetBranch::execute(streetBranch, backQueues);
 					}
 				}
@@ -531,7 +652,7 @@ void RoadNetworkGraphGenerator::expand(unsigned int numDerivations)
 					Street street;
 					while (frontQueues[EVALUATE_STREET].count > 0)
 					{
-						frontQueues[EVALUATE_STREET].pop(street);
+						frontQueues[EVALUATE_STREET].unsafePop(street);
 						EvaluateStreet::execute(street, backQueues);
 					}
 				}
@@ -541,7 +662,7 @@ void RoadNetworkGraphGenerator::expand(unsigned int numDerivations)
 					Street street;
 					while (frontQueues[INSTANTIATE_STREET].count > 0)
 					{
-						frontQueues[INSTANTIATE_STREET].pop(street);
+						frontQueues[INSTANTIATE_STREET].unsafePop(street);
 						InstantiateStreet::execute(street, backQueues);
 					}
 				}

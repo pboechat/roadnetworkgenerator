@@ -1,14 +1,12 @@
-#ifndef ROADNETWORKGRAPH_PRIMITIVE_H
-#define ROADNETWORKGRAPH_PRIMITIVE_H
+#ifndef PRIMITIVE_H
+#define PRIMITIVE_H
 
-#include "Defines.h"
+#pragma once
 
-#include <vector_math.h>
+#include <Constants.h>
+#include <VectorMath.h>
 
 #include <exception>
-
-namespace RoadNetworkGraph
-{
 
 //////////////////////////////////////////////////////////////////////////
 enum PrimitiveType
@@ -39,8 +37,6 @@ inline void insert(Primitive& primitive, const vml_vec2& vertex)
 	}
 
 	primitive.vertices[primitive.numVertices++] = vertex;
-}
-
 }
 
 #endif

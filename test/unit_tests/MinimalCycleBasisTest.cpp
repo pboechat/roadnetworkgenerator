@@ -3,7 +3,7 @@
 #include <MinimalCycleBasis.h>
 #include <Box2D.h>
 #include <Array.h>
-#include <vector_math.h>
+#include <VectorMath.h>
 
 #include <gtest/gtest.h>
 
@@ -55,61 +55,61 @@ namespace RoadNetworkGraph
 void setUpGraph(Graph* graph)
 {
 	// v0
-	VertexIndex v0 = createVertex(graph, V0_POS);
+	int v0 = createVertex(graph, V0_POS);
 	// v1
-	VertexIndex v1 = createVertex(graph, V1_POS);
+	int v1 = createVertex(graph, V1_POS);
 	// v2
-	VertexIndex v2 = createVertex(graph, V2_POS);
+	int v2 = createVertex(graph, V2_POS);
 	// v3
-	VertexIndex v3 = createVertex(graph, V3_POS);
+	int v3 = createVertex(graph, V3_POS);
 	// v4
-	VertexIndex v4 = createVertex(graph, V4_POS);
+	int v4 = createVertex(graph, V4_POS);
 	// v5
-	VertexIndex v5 = createVertex(graph, V5_POS);
+	int v5 = createVertex(graph, V5_POS);
 	// v6
-	VertexIndex v6 = createVertex(graph, V6_POS);
+	int v6 = createVertex(graph, V6_POS);
 	// v7
-	VertexIndex v7 = createVertex(graph, V7_POS);
+	int v7 = createVertex(graph, V7_POS);
 	// v8
-	VertexIndex v8 = createVertex(graph, V8_POS);
+	int v8 = createVertex(graph, V8_POS);
 	// v9
-	VertexIndex v9 = createVertex(graph, V9_POS);
+	int v9 = createVertex(graph, V9_POS);
 	// v10
-	VertexIndex v10 = createVertex(graph, V10_POS);
+	int v10 = createVertex(graph, V10_POS);
 	// v11
-	VertexIndex v11 = createVertex(graph, V11_POS);
+	int v11 = createVertex(graph, V11_POS);
 	// v12
-	VertexIndex v12 = createVertex(graph, V12_POS);
+	int v12 = createVertex(graph, V12_POS);
 	// v13
-	VertexIndex v13 = createVertex(graph, V13_POS);
+	int v13 = createVertex(graph, V13_POS);
 	// v14
-	VertexIndex v14 = createVertex(graph, V14_POS);
+	int v14 = createVertex(graph, V14_POS);
 	// v15
-	VertexIndex v15 = createVertex(graph, V15_POS);
+	int v15 = createVertex(graph, V15_POS);
 	// v16
-	VertexIndex v16 = createVertex(graph, V16_POS);
+	int v16 = createVertex(graph, V16_POS);
 	// v17
-	VertexIndex v17 = createVertex(graph, V17_POS);
+	int v17 = createVertex(graph, V17_POS);
 	// v18
-	VertexIndex v18 = createVertex(graph, V18_POS);
+	int v18 = createVertex(graph, V18_POS);
 	// v19
-	VertexIndex v19 = createVertex(graph, V19_POS);
+	int v19 = createVertex(graph, V19_POS);
 	// v20
-	VertexIndex v20 = createVertex(graph, V20_POS);
+	int v20 = createVertex(graph, V20_POS);
 	// v21
-	VertexIndex v21 = createVertex(graph, V21_POS);
+	int v21 = createVertex(graph, V21_POS);
 	// v22
-	VertexIndex v22 = createVertex(graph, V22_POS);
+	int v22 = createVertex(graph, V22_POS);
 	// v23
-	VertexIndex v23 = createVertex(graph, V23_POS);
+	int v23 = createVertex(graph, V23_POS);
 	// v24
-	VertexIndex v24 = createVertex(graph, V24_POS);
+	int v24 = createVertex(graph, V24_POS);
 	// v25
-	VertexIndex v25 = createVertex(graph, V25_POS);
+	int v25 = createVertex(graph, V25_POS);
 	// v26
-	VertexIndex v26 = createVertex(graph, V26_POS);
+	int v26 = createVertex(graph, V26_POS);
 	// v27
-	VertexIndex v27 = createVertex(graph, V27_POS);
+	int v27 = createVertex(graph, V27_POS);
 	// v1v2
 	connect(graph, v1, v2, false);
 	// v1v3

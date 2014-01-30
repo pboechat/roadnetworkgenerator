@@ -1,6 +1,8 @@
 #ifndef FILEREADER_H
 #define FILEREADER_H
 
+#pragma once
+
 #include <string>
 #include <exception>
 #include <stdio.h>

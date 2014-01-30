@@ -1,11 +1,14 @@
 #ifndef ROADNETWORKGEOMETRYGENERATOR_H
 #define ROADNETWORKGEOMETRYGENERATOR_H
 
-#include <Configuration.cuh>
+#pragma once
+
+#include <Configuration.h>
 #include <Geometry.h>
 #include <RoadNetworkGraphGenerationObserver.h>
 #include <GraphTraversal.h>
-#include <vector_math.h>
+#include <GraphTraversalFunctions.h>
+#include <VectorMath.h>
 
 #include <GL3/gl3w.h>
 
@@ -14,7 +17,7 @@
 class RoadNetworkGeometryGenerator : public Geometry, public RoadNetworkGraphGenerationObserver
 {
 private:
-	struct GeometryCreationTraversal : public RoadNetworkGraph::GraphTraversal
+	struct GeometryCreationTraversal : public GraphTraversal
 	{
 		vml_vec4* vertices;
 		vml_vec4* colors;
@@ -37,7 +40,7 @@ private:
 		{
 		}
 
-		virtual bool operator () (const RoadNetworkGraph::Vertex& source, const RoadNetworkGraph::Vertex& destination, const RoadNetworkGraph::Edge& edge)
+		virtual bool operator () (const Vertex& source, const Vertex& destination, const Edge& edge)
 		{
 			if (edge.attr1 != 0)
 			{
@@ -112,6 +115,7 @@ public:
 		if (built)
 		{
 			disposeBuffers();
+			built = false;
 		}
 	}
 
@@ -128,6 +132,7 @@ public:
 				disposeBuffers();
 			}
 			createBuffers();
+			built = true;
 		}
 
 		cycleColor = configuration.cycleColor;
@@ -136,7 +141,7 @@ public:
 		streetColor = configuration.streetColor;
 	}
 
-	virtual void update(RoadNetworkGraph::Graph* graph, unsigned int numPrimitives, RoadNetworkGraph::Primitive* primitives)
+	virtual void update(Graph* graph, unsigned int numPrimitives, Primitive* primitives)
 	{
 		// FIXME: checking invariants
 		if (!built)
@@ -147,11 +152,11 @@ public:
 		unsigned int lastVerticesIndex = 0, lastIndicesIndex = 0;
 		for (unsigned int j = 0; j < numPrimitives; j++)
 		{
-			RoadNetworkGraph::Primitive& primitive = primitives[j];
+			Primitive& primitive = primitives[j];
 
 			switch (primitive.type)
 			{
-			case RoadNetworkGraph::MINIMAL_CYCLE:
+			case MINIMAL_CYCLE:
 				for (unsigned int k = 0; k < primitive.numVertices; k++)
 				{
 					vml_vec2& v0 = primitive.vertices[k];
@@ -178,7 +183,7 @@ public:
 					lastIndicesIndex += 2;
 				}
 				break;
-			case RoadNetworkGraph::FILAMENT:
+			case FILAMENT:
 				for (unsigned int k = 0; k < primitive.numVertices - 1; k++)
 				{
 					vml_vec2& v0 = primitive.vertices[k];
@@ -197,7 +202,7 @@ public:
 					lastIndicesIndex += 2;
 				}
 				break;
-			case RoadNetworkGraph::ISOLATED_VERTEX:
+			case ISOLATED_VERTEX:
 				vml_vec2& v0 = primitive.vertices[0];
 				vertices[lastVerticesIndex] = vml_vec4(v0.x, v0.y, 0.0f, 1.0f);
 				colors[lastVerticesIndex] = isolatedVertexColor;
@@ -207,7 +212,7 @@ public:
 		}
 
 		GeometryCreationTraversal traversal(vertices, colors, indices, streetColor, lastVerticesIndex, lastIndicesIndex);
-		RoadNetworkGraph::traverse(graph, traversal);
+		traverse(graph, traversal);
 
 		glBindBuffer(GL_ARRAY_BUFFER, buffers[0]);
 		glBufferData(GL_ARRAY_BUFFER, traversal.lastVerticesIndex * sizeof(vml_vec4), (void*)vertices, GL_STATIC_DRAW);

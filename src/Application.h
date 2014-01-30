@@ -1,12 +1,13 @@
 #ifndef APPLICATION_H
 #define APPLICATION_H
 
+#pragma once
+
 //#include "Timer.h"
 #include <Camera.h>
 #include <Renderer.h>
 #include <InputController.h>
-
-#include <vector_math.h>
+#include <VectorMath.h>
 
 #include <windows.h>
 #include <windowsx.h>

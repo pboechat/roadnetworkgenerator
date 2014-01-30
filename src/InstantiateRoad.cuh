@@ -1,19 +1,22 @@
 #ifndef INSTANTIATEROAD_CUH
 #define INSTANTIATEROAD_CUH
 
-#include "Defines.h"
-#include <WorkQueue.cuh>
-#include <Road.cuh>
-#include <Branch.cuh>
+#pragma once
+
+#include <CpuGpuCompatibility.h>
+#include <Road.h>
+#include <Branch.h>
 #include <ProceduresCodes.h>
-#include <Pattern.cuh>
+#include <Pattern.h>
 #include <GlobalVariables.cuh>
+#include <WorkQueue.cuh>
+#include <GraphFunctions.cuh>
 
 //#include <random>
 
 //////////////////////////////////////////////////////////////////////////
 template<typename RuleAttributesType>
-DEVICE_CODE void evaluateGlobalGoals(Road<RuleAttributesType>& road, RoadNetworkGraph::VertexIndex newOrigin, const vml_vec2& position, int* delays, RoadAttributes* roadAttributes, RuleAttributesType* ruleAttributes);
+DEVICE_CODE void evaluateGlobalGoals(Road<RuleAttributesType>& road, int newOrigin, const vml_vec2& position, int* delays, RoadAttributes* roadAttributes, RuleAttributesType* ruleAttributes);
 //////////////////////////////////////////////////////////////////////////
 DEVICE_CODE void findHighestPopulationDensity(const vml_vec2& start, float startingAngle, vml_vec2& goal, unsigned int& distance);
 //////////////////////////////////////////////////////////////////////////
@@ -28,7 +31,7 @@ DEVICE_CODE void applyRadialPatternRule(const vml_vec2& position, unsigned int g
 DEVICE_CODE void applyRasterPatternRule(const vml_vec2& position, unsigned int goalDistance, int& delay, RoadAttributes& roadAttributes, HighwayRuleAttributes& ruleAttributes);
 
 //////////////////////////////////////////////////////////////////////////
-DEVICE_CODE void evaluateGlobalGoals(Street& road, RoadNetworkGraph::VertexIndex source, const vml_vec2& position, int* delays, RoadAttributes* roadAttributes, StreetRuleAttributes* ruleAttributes)
+DEVICE_CODE void evaluateGlobalGoals(Street& road, int source, const vml_vec2& position, int* delays, RoadAttributes* roadAttributes, StreetRuleAttributes* ruleAttributes)
 {
 		unsigned int newDepth = road.ruleAttributes.branchDepth + 1;
 		// street branch left
@@ -52,7 +55,7 @@ DEVICE_CODE void evaluateGlobalGoals(Street& road, RoadNetworkGraph::VertexIndex
 }
 
 //////////////////////////////////////////////////////////////////////////
-DEVICE_CODE void evaluateGlobalGoals(Highway& road, RoadNetworkGraph::VertexIndex source, const vml_vec2& position, int* delays, RoadAttributes* roadAttributes, HighwayRuleAttributes* ruleAttributes)
+DEVICE_CODE void evaluateGlobalGoals(Highway& road, int source, const vml_vec2& position, int* delays, RoadAttributes* roadAttributes, HighwayRuleAttributes* ruleAttributes)
 {
 	bool branch = (road.ruleAttributes.branchingDistance == g_dConfiguration->minHighwayBranchingDistance);
 	// highway continuation
@@ -298,7 +301,7 @@ struct InstantiateStreet
 		}
 
 		vml_vec2 direction = vml_rotate2D(vml_vec2(0.0f, road.roadAttributes.length), road.roadAttributes.angle);
-		RoadNetworkGraph::VertexIndex newSource;
+		int newSource;
 		vml_vec2 position;
 		bool interrupted = addRoad(g_dGraph, road.roadAttributes.source, direction, newSource, position, false);
 		int delays[3];
@@ -338,7 +341,7 @@ struct InstantiateHighway
 		}
 
 		vml_vec2 direction = vml_rotate2D(vml_vec2(0.0f, road.roadAttributes.length), road.roadAttributes.angle);
-		RoadNetworkGraph::VertexIndex newSource;
+		int newSource;
 		vml_vec2 position;
 		bool interrupted = addRoad(g_dGraph, road.roadAttributes.source, direction, newSource, position, true);
 		int delays[3];

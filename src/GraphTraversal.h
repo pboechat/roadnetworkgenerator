@@ -1,12 +1,10 @@
-#ifndef ROADNETWORKGRAPH_GRAPHTRAVERSAL_H
-#define ROADNETWORKGRAPH_GRAPHTRAVERSAL_H
+#ifndef GRAPHTRAVERSAL_H
+#define GRAPHTRAVERSAL_H
 
-#include "Defines.h"
-#include <Vertex.cuh>
-#include <Edge.cuh>
+#pragma once
 
-namespace RoadNetworkGraph
-{
+#include <Vertex.h>
+#include <Edge.h>
 
 struct GraphTraversal
 {
@@ -14,6 +12,5 @@ struct GraphTraversal
 
 };
 
-}
 
 #endif

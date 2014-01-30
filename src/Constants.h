@@ -1,9 +1,9 @@
-#ifndef DEFINES_H
-#define DEFINES_H
+#ifndef CONSTANTS_H
+#define CONSTANTS_H
 
-#include "CpuGpuCompatibilityDefines.h"
+#pragma once
 
-#include <vector_math.h>
+#include <VectorMath.h>
 
 //////////////////////////////////////////////////////////////////////////
 // CAMERA
@@ -62,15 +62,10 @@
 #define MAX_EDGES_PER_QUADRANT 1000
 #define MAX_VERTICES_PER_PRIMITIVE 100
 
-namespace RoadNetworkGraph
-{
-
-typedef int VertexIndex;
+/*typedef int VertexIndex;
 typedef int EdgeIndex;
 typedef int QuadrantIndex;
-typedef int QuadrantEdgesIndex;
-
-}
+typedef int QuadrantEdgesIndex;*/
 
 //////////////////////////////////////////////////////////////////////////
 //	GENERAL

@@ -1,11 +1,12 @@
-#ifndef LINE2D_CUH
-#define LINE2D_CUH
+#ifndef LINE2D_H
+#define LINE2D_H
 
-#include "Defines.h"
-#include <Circle2D.cuh>
-#include <MathExtras.cuh>
+#pragma once
 
-#include <vector_math.h>
+#include <CpuGpuCompatibility.h>
+#include <Circle2D.h>
+#include <MathExtras.h>
+#include <VectorMath.h>
 
 struct Line2D
 {

@@ -1,14 +1,24 @@
-#ifndef MATHEXTRAS_CUH
-#define MATHEXTRAS_CUH
+#ifndef MATHEXTRAS_H
+#define MATHEXTRAS_H
 
-#include "Defines.h"
+#pragma once
 
-#include <vector_math.h>
+#include <CpuGpuCompatibility.h>
+#include <VectorMath.h>
 
 #include <cfloat>
 
+#ifdef min
+#undef min
+#endif
+
+#ifdef max
+#undef max
+#endif
+
 namespace MathExtras
 {
+
 #define TWO_PI 6.28318530717958647692f
 #define PI 3.14159265358979323846f
 #define HALF_PI 1.57079632679489661923f
@@ -50,7 +60,7 @@ inline HOST_AND_DEVICE_CODE vml_vec3 max(vml_vec3 a, vml_vec3 b)
 	return vml_vec3(max(a.x, b.x), max(a.y, b.y), max(a.z, b.z));
 }
 
-HOST_AND_DEVICE_CODE vml_vec2 maxPoint(const vml_vec2* points, unsigned int numPoints)
+inline HOST_AND_DEVICE_CODE vml_vec2 maxPoint(const vml_vec2* points, unsigned int numPoints)
 {
 	vml_vec2 _max(FLT_MIN, FLT_MIN);
 	for (unsigned int i = 0; i < numPoints; i++)
@@ -78,7 +88,7 @@ inline HOST_AND_DEVICE_CODE vml_vec3 min(vml_vec3 a, vml_vec3 b)
 	return vml_vec3(min(a.x, b.x), min(a.y, b.y), min(a.z, b.z));
 }
 
-HOST_AND_DEVICE_CODE vml_vec2 minPoint(const vml_vec2* points, unsigned int numPoints)
+inline HOST_AND_DEVICE_CODE vml_vec2 minPoint(const vml_vec2* points, unsigned int numPoints)
 {
 	vml_vec2 _min(FLT_MAX, FLT_MAX);
 	for (unsigned int i = 0; i < numPoints; i++)
@@ -108,7 +118,7 @@ inline HOST_AND_DEVICE_CODE vml_vec3 clamp(T min, T max, vml_vec3 a)
 	return vml_vec3(clamp(min, max, a.x), clamp(min, max, a.y), clamp(min, max, a.z));
 }
 
-HOST_AND_DEVICE_CODE float getAngle(const vml_vec2& a, const vml_vec2& b)
+inline HOST_AND_DEVICE_CODE float getAngle(const vml_vec2& a, const vml_vec2& b)
 {
 	float angle = acos(vml_dot(a, b) / (vml_length(a) * vml_length(b)));
 	vml_vec3 e1(a.x, a.y, 0.0f);
@@ -125,7 +135,7 @@ HOST_AND_DEVICE_CODE float getAngle(const vml_vec2& a, const vml_vec2& b)
 	}
 }
 
-HOST_AND_DEVICE_CODE float getOrientedAngle(const vml_vec2& a, const vml_vec2& b)
+inline HOST_AND_DEVICE_CODE float getOrientedAngle(const vml_vec2& a, const vml_vec2& b)
 {
 	float angle = acos(vml_dot(a, b) / (vml_length(a) * vml_length(b)));
 	vml_vec3 e1(a.x, a.y, 0.0f);
@@ -142,7 +152,7 @@ HOST_AND_DEVICE_CODE float getOrientedAngle(const vml_vec2& a, const vml_vec2& b
 	}
 }
 
-HOST_AND_DEVICE_CODE void getPolygonInfo(const vml_vec2* vertices, unsigned int numVertices, float& area, vml_vec2& center)
+inline HOST_AND_DEVICE_CODE void getPolygonInfo(const vml_vec2* vertices, unsigned int numVertices, float& area, vml_vec2& center)
 {
 	float twiceArea = 0, x = 0, y = 0, f = 0;
 	for (unsigned int i = 0, j = numVertices - 1 ; i < numVertices; j = i++) {

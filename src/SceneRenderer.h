@@ -1,20 +1,22 @@
 #ifndef SCENERENDERER_H
 #define SCENERENDERER_H
 
-#include <Configuration.cuh>
+#pragma once
+
 #include <Renderer.h>
 #include <Camera.h>
 #include <Shader.h>
 #include <RoadNetworkGeometryGenerator.h>
 #include <RoadNetworkLabelsGenerator.h>
-#include <ImageMap.cuh>
+#include <Configuration.h>
+#include <ImageMap.h>
 #include <Quad.h>
+#include <VectorMath.h>
 
 #include <glFont.h>
 #include <GL3/gl3w.h>
 #include <GL/utils/gl.h>
 
-#include <vector_math.h>
 
 #include <vector>
 

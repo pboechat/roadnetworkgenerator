@@ -1,11 +1,13 @@
 #ifndef VECTOR_MATH_H
 #define VECTOR_MATH_H
 
+#pragma once
+
 /********************************
  *	VECTOR MATH LIBRARY WRAPPER
  ********************************/
  
-#include "CpuGpuCompatibilityDefines.h"
+#include <CpuGpuCompatibility.h>
 
 #ifdef USE_GLM
 

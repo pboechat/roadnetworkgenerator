@@ -1,7 +1,7 @@
 #ifndef ROADSTATE_CUH
 #define ROADSTATE_CUH
 
-#include "Defines.h"
+#pragma once
 
 enum RoadState
 {

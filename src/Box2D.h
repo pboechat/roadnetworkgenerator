@@ -1,11 +1,12 @@
-#ifndef BOX2D_CUH
-#define BOX2D_CUH
+#ifndef BOX2D_H
+#define BOX2D_H
 
-#include "Defines.h"
-#include <Line2D.cuh>
-#include <MathExtras.cuh>
+#pragma once
 
-#include <vector_math.h>
+#include <CpuGpuCompatibility.h>
+#include <Line2D.h>
+#include <MathExtras.h>
+#include <VectorMath.h>
 
 struct Box2D
 {

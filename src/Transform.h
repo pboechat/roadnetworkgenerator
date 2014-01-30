@@ -1,7 +1,9 @@
 #ifndef TRANSFORM_H
 #define TRANSFORM_H
 
-#include <vector_math.h>
+#pragma once
+
+#include <VectorMath.h>
 
 struct Transform
 {

@@ -1,8 +1,11 @@
 #ifndef WORKQUEUE_CUH
 #define WORKQUEUE_CUH
 
-#include "Defines.h"
-#include <MathExtras.cuh>
+#pragma once
+
+#include <Constants.h>
+#include <CpuGpuCompatibility.h>
+#include <MathExtras.h>
 
 #ifdef USE_CUDA
 //////////////////////////////////////////////////////////////////////////
@@ -153,11 +156,34 @@ struct WorkQueue
 			return true;
 		}
 	#endif
+#else
+	//////////////////////////////////////////////////////////////////////////
+	template<typename WorkItemType>
+	void push(WorkItemType& item)
+	{
+		// FIXME: identical to push on host
+
+		if (count >= MAX_NUM_WORKITEMS)
+		{
+			THROW_EXCEPTION("WorkQueue: count >= MAX_NUM_WORKITEMS");
+		}
+
+		unsigned int index = tail;
+		tail = ++tail % MAX_NUM_WORKITEMS;
+
+		if (tail == head)
+		{
+			THROW_EXCEPTION("WorkQueue: tail == head");
+		}
+
+		pack(index, item);
+		count++;
+	}
 #endif
 
 	//////////////////////////////////////////////////////////////////////////
 	template<typename WorkItemType>
-	HOST_CODE void pushOnHost(WorkItemType& item)
+	void unsafePush(WorkItemType& item)
 	{
 		if (count >= MAX_NUM_WORKITEMS)
 		{
@@ -178,7 +204,7 @@ struct WorkQueue
 
 	//////////////////////////////////////////////////////////////////////////
 	template<typename WorkItemType>
-	HOST_CODE void popOnHost(WorkItemType& item)
+	HOST_CODE void unsafePop(WorkItemType& item)
 	{
 		if (count == 0)
 		{

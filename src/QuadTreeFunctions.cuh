@@ -1,136 +1,18 @@
-#ifndef ROADNETWORKGRAPH_QUADREE_CUH
-#define ROADNETWORKGRAPH_QUADREE_CUH
+#ifndef QUADTREEFUNCTIONS_CUH
+#define QUADTREEFUNCTIONS_CUH
 
-#include "Defines.h"
-#include <Quadrant.cuh>
-#include <QuadrantEdges.cuh>
+#pragma once
 
-#include <Line2D.cuh>
-#include <Circle2D.cuh>
-#include <Box2D.cuh>
-
-#include <vector_math.h>
-
-namespace RoadNetworkGraph
-{
-
-struct QuadTree
-{
-	unsigned int maxResultsPerQuery;
-	Box2D worldBounds;
-	unsigned int maxDepth;
-	unsigned int maxQuadrants;
-	Quadrant* quadrants;
-	QuadrantEdges* quadrantsEdges;
-	unsigned int totalNumQuadrants;
-	unsigned int numLeafQuadrants;
-	QuadrantEdgesIndex numQuadrantEdges;
-#ifdef _DEBUG
-	unsigned long numCollisionChecks;
-	unsigned int maxEdgesPerQuadrantInUse;
-	unsigned int maxResultsPerQueryInUse;
-#endif
-
-};
-
-/*
-//////////////////////////////////////////////////////////////////////////
-GLOBAL_CODE void initializeQuadtree(QuadTree* quadtree, const Box2D& worldBounds, unsigned int depth, unsigned int maxResultsPerQuery, unsigned int maxQuadrants, Quadrant* quadrants, QuadrantEdges* quadrantEdges);
-//////////////////////////////////////////////////////////////////////////
-GLOBAL_CODE void updateNonPointerFields(QuadTree* quadtree, QuadrantEdgesIndex numQuadrantEdges, unsigned int maxResultsPerQuery, Box2D worldBounds, unsigned int maxDepth, unsigned int maxQuadrants, unsigned int totalNumQuadrants, unsigned int numLeafQuadrants
-#ifdef _DEBUG
-	, unsigned long numCollisionChecks
-	, unsigned int maxEdgesPerQuadrantInUse
-	, unsigned int maxResultsPerQueryInUse
-#endif	
-);
-//////////////////////////////////////////////////////////////////////////
-HOST_AND_DEVICE_CODE void insert(QuadTree* quadtree, EdgeIndex edgeIndex, const Line2D& edgeLine, unsigned int index = 0, unsigned int offset = 0, unsigned int levelWidth = 1);
-//////////////////////////////////////////////////////////////////////////
-HOST_AND_DEVICE_CODE void remove(QuadTree* quadtree, EdgeIndex edgeIndex, const Line2D& edgeLine, unsigned int index = 0, unsigned int offset = 0, unsigned int levelWidth = 1);
-//////////////////////////////////////////////////////////////////////////
-template<typename T>
-HOST_AND_DEVICE_CODE void query(QuadTree* quadtree, const T& shape, EdgeIndex* queryResult, unsigned int& size, unsigned int offset = 0)
-{
-	size = offset;
-	recursiveQuery(quadtree, shape, queryResult, size, 0, 0, 1);
-}
-//////////////////////////////////////////////////////////////////////////
-template<typename T>
-HOST_AND_DEVICE_CODE void recursiveQuery(QuadTree* quadtree, const T& shape, EdgeIndex* queryResult, unsigned int& size, unsigned int index, unsigned int offset, unsigned int levelWidth)
-{
-	QuadrantIndex quadrantIndex = offset + index;
-
-	// FIXME: checking invariants
-	if (quadrantIndex >= (int)quadtree->maxQuadrants)
-	{
-		THROW_EXCEPTION("quadrantIndex >= quadtree->maxQuadrants");
-	}
-
-	Quadrant& quadrant = quadtree->quadrants[quadrantIndex];
-
-	if (quadrant.bounds.intersects(shape))
-	{
-		if (quadrant.depth == quadtree->maxDepth - 1)
-		{
-			// FIXME: checking invariants
-			if (quadrant.edges == -1)
-			{
-				THROW_EXCEPTION("quadrant.edges == -1");
-			}
-
-			QuadrantEdges& quadrantEdges = quadtree->quadrantsEdges[quadrant.edges];
-
-			for (unsigned int i = 0; i < quadrantEdges.lastEdgeIndex; i++)
-			{
-				queryResult[size++] = quadrantEdges.edges[i];
-
-				// FIXME: checking boundaries
-				if (size >= quadtree->maxResultsPerQuery)
-				{
-					THROW_EXCEPTION("max. results per query overflow");
-				}
-			}
-
-#ifdef _DEBUG
-			quadtree->maxResultsPerQueryInUse = MathExtras::max(quadtree->maxResultsPerQueryInUse, size);
-#endif
-		}
-
-		else
-		{
-			unsigned int baseIndex = (index * 4);
-			unsigned int newOffset = offset + levelWidth;
-			unsigned int newLevelWidth = levelWidth * 4;
-			recursiveQuery(quadtree, shape, queryResult, size, baseIndex, newOffset, newLevelWidth);
-			recursiveQuery(quadtree, shape, queryResult, size, baseIndex + 1, newOffset, newLevelWidth);
-			recursiveQuery(quadtree, shape, queryResult, size, baseIndex + 2, newOffset, newLevelWidth);
-			recursiveQuery(quadtree, shape, queryResult, size, baseIndex + 3, newOffset, newLevelWidth);
-		}
-	}
-
-#ifdef _DEBUG
-	quadtree->numCollisionChecks++;
-#endif
-}
-#ifdef _DEBUG
-//////////////////////////////////////////////////////////////////////////
-HOST_CODE unsigned int getAllocatedMemory(QuadTree* quadtree);
-//////////////////////////////////////////////////////////////////////////
-HOST_CODE unsigned int getMemoryInUse(QuadTree* quadtree);
-//////////////////////////////////////////////////////////////////////////
-HOST_CODE unsigned long getNumCollisionChecks(QuadTree* quadtree);
-//////////////////////////////////////////////////////////////////////////
-HOST_CODE unsigned int getMaxEdgesPerQuadrantInUse(QuadTree* quadtree);
-//////////////////////////////////////////////////////////////////////////
-HOST_CODE unsigned int getMaxResultsPerQueryInUse(QuadTree* quadtree);
-#endif
-*/
+#include <QuadTree.h>
+#include <Constants.h>
+#include <Line2D.h>
+#include <Circle2D.h>
+#include <VectorMath.h>
 
 //////////////////////////////////////////////////////////////////////////
 HOST_AND_DEVICE_CODE void initializeQuadrant(QuadTree* quadtree, const Box2D& quadrantBounds, unsigned int depth = 0, unsigned int index = 0, unsigned int offset = 0, unsigned int levelWidth = 1);
 //////////////////////////////////////////////////////////////////////////
-HOST_AND_DEVICE_CODE void removeEdgeReferencesInVertices(QuadrantEdges* quadrantEdges, EdgeIndex edgeIndex);
+HOST_AND_DEVICE_CODE void removeEdgeReferencesInVertices(QuadrantEdges* quadrantEdges, int edgeIndex);
 
 //////////////////////////////////////////////////////////////////////////
 GLOBAL_CODE void initializeQuadtreeOnDevice(QuadTree* quadtree, Box2D worldBounds, unsigned int depth, unsigned int maxResultsPerQuery, unsigned int maxQuadrants, Quadrant* quadrants, QuadrantEdges* quadrantEdges)
@@ -197,7 +79,7 @@ HOST_CODE void initializeQuadtreeOnHost(QuadTree* quadtree, Box2D worldBounds, u
 }
 
 //////////////////////////////////////////////////////////////////////////
-GLOBAL_CODE void updateNonPointerFields(QuadTree* quadtree, QuadrantEdgesIndex numQuadrantEdges, unsigned int maxResultsPerQuery, Box2D worldBounds, unsigned int maxDepth, unsigned int maxQuadrants, unsigned int totalNumQuadrants, unsigned int numLeafQuadrants
+GLOBAL_CODE void updateNonPointerFields(QuadTree* quadtree, int numQuadrantEdges, unsigned int maxResultsPerQuery, Box2D worldBounds, unsigned int maxDepth, unsigned int maxQuadrants, unsigned int totalNumQuadrants, unsigned int numLeafQuadrants
 #ifdef _DEBUG
 	, unsigned long numCollisionChecks
 	, unsigned int maxEdgesPerQuadrantInUse
@@ -257,7 +139,7 @@ HOST_AND_DEVICE_CODE void initializeQuadrant(QuadTree* quadtree, const Box2D& qu
 }
 
 //////////////////////////////////////////////////////////////////////////
-DEVICE_CODE void insert(QuadTree* quadtree, EdgeIndex edgeIndex, const Line2D& edgeLine, unsigned int index = 0, unsigned int offset = 0, unsigned int levelWidth = 1)
+DEVICE_CODE void insert(QuadTree* quadtree, int edgeIndex, const Line2D& edgeLine, unsigned int index = 0, unsigned int offset = 0, unsigned int levelWidth = 1)
 {
 	Quadrant& quadrant = quadtree->quadrants[offset + index];
 
@@ -282,7 +164,7 @@ DEVICE_CODE void insert(QuadTree* quadtree, EdgeIndex edgeIndex, const Line2D& e
 			quadrantEdges.edges[quadrantEdges.lastEdgeIndex++] = edgeIndex;
 
 #ifdef _DEBUG
-			quadtree->maxEdgesPerQuadrantInUse = MathExtras::max<unsigned int>(quadtree->maxEdgesPerQuadrantInUse, quadrantEdges.lastEdgeIndex);
+			quadtree->maxEdgesPerQuadrantInUse = MathExtras::max(quadtree->maxEdgesPerQuadrantInUse, quadrantEdges.lastEdgeIndex);
 #endif
 		}
 
@@ -304,7 +186,7 @@ DEVICE_CODE void insert(QuadTree* quadtree, EdgeIndex edgeIndex, const Line2D& e
 }
 
 //////////////////////////////////////////////////////////////////////////
-DEVICE_CODE void remove(QuadTree* quadtree, EdgeIndex edgeIndex, const Line2D& edgeLine, unsigned int index = 0, unsigned int offset = 0, unsigned int levelWidth = 1)
+DEVICE_CODE void remove(QuadTree* quadtree, int edgeIndex, const Line2D& edgeLine, unsigned int index = 0, unsigned int offset = 0, unsigned int levelWidth = 1)
 {
 	Quadrant& quadrant = quadtree->quadrants[offset + index];
 
@@ -339,7 +221,7 @@ DEVICE_CODE void remove(QuadTree* quadtree, EdgeIndex edgeIndex, const Line2D& e
 }
 
 //////////////////////////////////////////////////////////////////////////
-DEVICE_CODE void removeEdgeReferencesInVertices(QuadrantEdges* quadrantEdges, EdgeIndex edgeIndex)
+DEVICE_CODE void removeEdgeReferencesInVertices(QuadrantEdges* quadrantEdges, int edgeIndex)
 {
 	// FIXME: checking invariants
 	if (quadrantEdges == 0)
@@ -382,16 +264,16 @@ DEVICE_CODE void removeEdgeReferencesInVertices(QuadrantEdges* quadrantEdges, Ed
 
 //////////////////////////////////////////////////////////////////////////
 template<typename T>
-DEVICE_CODE void query(QuadTree* quadtree, const T& shape, EdgeIndex* queryResult, unsigned int& size, unsigned int offset = 0)
+DEVICE_CODE void query(QuadTree* quadtree, const T& shape, int* queryResult, unsigned int& size, unsigned int offset = 0)
 {
 	size = offset;
 	recursiveQuery(quadtree, shape, queryResult, size, 0, 0, 1);
 }
 //////////////////////////////////////////////////////////////////////////
 template<typename T>
-DEVICE_CODE void recursiveQuery(QuadTree* quadtree, const T& shape, EdgeIndex* queryResult, unsigned int& size, unsigned int index, unsigned int offset, unsigned int levelWidth)
+DEVICE_CODE void recursiveQuery(QuadTree* quadtree, const T& shape, int* queryResult, unsigned int& size, unsigned int index, unsigned int offset, unsigned int levelWidth)
 {
-	QuadrantIndex quadrantIndex = offset + index;
+	int quadrantIndex = offset + index;
 
 	// FIXME: checking invariants
 	if (quadrantIndex >= (int)quadtree->maxQuadrants)
@@ -425,7 +307,7 @@ DEVICE_CODE void recursiveQuery(QuadTree* quadtree, const T& shape, EdgeIndex* q
 			}
 
 #ifdef _DEBUG
-			quadtree->maxResultsPerQueryInUse = MathExtras::max<unsigned int>(quadtree->maxResultsPerQueryInUse, size);
+			quadtree->maxResultsPerQueryInUse = MathExtras::max(quadtree->maxResultsPerQueryInUse, size);
 #endif
 		}
 
@@ -448,17 +330,46 @@ DEVICE_CODE void recursiveQuery(QuadTree* quadtree, const T& shape, EdgeIndex* q
 
 #ifdef _DEBUG
 //////////////////////////////////////////////////////////////////////////
-HOST_CODE unsigned int getAllocatedMemory(QuadTree* quadtree);
+HOST_CODE unsigned int getAllocatedMemory(QuadTree* quadtree)
+{
+	unsigned int quadrantsBufferMemory = quadtree->totalNumQuadrants * sizeof(Quadrant);
+	unsigned int quadrantsEdgesBufferMemory = quadtree->numLeafQuadrants * sizeof(QuadrantEdges);
+	return (quadrantsBufferMemory + quadrantsEdgesBufferMemory);
+}
+
 //////////////////////////////////////////////////////////////////////////
-HOST_CODE unsigned int getMemoryInUse(QuadTree* quadtree);
+HOST_CODE unsigned int getMemoryInUse(QuadTree* quadtree)
+{
+	unsigned int quadrantsBufferMemoryInUse = quadtree->totalNumQuadrants * sizeof(Quadrant);
+	unsigned int quadrantsEdgesBufferMemoryInUse = 0;
+
+	for (unsigned int i = 0; i < quadtree->numLeafQuadrants; i++)
+	{
+		QuadrantEdges& quadrantEdges = quadtree->quadrantsEdges[i];
+		quadrantsEdgesBufferMemoryInUse += sizeof(int) * quadrantEdges.lastEdgeIndex + sizeof(unsigned int);
+	}
+
+	return (quadrantsBufferMemoryInUse + quadrantsEdgesBufferMemoryInUse);
+}
+
 //////////////////////////////////////////////////////////////////////////
-HOST_CODE unsigned long getNumCollisionChecks(QuadTree* quadtree);
+HOST_CODE unsigned long getNumCollisionChecks(QuadTree* quadtree)
+{
+	return quadtree->numCollisionChecks;
+}
+
 //////////////////////////////////////////////////////////////////////////
-HOST_CODE unsigned int getMaxEdgesPerQuadrantInUse(QuadTree* quadtree);
+HOST_CODE unsigned int getMaxEdgesPerQuadrantInUse(QuadTree* quadtree)
+{
+	return quadtree->maxEdgesPerQuadrantInUse;
+}
+
 //////////////////////////////////////////////////////////////////////////
-HOST_CODE unsigned int getMaxResultsPerQueryInUse(QuadTree* quadtree);
+HOST_CODE unsigned int getMaxResultsPerQueryInUse(QuadTree* quadtree)
+{
+	return quadtree->maxResultsPerQueryInUse;
+}
 #endif
 
-}
 
 #endif

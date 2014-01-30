@@ -1,59 +1,12 @@
-#ifndef ROADNETWORKGRAPH_VERTEX_CUH
-#define ROADNETWORKGRAPH_VERTEX_CUH
+#ifndef VERTEXFUNCTIONS_CUH
+#define VERTEXFUNCTIONS_CUH
 
-#include "Defines.h"
+#pragma once
 
-#include <vector_math.h>
-
-namespace RoadNetworkGraph
-{
+#include <Vertex.h>
 
 //////////////////////////////////////////////////////////////////////////
-struct Vertex
-{
-	VertexIndex index;
-	vec2FieldDeclaration(Position, HOST_AND_DEVICE_CODE)
-	EdgeIndex ins[MAX_VERTEX_IN_CONNECTIONS];
-	EdgeIndex outs[MAX_VERTEX_OUT_CONNECTIONS];
-	VertexIndex adjacencies[MAX_VERTEX_IN_CONNECTIONS + MAX_VERTEX_OUT_CONNECTIONS];
-	unsigned int numIns;
-	unsigned int numOuts;
-	unsigned int numAdjacencies;
-	bool removed;
-
-	HOST_AND_DEVICE_CODE Vertex() : removed(false), numIns(0), numOuts(0), numAdjacencies(0) {}
-	HOST_AND_DEVICE_CODE ~Vertex() {}
-	
-	/*HOST_AND_DEVICE_CODE Vertex& operator = (const Vertex& other)
-	{
-		index = other.index;
-		setPosition(other.getPosition());
-		ins = other.ins;
-		outs = other.outs;
-		adjacencies = other.adjacencies;
-		numIns = other.numIns;
-		numOuts = other.numOuts;
-		removed = other.removed;
-		return *this;
-	}*/
-
-};
-
-/*
-//////////////////////////////////////////////////////////////////////////
-DEVICE_CODE void replaceInEdge(Vertex& vertex, EdgeIndex oldInEdgeIndex, EdgeIndex newInEdgeIndex);
-//////////////////////////////////////////////////////////////////////////
-DEVICE_CODE void replaceAdjacency(Vertex& vertex, VertexIndex oldAdjacentVertexIndex, VertexIndex newAdjacentVertexIndex);
-//////////////////////////////////////////////////////////////////////////
-DEVICE_CODE void removeInEdge(Vertex& vertex, EdgeIndex edgeIndex);
-//////////////////////////////////////////////////////////////////////////
-DEVICE_CODE void removeOutEdge(Vertex& vertex, EdgeIndex edgeIndex);
-//////////////////////////////////////////////////////////////////////////
-DEVICE_CODE void removeAdjacency(Vertex& vertex, VertexIndex adjacentVertexIndex);
-*/
-
-//////////////////////////////////////////////////////////////////////////
-DEVICE_CODE void replaceInEdge(Vertex& vertex, EdgeIndex oldInEdgeIndex, EdgeIndex newInEdgeIndex)
+DEVICE_CODE void replaceInEdge(Vertex& vertex, int oldInEdgeIndex, int newInEdgeIndex)
 {
 	bool found = false;
 
@@ -75,7 +28,7 @@ DEVICE_CODE void replaceInEdge(Vertex& vertex, EdgeIndex oldInEdgeIndex, EdgeInd
 }
 
 //////////////////////////////////////////////////////////////////////////
-DEVICE_CODE void replaceAdjacency(Vertex& vertex, VertexIndex oldAdjacentVertexIndex, VertexIndex newAdjacentVertexIndex)
+DEVICE_CODE void replaceAdjacency(Vertex& vertex, int oldAdjacentVertexIndex, int newAdjacentVertexIndex)
 {
 	// FIXME:
 	for (unsigned int i = 0; i < vertex.numAdjacencies; i++)
@@ -106,7 +59,7 @@ DEVICE_CODE void replaceAdjacency(Vertex& vertex, VertexIndex oldAdjacentVertexI
 }
 
 //////////////////////////////////////////////////////////////////////////
-DEVICE_CODE void removeInEdge(Vertex& vertex, EdgeIndex edgeIndex)
+HOST_AND_DEVICE_CODE void removeInEdge(Vertex& vertex, int edgeIndex)
 {
 	bool found = false;
 	unsigned int inEdgeIndex;
@@ -136,7 +89,7 @@ DEVICE_CODE void removeInEdge(Vertex& vertex, EdgeIndex edgeIndex)
 }
 
 //////////////////////////////////////////////////////////////////////////
-DEVICE_CODE void removeOutEdge(Vertex& vertex, EdgeIndex edgeIndex)
+HOST_AND_DEVICE_CODE void removeOutEdge(Vertex& vertex, int edgeIndex)
 {
 	bool found = false;
 	unsigned int outEdgeIndex;
@@ -166,7 +119,7 @@ DEVICE_CODE void removeOutEdge(Vertex& vertex, EdgeIndex edgeIndex)
 }
 
 //////////////////////////////////////////////////////////////////////////
-DEVICE_CODE void removeAdjacency(Vertex& vertex, VertexIndex adjacentVertexIndex)
+HOST_AND_DEVICE_CODE void removeAdjacency(Vertex& vertex, int adjacentVertexIndex)
 {
 	bool found = false;
 	unsigned int adjacencyIndex;
@@ -193,8 +146,6 @@ DEVICE_CODE void removeAdjacency(Vertex& vertex, VertexIndex adjacentVertexIndex
 	}
 
 	vertex.numAdjacencies--;
-}
-
 }
 
 #endif

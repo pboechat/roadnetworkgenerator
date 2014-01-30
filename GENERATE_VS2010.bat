@@ -23,5 +23,5 @@ pause >nul
 :end
 
 cd ../../../
-echo Build finished successfully
-pause >nul
+REM echo Build finished successfully
+REM pause >nul

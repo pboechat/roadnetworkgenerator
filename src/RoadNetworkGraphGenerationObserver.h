@@ -1,13 +1,15 @@
 #ifndef ROADNETWORKGENERATIONOBSERVER_H
 #define ROADNETWORKGENERATIONOBSERVER_H
 
-#include <Graph.cuh>
+#pragma once
+
+#include <Graph.h>
 #include <Primitive.h>
 
 class RoadNetworkGraphGenerationObserver
 {
 public:
-	virtual void update(RoadNetworkGraph::Graph* graph, unsigned int numPrimitives, RoadNetworkGraph::Primitive* primitives) = 0;
+	virtual void update(Graph* graph, unsigned int numPrimitives, Primitive* primitives) = 0;
 
 };
 

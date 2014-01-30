@@ -1,7 +1,9 @@
-#ifndef STREETRULEATTRIBUTES_CUH
-#define STREETRULEATTRIBUTES_CUH
+#ifndef STREETRULEATTRIBUTES_H
+#define STREETRULEATTRIBUTES_H
 
-#include "Defines.h"
+#pragma once
+
+#include <CpuGpuCompatibility.h>
 
 struct StreetRuleAttributes
 {

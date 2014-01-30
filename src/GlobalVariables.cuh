@@ -1,13 +1,15 @@
 #ifndef GLOBALVARIABLES_CUH
 #define GLOBALVARIABLES_CUH
 
-#include "Defines.h"
-#include <Graph.cuh>
-#include <Configuration.cuh>
-#include <ImageMap.cuh>
+#pragma once
+
+#include <CpuGpuCompatibility.h>
+#include <Graph.h>
+#include <Configuration.h>
+#include <ImageMap.h>
 
 //////////////////////////////////////////////////////////////////////////
-DEVICE_CODE RoadNetworkGraph::Graph* g_dGraph;
+DEVICE_CODE Graph* g_dGraph;
 //////////////////////////////////////////////////////////////////////////
 DEVICE_CODE Configuration* g_dConfiguration;
 //////////////////////////////////////////////////////////////////////////

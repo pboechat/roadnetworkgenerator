@@ -1,16 +1,15 @@
-#ifndef ROADNETWORKGRAPH_EDGE_CUH
-#define ROADNETWORKGRAPH_EDGE_CUH
+#ifndef EDGE_H
+#define EDGE_H
 
-#include "Defines.h"
+#pragma once
 
-namespace RoadNetworkGraph
-{
+#include <CpuGpuCompatibility.h>
 
 struct Edge
 {
-	EdgeIndex index;
-	VertexIndex source;
-	VertexIndex destination;
+	int index;
+	int source;
+	int destination;
 	unsigned char attr1;
 	unsigned char attr2;
 	unsigned char attr3;
@@ -33,6 +32,5 @@ struct Edge
 
 };
 
-}
 
 #endif

@@ -1,18 +1,16 @@
-#ifndef ROADNETWORKGRAPH_QUADRANT_CUH
-#define ROADNETWORKGRAPH_QUADRANT_CUH
+#ifndef QUADRANT_H
+#define QUADRANT_H
 
-#include "Defines.h"
+#pragma once
 
-#include <Box2D.cuh>
-
-namespace RoadNetworkGraph
-{
+#include <CpuGpuCompatibility.h>
+#include <Box2D.h>
 
 struct Quadrant
 {
 	unsigned int depth;
 	Box2D bounds;
-	QuadrantEdgesIndex edges;
+	int edges;
 
 	HOST_AND_DEVICE_CODE Quadrant() : edges(-1) {}
 	HOST_AND_DEVICE_CODE ~Quadrant() {}
@@ -26,7 +24,5 @@ struct Quadrant
 	}*/
 	
 };
-
-}
 
 #endif

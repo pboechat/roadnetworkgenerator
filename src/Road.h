@@ -1,11 +1,13 @@
-#ifndef ROAD_CUH
-#define ROAD_CUH
+#ifndef ROAD_H
+#define ROAD_H
 
-#include "Defines.h"
-#include <RoadState.cuh>
-#include <RoadAttributes.cuh>
-#include <StreetRuleAttributes.cuh>
-#include <HighwayRuleAttributes.cuh>
+#pragma once
+
+#include <CpuGpuCompatibility.h>
+#include <RoadState.h>
+#include <RoadAttributes.h>
+#include <StreetRuleAttributes.h>
+#include <HighwayRuleAttributes.h>
 
 template <typename RuleAttributesType>
 struct Road

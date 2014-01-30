@@ -1,6 +1,8 @@
 #ifndef STRINGUTILS_H
 #define STRINGUTILS_H
 
+#pragma once
+
 #include <vector>
 #include <string>
 #include <cctype>

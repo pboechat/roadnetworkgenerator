@@ -1,9 +1,10 @@
 #ifndef CONVEXHULL_H
 #define CONVEXHULL_H
 
-#include <MathExtras.cuh>
+#pragma once
 
-#include <vector_math.h>
+#include <MathExtras.h>
+#include <VectorMath.h>
 
 #include <exception>
 

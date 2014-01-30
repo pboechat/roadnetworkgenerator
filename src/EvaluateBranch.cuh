@@ -1,11 +1,13 @@
 #ifndef EVALUATEBRANCH_CUH
 #define EVALUATEBRANCH_CUH
 
-#include "Defines.h"
-#include <WorkQueue.cuh>
-#include <Road.cuh>
-#include <Branch.cuh>
+#pragma once
+
+#include <CpuGpuCompatibility.h>
+#include <Road.h>
+#include <Branch.h>
 #include <ProceduresCodes.h>
+#include <WorkQueue.cuh>
 
 //////////////////////////////////////////////////////////////////////////
 struct EvaluateStreetBranch

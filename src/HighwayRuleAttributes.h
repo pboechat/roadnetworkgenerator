@@ -1,9 +1,10 @@
 #ifndef HIGHWAYRULEATTRIBUTES_CUH
 #define HIGHWAYRULEATTRIBUTES_CUH
 
-#include "Defines.h"
+#pragma once
 
-#include <vector_math.h>
+#include <CpuGpuCompatibility.h>
+#include <VectorMath.h>
 
 struct HighwayRuleAttributes
 {

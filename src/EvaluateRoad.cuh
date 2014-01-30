@@ -1,12 +1,15 @@
 #ifndef EVALUATEROAD_CUH
 #define EVALUATEROAD_CUH
 
-#include "Defines.h"
-#include <WorkQueue.cuh>
-#include <Road.cuh>
-#include <Branch.cuh>
+#pragma once
+
+#include <CpuGpuCompatibility.h>
+#include <Road.h>
+#include <Branch.h>
 #include <ProceduresCodes.h>
 #include <GlobalVariables.cuh>
+#include <WorkQueue.cuh>
+#include <GraphFunctions.cuh>
 
 //////////////////////////////////////////////////////////////////////////
 template<typename RuleAttributesType>
@@ -15,8 +18,7 @@ DEVICE_CODE bool evaluateWaterBodies(Road<RuleAttributesType>& road, const vml_v
 	// FIXME: checking invariants
 	if (g_dWaterBodiesMap == 0)
 	{
-		//throw std::exception("g_waterBodiesMap == 0");
-		THROW_EXCEPTION("g_waterBodiesMap == 0");
+		THROW_EXCEPTION("g_dWaterBodiesMap == 0");
 	}
 
 	bool found = false;
@@ -63,8 +65,7 @@ DEVICE_CODE bool evaluateBlockades(Road<RuleAttributesType>& road, const vml_vec
 	// FIXME: checking invariants
 	if (g_dBlockadesMap == 0)
 	{
-		//throw std::exception("g_blockadesMap == 0");
-		THROW_EXCEPTION("g_blockadesMap == 0");
+		THROW_EXCEPTION("g_dBlockadesMap == 0");
 	}
 
 	bool found = false;

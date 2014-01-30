@@ -1,6 +1,8 @@
 #ifndef RENDERER_H
 #define RENDERER_H
 
+#pragma once
+
 #include <Camera.h>
 
 #include <GL3/gl3w.h>

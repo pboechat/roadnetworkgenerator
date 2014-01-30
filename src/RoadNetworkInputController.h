@@ -1,6 +1,8 @@
 #ifndef ROADNETWORKINPUTCONTROLLER_H
 #define ROADNETWORKINPUTCONTROLLER_H
 
+#pragma once
+
 #include <Application.h>
 #include <InputController.h>
 #include <SceneRenderer.h>

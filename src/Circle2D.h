@@ -1,9 +1,10 @@
-#ifndef CIRCLE2D_CUH
-#define CIRCLE2D_CUH
+#ifndef CIRCLE2D_H
+#define CIRCLE2D_H
 
-#include "Defines.h"
+#pragma once
 
-#include <vector_math.h>
+#include <CpuGpuCompatibility.h>
+#include <VectorMath.h>
 
 struct Circle2D
 {

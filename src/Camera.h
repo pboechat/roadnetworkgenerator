@@ -1,10 +1,11 @@
 #ifndef CAMERA_H
 #define CAMERA_H
 
-#include <Transform.h>
-#include <Box2D.cuh>
+#pragma once
 
-#include <vector_math.h>
+#include <Transform.h>
+#include <Box2D.h>
+#include <VectorMath.h>
 
 struct Camera
 {

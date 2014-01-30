@@ -1,7 +1,9 @@
 #ifndef OBB2D_H
 #define OBB2D_H
 
-#include <vector_math.h>
+#pragma once
+
+#include <VectorMath.h>
 
 // compute a minimum-area oriented box containing the specified points.
 // the algorithm uses the rotating calipers method.

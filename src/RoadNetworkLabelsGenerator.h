@@ -1,10 +1,12 @@
 #ifndef ROADNETWORKLABELSGENERATOR_H
 #define ROADNETWORKLABELSGENERATOR_H
 
-#include "Defines.h"
+#pragma once
+
+#include <Constants.h>
 #include <RoadNetworkGraphGenerationObserver.h>
 #include <GraphTraversal.h>
-#include <vector_math.h>
+#include <VectorMath.h>
 
 #include <glFont.h>
 #include <GL3/gl3w.h>
@@ -26,12 +28,12 @@ private:
 		
 	};
 
-	struct LabelGenerationTraversal : public RoadNetworkGraph::GraphTraversal
+	struct LabelGenerationTraversal : public GraphTraversal
 	{
 		LabelGenerationTraversal(std::vector<Label>& labels) : labels(labels) {}
 		~LabelGenerationTraversal() {}
 
-		virtual bool operator () (const RoadNetworkGraph::Vertex& source, const RoadNetworkGraph::Vertex& destination, const RoadNetworkGraph::Edge& edge)
+		virtual bool operator () (const Vertex& source, const Vertex& destination, const Edge& edge)
 		{
 			std::stringstream label;
 			label << source.index;
@@ -72,7 +74,7 @@ public:
 		}
 	}
 
-	virtual void update(RoadNetworkGraph::Graph* graph, unsigned int numPrimitives, RoadNetworkGraph::Primitive* primitives)
+	virtual void update(Graph* graph, unsigned int numPrimitives, Primitive* primitives)
 	{
 		if (!built)
 		{
@@ -84,7 +86,7 @@ public:
 			labels.clear();
 		}
 		
-		RoadNetworkGraph::traverse(graph, LabelGenerationTraversal(labels));
+		traverse(graph, LabelGenerationTraversal(labels));
 		built = true;
 	}
 

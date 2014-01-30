@@ -1,14 +1,11 @@
-#ifndef CONFIGURATION_CUH
-#define CONFIGURATION_CUH
+#ifndef CONFIGURATION_H
+#define CONFIGURATION_H
 
-#include "Defines.h"
-#include <ImageMap.cuh>
+#pragma once
 
-#include <vector_math.h>
-
-#include <string>
-#include <vector>
-#include <map>
+#include <Constants.h>
+#include <CpuGpuCompatibility.h>
+#include <VectorMath.h>
 
 struct Configuration
 {
@@ -62,20 +59,6 @@ struct Configuration
 
 	HOST_AND_DEVICE_CODE Configuration() {}
 	HOST_AND_DEVICE_CODE ~Configuration() {}
-
-	HOST_CODE void loadFromFile(const std::string& filePath);
-
-private:
-	static HOST_CODE bool hasProperty(const std::map<std::string, std::string>& properties, const std::string& propertyName);
-	static HOST_CODE const std::string& getProperty(const std::map<std::string, std::string>& properties, const std::string& propertyName);
-	static HOST_CODE unsigned char getPropertyAsUnsignedChar(const std::map<std::string, std::string>& properties, const std::string& propertyName);
-	static HOST_CODE unsigned int getPropertyAsUnsignedInt(const std::map<std::string, std::string>& properties, const std::string& propertyName);
-	static HOST_CODE long getPropertyAsInt(const std::map<std::string, std::string>& properties, const std::string& propertyName);
-	static HOST_CODE float getPropertyAsFloat(const std::map<std::string, std::string>& properties, const std::string& propertyName);
-	static HOST_CODE bool getPropertyAsBool(const std::map<std::string, std::string>& properties, const std::string& propertyName);
-	static HOST_CODE vml_vec4 getPropertyAsVec4(const std::map<std::string, std::string>& properties, const std::string& propertyName);
-	static HOST_CODE void getPropertyAsVec2Array(const std::map<std::string, std::string>& properties, const std::string& propertyName, vml_vec2* vec2Array, unsigned int& size, unsigned int maxSize);
-	static HOST_CODE void copyProperty(const std::map<std::string, std::string>& properties, const std::string& propertyName, char* dstBuffer, unsigned int bufferSize);
 
 };
 

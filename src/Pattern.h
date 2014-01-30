@@ -1,7 +1,7 @@
 #ifndef PATTERN_H
 #define PATTERN_H
 
-#include "Defines.h"
+#pragma once
 
 enum Pattern
 {

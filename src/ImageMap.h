@@ -1,10 +1,11 @@
-#ifndef IMAGEMAP_CUH
-#define IMAGEMAP_CUH
+#ifndef IMAGEMAP_H
+#define IMAGEMAP_H
 
-#include "Defines.h"
-#include <MathExtras.cuh>
+#pragma once
 
-#include <vector_math.h>
+#include <CpuGpuCompatibility.h>
+#include <MathExtras.h>
+#include <VectorMath.h>
 
 struct ImageMap
 {
@@ -29,6 +30,21 @@ struct ImageMap
 	inline HOST_AND_DEVICE_CODE const unsigned char* getData() const
 	{
 		return data;
+	}
+
+	inline HOST_AND_DEVICE_CODE void setWidth(unsigned int width)
+	{
+		this->width = width;
+	}
+
+	inline HOST_AND_DEVICE_CODE void setHeight(unsigned int height)
+	{
+		this->height = height;
+	}
+
+	inline HOST_AND_DEVICE_CODE void setData(unsigned char* data)
+	{
+		this->data = data;
 	}
 	
 	HOST_AND_DEVICE_CODE bool castRay(const vml_vec2& origin, const vml_vec2& direction, unsigned int length, unsigned char threshold, vml_vec2& hit) const

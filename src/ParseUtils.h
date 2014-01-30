@@ -1,9 +1,10 @@
 #ifndef PARSEUTILS_H
 #define PARSEUTILS_H
 
-#include <StringUtils.h>
+#pragma once
 
-#include <vector_math.h>
+#include <StringUtils.h>
+#include <VectorMath.h>
 
 #include <stdlib.h>
 #include <exception>

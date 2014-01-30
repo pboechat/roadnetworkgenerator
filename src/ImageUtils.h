@@ -1,6 +1,8 @@
 #ifndef IMAGEUTILS_H
 #define IMAGEUTILS_H
 
+#pragma once
+
 #include <FreeImage.h>
 
 #include <exception>
@@ -27,7 +29,7 @@ public:
 
 		if (bgra == 0)
 		{
-			throw std::exception("invalid image file");
+			throw std::exception((std::string("invalid image file: ") + std::string(filePath)).c_str());
 		}
 
 		for (int i = 0, j = 0; i < size; i++, j += 4)

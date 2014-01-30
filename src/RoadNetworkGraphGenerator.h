@@ -1,10 +1,11 @@
 #ifndef ROADNETWORKGRAPHGENERATOR_H
 #define ROADNETWORKGRAPHGENERATOR_H
 
-#include "Defines.h"
-#include <Graph.cuh>
-#include <Configuration.cuh>
-#include <ImageMap.cuh>
+#pragma once
+
+#include <Graph.h>
+#include <Configuration.h>
+#include <ImageMap.h>
 #include <RoadNetworkGraphGenerationObserver.h>
 
 #include <vector>
@@ -82,10 +83,10 @@ private:
 	unsigned int maxWorkQueueCapacityUsed;
 #endif
 
-	void copyGraphToDevice(RoadNetworkGraph::Graph* graph);
-	void copyGraphToHost(RoadNetworkGraph::Graph* graph);
+	void copyGraphToDevice(Graph* graph);
+	void copyGraphToHost(Graph* graph);
 	void expand(unsigned int numDerivations);
-	void notifyObservers(RoadNetworkGraph::Graph* graph, unsigned int numPrimitives, RoadNetworkGraph::Primitive* primitives);
+	void notifyObservers(Graph* graph, unsigned int numPrimitives, Primitive* primitives);
 
 };
 

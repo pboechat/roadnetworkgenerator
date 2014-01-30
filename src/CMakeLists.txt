@@ -32,7 +32,7 @@ endif()
 if(CUDA_BUILD_DEBUG)
 	set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS};-G")
 endif()
-
+	
 find_package(OpenGL REQUIRED)
 
 file(GLOB CPP_HEADERS *.h)
@@ -73,7 +73,7 @@ if (USE_CUDA)
 	set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS};-DUSE_CUDA")
 endif(USE_CUDA)
 
-message("CUDA_NVCC_FLAGS: ${CUDA_NVCC_FLAGS}")
+#message("CUDA_NVCC_FLAGS: ${CUDA_NVCC_FLAGS}")
 
 cuda_add_executable(
 	roadnetworkgenerator

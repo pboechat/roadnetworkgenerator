@@ -1,9 +1,10 @@
 #ifndef QUAD_H
 #define QUAD_H
 
-#include <Geometry.h>
+#pragma once
 
-#include <vector_math.h>
+#include <Geometry.h>
+#include <VectorMath.h>
 
 class Quad : public Geometry
 {

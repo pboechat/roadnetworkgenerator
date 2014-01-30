@@ -1,9 +1,10 @@
 #ifndef INPUTCONTROLLER_H
 #define INPUTCONTROLLER_H
 
-#include <Camera.h>
+#pragma once
 
-#include <vector_math.h>
+#include <Camera.h>
+#include <VectorMath.h>
 
 #include <Windows.h>
 

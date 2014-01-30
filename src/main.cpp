@@ -1,42 +1,71 @@
 // memory leak detection
 //#include <vld.h>
 
-#include "Defines.h"
 #include <RoadNetworkInputController.h>
 #include <SceneRenderer.h>
 #include <RoadNetworkGraphGenerator.h>
 #include <RoadNetworkGeometryGenerator.h>
 #include <RoadNetworkLabelsGenerator.h>
-#include <Configuration.cuh>
-#include <ImageMap.cuh>
-
+#include <Configuration.h>
+#include <ConfigurationFunctions.h>
+#include <ImageMap.h>
 #include <Application.h>
 #include <Camera.h>
-#include <Box2D.cuh>
-#include <Timer.h>
-#include <MathExtras.cuh>
+#include <Box2D.h>
+#include <VectorMath.h>
+#include <ImageUtils.h>
 
-#include <vector_math.h>
-
+#ifdef USE_CUDA
+#include <cuda_runtime_api.h>
+#endif
 #include <string>
 #include <iostream>
 #include <io.h>
 #include <iomanip>
 
+//////////////////////////////////////////////////////////////////////////
+#define loadImageMap(__map) \
+	{ \
+		if (strlen(configuration.##__map##FilePath) > 0) \
+		{ \
+			__map##Data = (unsigned char*)malloc(sizeof(unsigned char) * configuration.worldWidth * configuration.worldHeight); \
+			ImageUtils::loadImage(configuration.##__map##FilePath, configuration.worldWidth, configuration.worldHeight, __map##Data); \
+			__map.setWidth(configuration.worldWidth); \
+			__map.setHeight(configuration.worldHeight); \
+			__map.setData(__map##Data); \
+		} \
+	}
+
+//////////////////////////////////////////////////////////////////////////
+#define SAFE_FREE_ON_HOST(__variable) \
+	if (__variable != 0) \
+	{ \
+		free(__variable); \
+	}
+
+//////////////////////////////////////////////////////////////////////////
 void printUsage()
 {
 	std::cerr << "Command line options: <width> <height> <configuration file>";
 }
 
+//////////////////////////////////////////////////////////////////////////
 void generateAndDisplay(const std::string& configurationFile, SceneRenderer& renderer, RoadNetworkGeometryGenerator& geometryGenerator, RoadNetworkLabelsGenerator& labelsGenerator, Camera& camera)
 {
 	Configuration configuration;
-	configuration.loadFromFile(configurationFile);
+	loadFromFile(configuration, configurationFile);
 
 	renderer.readConfigurations(configuration);
 	geometryGenerator.readConfigurations(configuration);
 
+	unsigned char* populationDensityMapData = 0, *waterBodiesMapData = 0, *blockadesMapData = 0, *naturalPatternMapData = 0, *radialPatternMapData = 0, *rasterPatternMapData = 0;
 	ImageMap populationDensityMap, waterBodiesMap, blockadesMap, naturalPatternMap, radialPatternMap, rasterPatternMap;
+	loadImageMap(populationDensityMap);
+	loadImageMap(waterBodiesMap);
+	loadImageMap(blockadesMap);
+	loadImageMap(naturalPatternMap);
+	loadImageMap(radialPatternMap);
+	loadImageMap(rasterPatternMap);
 
 	RoadNetworkGraphGenerator graphGenerator(configuration, populationDensityMap, waterBodiesMap, blockadesMap, naturalPatternMap, radialPatternMap, rasterPatternMap);
 	graphGenerator.addObserver(&geometryGenerator);
@@ -47,8 +76,16 @@ void generateAndDisplay(const std::string& configurationFile, SceneRenderer& ren
 	renderer.setUpImageMaps(worldBounds, populationDensityMap, waterBodiesMap, blockadesMap);
 
 	camera.centerOnTarget(worldBounds);
+
+	SAFE_FREE_ON_HOST(populationDensityMapData);
+	SAFE_FREE_ON_HOST(waterBodiesMapData);
+	SAFE_FREE_ON_HOST(blockadesMapData);
+	SAFE_FREE_ON_HOST(naturalPatternMapData);
+	SAFE_FREE_ON_HOST(radialPatternMapData);
+	SAFE_FREE_ON_HOST(rasterPatternMapData);
 }
 
+//////////////////////////////////////////////////////////////////////////
 int main(int argc, char** argv)
 {
 	int returnValue = -1;
@@ -78,7 +115,11 @@ int main(int argc, char** argv)
 			throw std::runtime_error("gl3wInit() failed");
 		}
 
-		INITIALIZE_DEVICE();
+#ifdef USE_CUDA
+		cudaDeviceProp deviceProperties;
+		cudaGetDeviceProperties(&deviceProperties, 0);
+		cudaSetDevice(0);
+#endif
 
 		Camera camera(screenWidth, screenHeight, FOVY_DEG, ZNEAR, ZFAR);
 		RoadNetworkGeometryGenerator geometry;

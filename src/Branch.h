@@ -1,10 +1,12 @@
-#ifndef BRANCH_CUH
-#define BRANCH_CUH
+#ifndef BRANCH_H
+#define BRANCH_H
 
-#include "Defines.h"
-#include <RoadAttributes.cuh>
-#include <StreetRuleAttributes.cuh>
-#include <HighwayRuleAttributes.cuh>
+#pragma once
+
+#include <CpuGpuCompatibility.h>
+#include <RoadAttributes.h>
+#include <StreetRuleAttributes.h>
+#include <HighwayRuleAttributes.h>
 
 template<typename RuleAttributesType>
 struct Branch
