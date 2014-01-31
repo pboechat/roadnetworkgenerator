@@ -200,6 +200,10 @@ struct WorkQueue
 
 		pack(index, item);
 		count++;
+
+#ifdef USE_CUDA
+		readFlags[index] = true;
+#endif
 	}
 
 	//////////////////////////////////////////////////////////////////////////
@@ -220,6 +224,10 @@ struct WorkQueue
 		head = ++head % MAX_NUM_WORKITEMS;
 		unpack(index, item);
 		count--;
+
+#ifdef USE_CUDA
+		readFlags[index] = false;
+#endif
 	}
 
 	//////////////////////////////////////////////////////////////////////////

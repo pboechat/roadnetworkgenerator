@@ -14,13 +14,13 @@ struct Line2D
 	vec2FieldDeclaration(End, HOST_AND_DEVICE_CODE)
 
 	HOST_AND_DEVICE_CODE Line2D() {}
-	HOST_AND_DEVICE_CODE Line2D(const vml_vec2& start, const vml_vec2& end) { setStart(start); setEnd(end); }
+	HOST_AND_DEVICE_CODE Line2D(const vml_vec2& start, const vml_vec2& end) { x_Start = start.x; y_Start = start.y; x_End = end.x; y_End = end.y; }
 	HOST_AND_DEVICE_CODE ~Line2D() {}
 
 	HOST_AND_DEVICE_CODE Line2D& operator = (const Line2D& other)
 	{
-		setStart(other.getStart());
-		setEnd(other.getEnd());
+		x_Start = other.x_Start; y_Start = other.y_Start;
+		x_End = other.x_End; y_End = other.y_End;
 		return *this;
 	}
 
@@ -58,27 +58,29 @@ struct Line2D
 
 	HOST_AND_DEVICE_CODE bool intersects(const Line2D& line, vml_vec2& intersection) const
 	{
+		vml_vec2 s1 = getStart(); vml_vec2 s2 = line.getStart();
+		vml_vec2 e1 = getEnd(); vml_vec2 e2 = line.getEnd();
+
 		// find the four orientations needed for general and special cases
-		int o1 = orientation(getStart(), getEnd(), line.getStart());
-		int o2 = orientation(getStart(), getEnd(), line.getEnd());
-		int o3 = orientation(line.getStart(), line.getEnd(), getStart());
-		int o4 = orientation(line.getStart(), line.getEnd(), getEnd());
+		int o1 = orientation(s1, e1, s2);
+		int o2 = orientation(s1, e1, e2);
+		int o3 = orientation(s2, e2, s1);
+		int o4 = orientation(s2, e2, e1);
 
 		// general case:
 		if (o1 != o2 && o3 != o4)
 		{
-			float determinant = (getStart().x - getEnd().x) * (line.getStart().y - line.getEnd().y) - (getStart().y - getEnd().y) * (line.getStart().x - line.getEnd().x);
+			float determinant = (s1.x - e1.x) * (s2.y - e2.y) - (s1.y - e1.y) * (s2.x - e2.x);
 
 			// FIXME: checking invariants
 			 if (determinant == 0)
 			{
-				//throw std::exception("determinant == 0");
 				THROW_EXCEPTION("determinant == 0");
 			}
 
-			float pre = (getStart().x * getEnd().y - getStart().y * getEnd().x), post = (line.getStart().x * line.getEnd().y - line.getStart().y * line.getEnd().x);
-			float x = (pre * (line.getStart().x - line.getEnd().x) - (getStart().x - getEnd().x) * post) / determinant;
-			float y = (pre * (line.getStart().y - line.getEnd().y) - (getStart().y - getEnd().y) * post) / determinant;
+			float pre = (s1.x * e1.y - s1.y * e1.x), post = (s2.x * e2.y - s2.y * e2.x);
+			float x = (pre * (s2.x - e2.x) - (s1.x - e1.x) * post) / determinant;
+			float y = (pre * (s2.y - e2.y) - (s1.y - e1.y) * post) / determinant;
 
 			intersection.x = x;
 			intersection.y = y;
@@ -87,31 +89,31 @@ struct Line2D
 		}
 
 		// special cases:
-		// 'getStart()', 'getEnd()' and 'line.getStart()' are collinear and 'line.getStart()' lies on this segment
-		if (o1 == 0 && onSegment(getStart(), line.getStart(), getEnd()))
+		// 's1', 'e1' and 's2' are collinear and 's2' lies on this segment
+		if (o1 == 0 && onSegment(s1, s2, e1))
 		{
-			intersection = line.getStart();
+			intersection = s2;
 			return true;
 		}
 
-		// 'getStart()', 'getEnd()' and 'line.getStart()' are collinear and 'line.getEnd()' lies on this segment
-		if (o2 == 0 && onSegment(getStart(), line.getEnd(), getEnd()))
+		// 's1', 'e1' and 's2' are collinear and 'e2' lies on this segment
+		if (o2 == 0 && onSegment(s1, e2, e1))
 		{
-			intersection = line.getEnd();
+			intersection = e2;
 			return true;
 		}
 
-		// 'line.getStart()', 'line.getEnd()' and 'getStart()' are collinear and 'getStart()' lies on line segment
-		if (o3 == 0 && onSegment(line.getStart(), getStart(), line.getEnd()))
+		// 's2', 'e2' and 's1' are collinear and 's1' lies on line segment
+		if (o3 == 0 && onSegment(s2, s1, e2))
 		{
-			intersection = getStart();
+			intersection = s1;
 			return true;
 		}
 
-		// 'line.getStart()', 'line.getEnd()' and 'getEnd()' are collinear and 'getEnd()' lies on line segment
-		if (o4 == 0 && onSegment(line.getStart(), getEnd(), line.getEnd()))
+		// 's2', 'e2' and 'e1' are collinear and 'e1' lies on line segment
+		if (o4 == 0 && onSegment(s2, e1, e2))
 		{
-			intersection = getEnd();
+			intersection = e1;
 			return true;
 		}
 
@@ -121,14 +123,15 @@ struct Line2D
 	HOST_AND_DEVICE_CODE unsigned int intersects(const Circle2D& circle, vml_vec2& intersection1, vml_vec2& intersection2) const
 	{
 		// FIXME: circle == point case
-		//if (circle.radius == 0)
 		if (MathExtras::isZero(circle.radius))
 		{
 			return 0;
 		}
 
-		vml_vec2 direction = vml_normalize(getEnd() - getStart());
-		vml_vec2 centerToStart = getStart() - circle.getCenter();
+		vml_vec2 start = getStart();
+		vml_vec2 end = getEnd();
+		vml_vec2 direction = vml_normalize(end - start);
+		vml_vec2 centerToStart = start - circle.getCenter();
 		float a = vml_dot(direction, direction);
 		float b = 2.0f * vml_dot(centerToStart, direction);
 		float c = vml_dot(centerToStart, centerToStart) - circle.radius * circle.radius;
@@ -148,13 +151,13 @@ struct Line2D
 
 			if (t1 >= 0 && t1 <= 1)
 			{
-				intersection1 = getStart() + direction * t1;
+				intersection1 = start + direction * t1;
 				mask += 1;
 			}
 
 			if (t2 >= 0 && t2 <= 1)
 			{
-				intersection2 = getStart() + direction * t2;
+				intersection2 = start + direction * t2;
 				mask += 2;
 			}
 

@@ -17,8 +17,8 @@ struct Box2D
 	HOST_AND_DEVICE_CODE Box2D(const vml_vec2& min, const vml_vec2& max) { setMin(min); setMax(max); }
 	HOST_AND_DEVICE_CODE Box2D(float x, float y, float width, float height)
 	{
-		setMin(vml_vec2(x, y));
-		setMax(vml_vec2(x + width, y + height));
+		x_Min = x; y_Min = y;
+		x_Max = x + width; y_Max = y + height;
 	}
 	HOST_AND_DEVICE_CODE Box2D(const Line2D& line)
 	{
@@ -37,24 +37,24 @@ struct Box2D
 		return getMin() + ((getMax() - getMin()) / 2.0f);
 	}
 
-	inline HOST_AND_DEVICE_CODE bool contains(const vml_vec2& point) const
+	HOST_AND_DEVICE_CODE bool contains(const vml_vec2& point) const
 	{
-		if (point.x < getMin().x)
+		if (point.x < x_Min)
 		{
 			return false;
 		}
 
-		else if (point.x > getMax().x)
+		else if (point.x > x_Max)
 		{
 			return false;
 		}
 
-		else if (point.y < getMin().y)
+		else if (point.y < y_Min)
 		{
 			return false;
 		}
 
-		else if (point.y > getMax().y)
+		else if (point.y > y_Max)
 		{
 			return false;
 		}
@@ -80,16 +80,20 @@ struct Box2D
 
 	HOST_AND_DEVICE_CODE bool intersects(const Circle2D& circle) const
 	{
-		vml_vec2 a(getMin().x, getMax().y);
-		vml_vec2 b(getMax().x, getMax().y);
-		vml_vec2 c(getMax().x, getMin().y);
-		vml_vec2 d(getMin().x, getMin().y);
-		return contains(circle.getCenter()) || Line2D(a, b).intersects(circle) || Line2D(b, c).intersects(circle) || Line2D(c, d).intersects(circle) || Line2D(d, a).intersects(circle);
+		vml_vec2 a(x_Min, y_Max);
+		vml_vec2 b(x_Max, y_Max);
+		vml_vec2 c(x_Max, y_Min);
+		vml_vec2 d(x_Min, y_Min);
+		Line2D AB(a, b);
+		Line2D BC(b, c);
+		Line2D CD(c, d);
+		Line2D DA(d, a);
+		return contains(circle.getCenter()) || AB.intersects(circle) || BC.intersects(circle) || CD.intersects(circle) || DA.intersects(circle);
 	}
 
 	HOST_AND_DEVICE_CODE bool intersects(const Box2D& aabb) const
 	{
-		if (aabb.getMax().x < getMin().x || aabb.getMin().x > getMax().x || aabb.getMax().y < getMin().y || aabb.getMin().y > getMax().y)
+		if (aabb.x_Max < x_Min || aabb.x_Min > x_Max || aabb.y_Max < y_Min || aabb.y_Min > y_Max)
 		{
 			return false;
 		}
@@ -99,10 +103,10 @@ struct Box2D
 
 	HOST_AND_DEVICE_CODE bool isIntersected(const Line2D& line) const
 	{
-		vml_vec2 a(getMin().x, getMax().y);
-		vml_vec2 b(getMax().x, getMax().y);
-		vml_vec2 c(getMax().x, getMin().y);
-		vml_vec2 d(getMin().x, getMin().y);
+		vml_vec2 a(x_Min, y_Max);
+		vml_vec2 b(x_Max, y_Max);
+		vml_vec2 c(x_Max, y_Min);
+		vml_vec2 d(x_Min, y_Min);
 		return contains(line.getStart()) || contains(line.getEnd()) || Line2D(a, b).intersects(line) || Line2D(b, c).intersects(line) || Line2D(c, d).intersects(line) || Line2D(d, a).intersects(line);
 	}
 

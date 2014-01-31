@@ -13,14 +13,21 @@
 #define DEVICE_CODE __device__
 #define GLOBAL_CODE __global__
 #define HOST_AND_DEVICE_CODE __host__ __device__
-#define THROW_EXCEPTION(msg)
+#ifdef __CUDA_ARCH__
+	#define THROW_EXCEPTION(msg) \
+		printf(msg); \
+		asm("trap;")
+	#else
+	#include <exception>
+	#define THROW_EXCEPTION(msg) throw std::exception(msg)	
+	#endif
 #else
 #include <exception>
 #define HOST_CODE
 #define DEVICE_CODE
 #define GLOBAL_CODE
 #define HOST_AND_DEVICE_CODE
-#define THROW_EXCEPTION(msg) throw std::exception(msg)
+#define THROW_EXCEPTION(msg) throw std::exception(msg)	
 #endif
 
 #endif

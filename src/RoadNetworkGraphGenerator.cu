@@ -19,7 +19,11 @@
 #include <Context.cuh>
 #include <WorkQueue.cuh>
 
+#include <exception>
 #include <memory>
+
+// DEBUG:
+#include <iostream>
 
 #define SAFE_MALLOC_ON_HOST(__variable, __type, __amount) \
 	__variable = 0; \
@@ -361,7 +365,12 @@ void RoadNetworkGraphGenerator::execute()
 		g_dRadialPatternMap,
 		g_dRasterPatternMap);
 
+	std::cout << "Before 1st expand" << std::endl;
+
 	expand(configuration.maxHighwayDerivation);
+
+	std::cout << "After 1st expand" << std::endl;
+	system("pause");
 
 	copyGraphToHost(graph);
 
@@ -376,12 +385,11 @@ void RoadNetworkGraphGenerator::execute()
 	graphCopy->vertices = verticesCopy;
 	graphCopy->edges = edgesCopy;
 
-	memcpy(graphCopy->vertices, graph->vertices, sizeof(Vertex) * configuration.maxVertices);
-	memcpy(graphCopy->edges, graph->edges, sizeof(Edge) * configuration.maxEdges);
+	MEMCPY_DEVICE_TO_HOST(graphCopy->vertices, g_dVertices, sizeof(Vertex) * configuration.maxVertices);
+	MEMCPY_DEVICE_TO_HOST(graphCopy->edges, g_dEdges, sizeof(Edge) * configuration.maxEdges);
 	
 	graphCopy->numVertices = graph->numVertices;
 	graphCopy->numEdges = graph->numEdges;
-
 	Primitive* primitives;
 	
 	SAFE_MALLOC_ON_HOST(primitives, Primitive, configuration.maxPrimitives);
@@ -392,6 +400,8 @@ void RoadNetworkGraphGenerator::execute()
 	allocateExtractionBuffers(configuration.maxVertices, configuration.maxEdgeSequences, configuration.maxVisitedVertices);
 	unsigned int numPrimitives = extractPrimitives(graphCopy, primitives, configuration.maxPrimitives);
 	freeExtractionBuffers();
+
+	std::cout << "After extract primitives (extracted primitives: " << numPrimitives << ")" << std::endl;
 
 	free(graphCopy);
 	free(verticesCopy);
@@ -511,8 +521,12 @@ void RoadNetworkGraphGenerator::expand(unsigned int numDerivations)
 {
 	initializeKernel<<<1, 1>>>();
 	cudaCheckError();
-	kernel<<<NUM_PROCEDURES, NUM_THREADS>>>(configuration.maxStreetDerivation, g_dWorkQueues1, g_dWorkQueues2, g_dContext);
-	cudaCheckError();
+	kernel<<<1, NUM_THREADS>>>(configuration.maxStreetDerivation, g_dWorkQueues1, g_dWorkQueues2, g_dContext);
+	cudaError_t error = cudaGetLastError();
+	if (error != cudaSuccess)
+	{
+		cudaDeviceSynchronize();
+	}
 }
 
 //////////////////////////////////////////////////////////////////////////
