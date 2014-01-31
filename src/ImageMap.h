@@ -90,8 +90,8 @@ struct ImageMap
 	HOST_AND_DEVICE_CODE unsigned char sample(const vml_vec2& point) const
 	{
 		vml_vec2 position;
-		position.x = MathExtras::clamp(0.0f, (float)width, point.x);
-		position.y = MathExtras::clamp(0.0f, (float)height, point.y);
+		position.x = MathExtras::clamp(0.0f, (float)width - 1, point.x);
+		position.y = MathExtras::clamp(0.0f, (float)height - 1, point.y);
 		int i = ((int)position.y * width) + (int)position.x;
 		return data[i];
 	}

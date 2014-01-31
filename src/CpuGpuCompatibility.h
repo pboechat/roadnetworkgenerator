@@ -13,21 +13,73 @@
 #define DEVICE_CODE __device__
 #define GLOBAL_CODE __global__
 #define HOST_AND_DEVICE_CODE __host__ __device__
-#ifdef __CUDA_ARCH__
-	#define THROW_EXCEPTION(msg) \
-		printf(msg); \
-		asm("trap;")
+	#ifdef __CUDA_ARCH__
+		#define THREAD_IDX_X threadIdx.x
+		#define THROW_EXCEPTION(__message) \
+			printf("%s (@%s, %d)\n", __message, __FILE__, __LINE__); \
+			asm("trap;")
+		#define ATOMIC_ADD(__variable, __type, __increment) atomicAdd((__type*)&__variable, (__type)__increment)
+		#define ATOMIC_EXCH(__variable, __type, __value) atomicExch((__type*)&__variable, (__type)__value)
+		#define THREADFENCE() __threadfence()
 	#else
-	#include <exception>
-	#define THROW_EXCEPTION(msg) throw std::exception(msg)	
+		#include <exception>
+		#include <sstream>
+		template<typename T>
+		inline T atomicAddMock(T* variable, T increment)
+		{
+			T tmp = *variable;
+			*variable += increment;
+			return tmp;
+		}
+		template<typename T>
+		inline T atomicExchMock(T* variable, T value)
+		{
+			T tmp = *variable;
+			*variable = value;
+			return tmp;
+		}
+		#define THREAD_IDX_X 1
+		#define THROW_EXCEPTION(__message) \
+			{ \
+				std::stringstream stringStream; \
+				stringStream << __message << " (@" << __FILE__ << ", " << __FUNCTION__ << "(..), line: " << __LINE__ << ")"; \
+				throw std::exception(stringStream.str().c_str()); \
+			}
+		#define ATOMIC_ADD(__variable, __type, __increment) atomicAddMock((__type*)&__variable, (__type)__increment)
+		#define ATOMIC_EXCH(__variable, __type, __increment) atomicExchMock((__type*)&__variable, (__type)__increment)
+		#define THREADFENCE()
 	#endif
 #else
 #include <exception>
+#include <sstream>
+template<typename T>
+inline T atomicAddMock(T* variable, T increment)
+{
+	T tmp = *variable;
+	*variable += increment;
+	return tmp;
+}
+template<typename T>
+inline T atomicExchMock(T* variable, T value)
+{
+	T tmp = *variable;
+	*variable = value;
+	return tmp;
+}
 #define HOST_CODE
 #define DEVICE_CODE
 #define GLOBAL_CODE
 #define HOST_AND_DEVICE_CODE
-#define THROW_EXCEPTION(msg) throw std::exception(msg)	
+#define THREAD_IDX_X 0
+#define THROW_EXCEPTION(__message) \
+	{ \
+		std::stringstream stringStream; \
+		stringStream << __message << " (@" << __FILE__ << ", " << __FUNCTION__ << "(..), line: " << __LINE__ << ")"; \
+		throw std::exception(stringStream.str().c_str()); \
+	}
+#define ATOMIC_ADD(__variable, __type, __increment) atomicAddMock((__type*)&__variable, (__type)__increment)
+#define ATOMIC_EXCH(__variable, __type, __increment) atomicExchMock((__type*)&__variable, (__type)__increment)
+#define THREADFENCE()
 #endif
-
+	
 #endif

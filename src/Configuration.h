@@ -19,7 +19,7 @@ struct Configuration
 	unsigned int worldHeight;
 	unsigned int maxVertices;
 	unsigned int maxEdges;
-	unsigned int maxResultsPerQuery;
+	unsigned int maxQueryResults;
 	unsigned int maxQuadrants;
 	unsigned int highwayLength;
 	unsigned int minSamplingRayLength;

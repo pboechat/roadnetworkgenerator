@@ -37,7 +37,7 @@ struct Box2D
 		return getMin() + ((getMax() - getMin()) / 2.0f);
 	}
 
-	HOST_AND_DEVICE_CODE bool contains(const vml_vec2& point) const
+	inline HOST_AND_DEVICE_CODE bool contains(const vml_vec2& point) const
 	{
 		if (point.x < x_Min)
 		{
@@ -78,7 +78,7 @@ struct Box2D
 		return size.x * size.y;
 	}
 
-	HOST_AND_DEVICE_CODE bool intersects(const Circle2D& circle) const
+	inline HOST_AND_DEVICE_CODE bool intersects(const Circle2D& circle) const
 	{
 		vml_vec2 a(x_Min, y_Max);
 		vml_vec2 b(x_Max, y_Max);
@@ -88,10 +88,10 @@ struct Box2D
 		Line2D BC(b, c);
 		Line2D CD(c, d);
 		Line2D DA(d, a);
-		return contains(circle.getCenter()) || AB.intersects(circle) || BC.intersects(circle) || CD.intersects(circle) || DA.intersects(circle);
+		return contains(circle.getCenter()) || AB.intersects3(circle) || BC.intersects3(circle) || CD.intersects3(circle) || DA.intersects3(circle);
 	}
 
-	HOST_AND_DEVICE_CODE bool intersects(const Box2D& aabb) const
+	inline HOST_AND_DEVICE_CODE bool intersects(const Box2D& aabb) const
 	{
 		if (aabb.x_Max < x_Min || aabb.x_Min > x_Max || aabb.y_Max < y_Min || aabb.y_Min > y_Max)
 		{
@@ -101,13 +101,17 @@ struct Box2D
 		return true;
 	}
 
-	HOST_AND_DEVICE_CODE bool isIntersected(const Line2D& line) const
+	inline HOST_AND_DEVICE_CODE bool isIntersected(const Line2D& line) const
 	{
 		vml_vec2 a(x_Min, y_Max);
 		vml_vec2 b(x_Max, y_Max);
 		vml_vec2 c(x_Max, y_Min);
 		vml_vec2 d(x_Min, y_Min);
-		return contains(line.getStart()) || contains(line.getEnd()) || Line2D(a, b).intersects(line) || Line2D(b, c).intersects(line) || Line2D(c, d).intersects(line) || Line2D(d, a).intersects(line);
+		Line2D AB(a, b);
+		Line2D BC(b, c);
+		Line2D CD(c, d);
+		Line2D DA(d, a);
+		return contains(line.getStart()) || contains(line.getEnd()) || AB.intersects(line) || BC.intersects(line) || CD.intersects(line) || DA.intersects(line);
 	}
 
 };

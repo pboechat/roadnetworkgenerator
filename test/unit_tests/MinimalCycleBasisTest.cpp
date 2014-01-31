@@ -15,14 +15,16 @@ namespace RoadNetworkGraph
 #define SNAP_RADIUS 0.0f
 #define MAX_VERTICES 28
 #define MAX_EDGES 29
-#define MAX_RESULTS_PER_QUERY 1
 #define MAX_PRIMITIVES 12
 #define HEAP_BUFFER_SIZE 28
 #define SEQUENCE_BUFFER_SIZE 29
 #define VISITED_BUFFER_SIZE 28
+#ifdef USE_QUADTREE
+#define MAX_QUERY_RESULTS 1
 #define QUADTREE_DEPTH 1
 #define MAX_QUADRANTS 1
 #define MAX_QUADRANT_EDGES 29
+#endif
 
 #define V0_POS vml_vec2(11, 188)
 #define V1_POS vml_vec2(22, 168)
@@ -177,11 +179,15 @@ TEST(minimal_cycle_basis, extract_primitives)
 	QuadTree quadtree;
 	Vertex vertices[MAX_VERTICES];
 	Edge edges[MAX_EDGES];
-	int queryResults[MAX_RESULTS_PER_QUERY];
+#ifdef USE_QUADTREE
+	QueryResults queryResults[MAX_QUERY_RESULTS];
 	Quadrant quadrants[MAX_QUADRANTS];
 	QuadrantEdges quadrantEdges[MAX_QUADRANT_EDGES];
-	initializeQuadtreeOnHost(&quadtree, WORLD_BOUNDS, QUADTREE_DEPTH, MAX_RESULTS_PER_QUERY, MAX_QUADRANTS, quadrants, quadrantEdges);
-	initializeGraphOnHost(&graph, SNAP_RADIUS, MAX_VERTICES, MAX_EDGES, vertices, edges, &quadtree, MAX_RESULTS_PER_QUERY, queryResults);
+	initializeQuadtreeOnHost(&quadtree, WORLD_BOUNDS, QUADTREE_DEPTH, MAX_QUADRANTS, quadrants, quadrantEdges);
+	initializeGraphOnHost(&graph, SNAP_RADIUS, MAX_VERTICES, MAX_EDGES, vertices, edges, &quadtree, MAX_QUERY_RESULTS, queryResults);
+#else
+	initializeGraphOnHost(&graph, SNAP_RADIUS, MAX_VERTICES, MAX_EDGES, vertices, edges);
+#endif
 	setUpGraph(&graph);
 	allocateExtractionBuffers(HEAP_BUFFER_SIZE, SEQUENCE_BUFFER_SIZE, VISITED_BUFFER_SIZE);
 	Primitive primitives[MAX_PRIMITIVES];

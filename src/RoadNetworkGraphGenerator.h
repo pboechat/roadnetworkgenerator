@@ -4,6 +4,8 @@
 #pragma once
 
 #include <Graph.h>
+#include <Vertex.h>
+#include <Edge.h>
 #include <Configuration.h>
 #include <ImageMap.h>
 #include <RoadNetworkGraphGenerationObserver.h>
@@ -84,7 +86,7 @@ private:
 #endif
 
 	void copyGraphToDevice(Graph* graph);
-	void copyGraphToHost(Graph* graph);
+	void copyGraphToHost(Graph* graph, Vertex* vertices, Edge* edges);
 	void expand(unsigned int numDerivations);
 	void notifyObservers(Graph* graph, unsigned int numPrimitives, Primitive* primitives);
 

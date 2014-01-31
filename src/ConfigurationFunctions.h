@@ -169,7 +169,7 @@ void loadFromFile(Configuration& configuration, const std::string& filePath)
 	configuration.worldHeight = getPropertyAsUnsignedInt(properties, "world_height");
 	configuration.maxVertices = getPropertyAsUnsignedInt(properties, "max_vertices");
 	configuration.maxEdges = getPropertyAsUnsignedInt(properties, "max_edges");
-	configuration.maxResultsPerQuery = getPropertyAsUnsignedInt(properties, "max_results_per_query");
+	configuration.maxQueryResults = getPropertyAsUnsignedInt(properties, "max_query_results");
 	configuration.maxQuadrants = getPropertyAsUnsignedInt(properties, "max_quadrants");
 	configuration.highwayLength = getPropertyAsUnsignedInt(properties, "highway_length");
 	configuration.minSamplingRayLength = getPropertyAsUnsignedInt(properties, "max_sampling_ray_length");

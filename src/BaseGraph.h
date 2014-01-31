@@ -9,8 +9,8 @@
 
 struct BaseGraph
 {
-	int numVertices;
-	int numEdges;
+	volatile int numVertices;
+	volatile int numEdges;
 	Vertex* vertices;
 	Edge* edges;
 
