@@ -108,7 +108,11 @@ int main(int argc, char** argv)
 			exit(EXIT_FAILURE);
 		}
 
+#ifdef USE_CUDA
+		Application application("Road Network Generator (GPU)", screenWidth, screenHeight);
+#else
 		Application application("Road Network Generator (CPU)", screenWidth, screenHeight);
+#endif
 
 		if (gl3wInit())
 		{
@@ -119,6 +123,10 @@ int main(int argc, char** argv)
 		cudaDeviceProp deviceProperties;
 		cudaGetDeviceProperties(&deviceProperties, 0);
 		cudaSetDevice(0);
+		/*if (cudaDeviceSetLimit(cudaLimitStackSize, 256 * 1024) != cudaSuccess)
+		{
+			throw std::runtime_error("couldn't set cuda stack size limit");
+		}*/
 #endif
 
 		Camera camera(screenWidth, screenHeight, FOVY_DEG, ZNEAR, ZFAR);

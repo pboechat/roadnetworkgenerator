@@ -32,7 +32,7 @@ public:
 		lastHighwayDerivation(0), 
 		lastStreetDerivation(0), 
 		maxPrimitiveSize(0)
-#ifdef _DEBUG
+#ifdef COLLECT_STATISTICS
 		, maxWorkQueueCapacityUsed(0)
 #endif
 	{
@@ -46,7 +46,7 @@ public:
 
 	void execute();
 
-#ifdef _DEBUG
+#ifdef COLLECT_STATISTICS
 	inline unsigned int getLastHighwayDerivation() const
 	{
 		return lastHighwayDerivation - 1;
@@ -81,12 +81,12 @@ private:
 	unsigned int lastHighwayDerivation;
 	unsigned int lastStreetDerivation;
 	std::vector<RoadNetworkGraphGenerationObserver*> observers;
-#ifdef _DEBUG
+#ifdef COLLECT_STATISTICS
 	unsigned int maxWorkQueueCapacityUsed;
 #endif
 
 	void copyGraphToDevice(Graph* graph);
-	void copyGraphToHost(Graph* graph, Vertex* vertices, Edge* edges);
+	void copyGraphToHost(Graph* graph);
 	void expand(unsigned int numDerivations);
 	void notifyObservers(Graph* graph, unsigned int numPrimitives, Primitive* primitives);
 

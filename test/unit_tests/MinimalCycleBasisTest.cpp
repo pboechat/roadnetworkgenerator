@@ -20,7 +20,6 @@ namespace RoadNetworkGraph
 #define SEQUENCE_BUFFER_SIZE 29
 #define VISITED_BUFFER_SIZE 28
 #ifdef USE_QUADTREE
-#define MAX_QUERY_RESULTS 1
 #define QUADTREE_DEPTH 1
 #define MAX_QUADRANTS 1
 #define MAX_QUADRANT_EDGES 29
@@ -180,11 +179,10 @@ TEST(minimal_cycle_basis, extract_primitives)
 	Vertex vertices[MAX_VERTICES];
 	Edge edges[MAX_EDGES];
 #ifdef USE_QUADTREE
-	QueryResults queryResults[MAX_QUERY_RESULTS];
 	Quadrant quadrants[MAX_QUADRANTS];
 	QuadrantEdges quadrantEdges[MAX_QUADRANT_EDGES];
 	initializeQuadtreeOnHost(&quadtree, WORLD_BOUNDS, QUADTREE_DEPTH, MAX_QUADRANTS, quadrants, quadrantEdges);
-	initializeGraphOnHost(&graph, SNAP_RADIUS, MAX_VERTICES, MAX_EDGES, vertices, edges, &quadtree, MAX_QUERY_RESULTS, queryResults);
+	initializeGraphOnHost(&graph, SNAP_RADIUS, MAX_VERTICES, MAX_EDGES, vertices, edges, &quadtree);
 #else
 	initializeGraphOnHost(&graph, SNAP_RADIUS, MAX_VERTICES, MAX_EDGES, vertices, edges);
 #endif

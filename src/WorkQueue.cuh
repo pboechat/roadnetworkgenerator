@@ -168,13 +168,7 @@ struct WorkQueue
 			THROW_EXCEPTION("WorkQueue: count >= MAX_NUM_WORKITEMS");
 		}
 
-		unsigned int index = tail;
-		tail = ++tail % MAX_NUM_WORKITEMS;
-
-		if (tail == head)
-		{
-			THROW_EXCEPTION("WorkQueue: tail == head");
-		}
+		unsigned int index = tail++ % MAX_NUM_WORKITEMS;
 
 		pack(index, item);
 		count++;
@@ -190,13 +184,7 @@ struct WorkQueue
 			THROW_EXCEPTION("WorkQueue: count >= MAX_NUM_WORKITEMS");
 		}
 
-		unsigned int index = tail;
-		tail = ++tail % MAX_NUM_WORKITEMS;
-
-		if (tail == head)
-		{
-			THROW_EXCEPTION("WorkQueue: tail == head");
-		}
+		unsigned int index = tail++ % MAX_NUM_WORKITEMS;
 
 		pack(index, item);
 		count++;
@@ -220,8 +208,7 @@ struct WorkQueue
 			THROW_EXCEPTION("WorkQueue: head == tail");
 		}
 
-		unsigned int index = head;
-		head = ++head % MAX_NUM_WORKITEMS;
+		unsigned int index = head++ % MAX_NUM_WORKITEMS;
 		unpack(index, item);
 		count--;
 

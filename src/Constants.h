@@ -33,10 +33,10 @@
 //////////////////////////////////////////////////////////////////////////
 //	WORK QUEUES
 //////////////////////////////////////////////////////////////////////////
-#define MAX_NUM_WORKITEMS 4000
+#define MAX_NUM_WORKITEMS 100000
 #define WORK_ITEM_SIZE 100
 // MAX_NUM_WORKITEMS * WORK_ITEM_SIZE
-#define WORK_QUEUE_DATA_SIZE 400000
+#define WORK_QUEUE_DATA_SIZE 10000000
 
 //////////////////////////////////////////////////////////////////////////
 // CONFIGURATION
@@ -60,13 +60,10 @@
 // MAX_VERTEX_ADJACENCIES = MAX_VERTEX_IN_CONNECTIONS + MAX_VERTEX_OUT_CONNECTIONS
 #define MAX_VERTEX_ADJACENCIES 20
 #define MAX_EDGES_PER_QUADRANT 10000
-#define MAX_VERTICES_PER_PRIMITIVE 100
-#define MAX_RESULTS_PER_QUERY 2000
-
-/*typedef int VertexIndex;
-typedef int EdgeIndex;
-typedef int QuadrantIndex;
-typedef int QuadrantEdgesIndex;*/
+#define MAX_EDGES_PER_PRIMITIVE 100
+#define MAX_VERTICES_PER_PRIMITIVE 200
+#define MAX_RESULTS_PER_QUERY 100
+#define QUADTREE_STACK_DATA_SIZE 1000
 
 //////////////////////////////////////////////////////////////////////////
 //	GENERAL
@@ -74,7 +71,7 @@ typedef int QuadrantEdgesIndex;*/
 
 #define FONT_FILE_PATH "../../../../data/fonts/arial.glf"
 
-#ifdef _DEBUG
+#ifdef COLLECT_STATISTICS
 //////////////////////////////////////////////////////////////////////////
 // DEBUG MACROS
 //////////////////////////////////////////////////////////////////////////

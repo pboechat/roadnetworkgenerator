@@ -9,14 +9,13 @@
 #include <Circle2D.h>
 #include <VectorMath.h>
 #include <QueryResults.h>
+#include <QuadTreeStacks.h>
 
-//////////////////////////////////////////////////////////////////////////
-HOST_AND_DEVICE_CODE void initializeQuadrant(QuadTree* quadtree, const Box2D& quadrantBounds, unsigned int depth = 0, unsigned int index = 0, unsigned int offset = 0, unsigned int levelWidth = 1);
 //////////////////////////////////////////////////////////////////////////
 HOST_AND_DEVICE_CODE void removeEdgeReferencesInQuadrant(QuadrantEdges* quadrantEdges, int edgeIndex);
 
 //////////////////////////////////////////////////////////////////////////
-GLOBAL_CODE void initializeQuadtreeOnDevice(QuadTree* quadtree, Box2D worldBounds, unsigned int depth, unsigned int maxQuadrants, Quadrant* quadrants, QuadrantEdges* quadrantEdges)
+HOST_AND_DEVICE_CODE void initializeQuadtreeOnHost(QuadTree* quadtree, Box2D worldBounds, unsigned int depth, unsigned int maxQuadrants, Quadrant* quadrants, QuadrantEdges* quadrantEdges)
 {
 	quadtree->worldBounds = worldBounds;
 	quadtree->maxDepth = depth;
@@ -24,7 +23,7 @@ GLOBAL_CODE void initializeQuadtreeOnDevice(QuadTree* quadtree, Box2D worldBound
 	quadtree->quadrants = quadrants;
 	quadtree->quadrantsEdges = quadrantEdges;
 	quadtree->numQuadrantEdges = 0;
-#ifdef _DEBUG
+#ifdef COLLECT_STATISTICS
 	quadtree->numCollisionChecks = 0;
 	quadtree->maxEdgesPerQuadrantInUse = 0;
 	quadtree->maxResultsPerQueryInUse = 0;
@@ -43,43 +42,68 @@ GLOBAL_CODE void initializeQuadtreeOnDevice(QuadTree* quadtree, Box2D worldBound
 		quadtree->totalNumQuadrants += numQuadrants;
 	}
 
-	initializeQuadrant(quadtree, worldBounds);
+	unsigned int index, offset, levelWidth;
+	Box2D quadrantBounds;
+
+	InitializationQuadTreeStack stack;
+
+	stack.push(0, 0, 1, 0, worldBounds);
+
+	while (stack.notEmpty())
+	{
+		stack.pop(index, offset, levelWidth, depth, quadrantBounds);
+
+		unsigned int i = offset + index;
+
+		// FIXME: checking boundaries
+		if (i >= quadtree->maxQuadrants)
+		{
+			THROW_EXCEPTION("max. quadrants overflow");
+		}
+
+		Quadrant* quadrant = &quadtree->quadrants[i];
+
+		quadrant->depth = depth;
+		quadrant->bounds = quadrantBounds;
+
+		if (depth == quadtree->maxDepth - 1) // leaf
+		{
+			int i = ATOMIC_ADD(quadtree->numQuadrantEdges, int, 1);
+			QuadrantEdges* quadrantEdges = &quadtree->quadrantsEdges[i];
+			quadrant->edges = i;
+		}
+		else
+		{
+			unsigned int baseIndex = (index * 4);
+			unsigned int newOffset = offset + levelWidth;
+			unsigned int newLevelWidth = levelWidth * 4;
+			unsigned int newDepth = depth + 1;
+			vml_vec2 subQuadrantSize = quadrantBounds.getExtents() / 2.0f;
+
+			for (unsigned int y = 0, i = 0; y < 2; y++)
+			{
+				vml_vec2 quadrantBoundsMin = quadrantBounds.getMin();
+				float subQuadrantY = quadrantBoundsMin.y + ((float)y * subQuadrantSize.y);
+
+				for (unsigned int x = 0; x < 2; x++, i++)
+				{
+					Box2D subQuadrantBounds(quadrantBoundsMin.x + ((float)x * subQuadrantSize.x), subQuadrantY, subQuadrantSize.x, subQuadrantSize.y);
+					stack.push(baseIndex + i, newOffset, newLevelWidth, newDepth, subQuadrantBounds);
+				}
+			}
+		}
+	}
 }
 
 //////////////////////////////////////////////////////////////////////////
-HOST_CODE void initializeQuadtreeOnHost(QuadTree* quadtree, Box2D worldBounds, unsigned int depth, unsigned int maxQuadrants, Quadrant* quadrants, QuadrantEdges* quadrantEdges)
+GLOBAL_CODE void initializeQuadtreeOnDevice(QuadTree* quadtree, Box2D worldBounds, unsigned int depth, unsigned int maxQuadrants, Quadrant* quadrants, QuadrantEdges* quadrantEdges)
 {
-	quadtree->worldBounds = worldBounds;
-	quadtree->maxDepth = depth;
-	quadtree->maxQuadrants = maxQuadrants;
-	quadtree->quadrants = quadrants;
-	quadtree->quadrantsEdges = quadrantEdges;
-	quadtree->numQuadrantEdges = 0;
-#ifdef _DEBUG
-	quadtree->numCollisionChecks = 0;
-	quadtree->maxEdgesPerQuadrantInUse = 0;
-	quadtree->maxResultsPerQueryInUse = 0;
-#endif
-	quadtree->totalNumQuadrants = 0;
-
-	for (unsigned int i = 0; i < quadtree->maxDepth; i++)
-	{
-		unsigned int numQuadrants = (unsigned int)pow(4.0f, (int)i);
-
-		if (i == quadtree->maxDepth - 1)
-		{
-			quadtree->numLeafQuadrants = numQuadrants;
-		}
-
-		quadtree->totalNumQuadrants += numQuadrants;
-	}
-
-	initializeQuadrant(quadtree, worldBounds);
+	initializeQuadtreeOnHost(quadtree, worldBounds, depth, maxQuadrants, quadrants, quadrantEdges);
 }
 
 //////////////////////////////////////////////////////////////////////////
 GLOBAL_CODE void updateNonPointerFields(QuadTree* quadtree, int numQuadrantEdges, Box2D worldBounds, unsigned int maxDepth, unsigned int maxQuadrants, unsigned int totalNumQuadrants, unsigned int numLeafQuadrants
-#ifdef _DEBUG
+#ifdef COLLECT_STATISTICS
 	, unsigned long numCollisionChecks
 	, unsigned int maxEdgesPerQuadrantInUse
 	, unsigned int maxResultsPerQueryInUse
@@ -91,7 +115,7 @@ GLOBAL_CODE void updateNonPointerFields(QuadTree* quadtree, int numQuadrantEdges
 	quadtree->maxQuadrants = maxQuadrants;
 	quadtree->totalNumQuadrants = totalNumQuadrants;
 	quadtree->numLeafQuadrants = numLeafQuadrants;
-#ifdef _DEBUG
+#ifdef COLLECT_STATISTICS
 	quadtree->numCollisionChecks = numCollisionChecks;
 	quadtree->maxEdgesPerQuadrantInUse = maxEdgesPerQuadrantInUse;
 	quadtree->maxResultsPerQueryInUse = maxResultsPerQueryInUse;
@@ -99,129 +123,110 @@ GLOBAL_CODE void updateNonPointerFields(QuadTree* quadtree, int numQuadrantEdges
 }
 
 //////////////////////////////////////////////////////////////////////////
-HOST_AND_DEVICE_CODE void initializeQuadrant(QuadTree* quadtree, const Box2D& quadrantBounds, unsigned int depth, unsigned int index, unsigned int offset, unsigned int levelWidth)
+DEVICE_CODE void insert(QuadTree* quadtree, int edgeIndex, const Line2D& edgeLine)
 {
-	unsigned int i = offset + index;
+	unsigned int index, offset, levelWidth;
 
-	// FIXME: checking boundaries
-	if (i >= quadtree->maxQuadrants)
+	SimpleQuadTreeStack stack;
+
+	stack.push(0, 0, 1);
+
+	while (stack.notEmpty())
 	{
-		THROW_EXCEPTION("max. quadrants overflow");
-	}
+		stack.pop(index, offset, levelWidth);
 
-	Quadrant* quadrant = &quadtree->quadrants[i];
+		Quadrant* quadrant = &quadtree->quadrants[index + offset];
 
-	quadrant->depth = depth;
-	quadrant->bounds = quadrantBounds;
-
-	if (depth == quadtree->maxDepth - 1) // leaf
-	{
-		int quadrantEdgesIndex = ATOMIC_ADD(quadtree->numQuadrantEdges, int, 1);
-		QuadrantEdges* quadrantEdges = &quadtree->quadrantsEdges[quadrantEdgesIndex];
-		quadrant->edges = quadrantEdgesIndex;
-		return;
-	}
-
-	unsigned int baseIndex = (index * 4);
-	unsigned int newOffset = offset + levelWidth;
-	unsigned int newLevelWidth = levelWidth * 4;
-	unsigned int newDepth = depth + 1;
-	vml_vec2 subQuadrantSize = quadrantBounds.getExtents() / 2.0f;
-
-	for (unsigned int y = 0, i = 0; y < 2; y++)
-	{
-		vml_vec2 quadrantBoundsMin = quadrantBounds.getMin();
-		float subQuadrantY = quadrantBoundsMin.y + ((float)y * subQuadrantSize.y);
-
-		for (unsigned int x = 0; x < 2; x++, i++)
+		if (quadrant->bounds.isIntersected(edgeLine))
 		{
-			initializeQuadrant(quadtree, Box2D(quadrantBoundsMin.x + ((float)x * subQuadrantSize.x), subQuadrantY, subQuadrantSize.x, subQuadrantSize.y), newDepth, baseIndex + i, newOffset, newLevelWidth);
+			if (quadrant->depth == quadtree->maxDepth - 1)
+			{
+				// FIXME: checking invariants
+				if (quadrant->edges == -1)
+				{
+					THROW_EXCEPTION("quadrant.edges == -1");
+				}
+
+				QuadrantEdges* quadrantEdges = &quadtree->quadrantsEdges[quadrant->edges];
+
+				// FIXME: checking boundaries
+				if (quadrantEdges->lastEdgeIndex >= MAX_EDGES_PER_QUADRANT)
+				{
+					THROW_EXCEPTION("max. edges per quadrant overflow");
+				}
+
+				unsigned int i = ATOMIC_ADD(quadrantEdges->lastEdgeIndex, unsigned int, 1);
+				quadrantEdges->edges[i] = edgeIndex;
+
+#ifdef COLLECT_STATISTICS
+				ATOMIC_MAX(quadtree->maxEdgesPerQuadrantInUse, unsigned int, quadrantEdges->lastEdgeIndex);
+#endif
+			}
+
+			else
+			{
+				unsigned int baseIndex = (index * 4);
+				unsigned int newOffset = offset + levelWidth;
+				unsigned int newLevelWidth = levelWidth * 4;
+
+				stack.push(baseIndex, newOffset, newLevelWidth);
+				stack.push(baseIndex + 1, newOffset, newLevelWidth);
+				stack.push(baseIndex + 2, newOffset, newLevelWidth);
+				stack.push(baseIndex + 3, newOffset, newLevelWidth);
+			}
 		}
+#ifdef COLLECT_STATISTICS
+	ATOMIC_ADD(quadtree->numCollisionChecks, unsigned int, 1);
+#endif
 	}
 }
 
 //////////////////////////////////////////////////////////////////////////
-DEVICE_CODE void insert(QuadTree* quadtree, int edgeIndex, const Line2D& edgeLine, unsigned int index = 0, unsigned int offset = 0, unsigned int levelWidth = 1)
+DEVICE_CODE void remove(QuadTree* quadtree, int edgeIndex, const Line2D& edgeLine)
 {
-	Quadrant* quadrant = &quadtree->quadrants[offset + index];
+	unsigned int index, offset, levelWidth;
 
-	if (quadrant->bounds.isIntersected(edgeLine))
+	SimpleQuadTreeStack stack;
+
+	stack.push(0, 0, 1);
+
+	while (stack.notEmpty())
 	{
-		if (quadrant->depth == quadtree->maxDepth - 1)
+		stack.pop(index, offset, levelWidth);
+
+		Quadrant* quadrant = &quadtree->quadrants[index + offset];
+
+		if (quadrant->bounds.isIntersected(edgeLine))
 		{
-			// FIXME: checking invariants
-			if (quadrant->edges == -1)
+			if (quadrant->depth == quadtree->maxDepth - 1)
 			{
-				THROW_EXCEPTION("quadrant.edges == -1");
+				// FIXME: checking invariants
+				if (quadrant->edges == -1)
+				{
+					THROW_EXCEPTION("quadrant.edges == -1");
+				}
+
+				QuadrantEdges* quadrantEdges = &quadtree->quadrantsEdges[quadrant->edges];
+				removeEdgeReferencesInQuadrant(quadrantEdges, edgeIndex);
 			}
 
-			QuadrantEdges* quadrantEdges = &quadtree->quadrantsEdges[quadrant->edges];
-
-			// FIXME: checking boundaries
-			if (quadrantEdges->lastEdgeIndex >= MAX_EDGES_PER_QUADRANT)
+			else
 			{
-				THROW_EXCEPTION("max. edges per quadrant overflow");
+				unsigned int baseIndex = (index * 4);
+				unsigned int newOffset = offset + levelWidth;
+				unsigned int newLevelWidth = levelWidth * 4;
+				
+				stack.push(baseIndex, newOffset, newLevelWidth);
+				stack.push(baseIndex + 1, newOffset, newLevelWidth);
+				stack.push(baseIndex + 2, newOffset, newLevelWidth);
+				stack.push(baseIndex + 3, newOffset, newLevelWidth);
 			}
+		}
 
-			quadrantEdges->edges[quadrantEdges->lastEdgeIndex++] = edgeIndex;
-
-#ifdef _DEBUG
-			// URGENT: protect from concurrent writes!!!
-			quadtree->maxEdgesPerQuadrantInUse = MathExtras::max(quadtree->maxEdgesPerQuadrantInUse, quadrantEdges->lastEdgeIndex);
+#ifdef COLLECT_STATISTICS
+		ATOMIC_ADD(quadtree->numCollisionChecks, unsigned int, 1);
 #endif
-		}
-
-		else
-		{
-			unsigned int baseIndex = (index * 4);
-			unsigned int newOffset = offset + levelWidth;
-			unsigned int newLevelWidth = levelWidth * 4;
-			insert(quadtree, edgeIndex, edgeLine, baseIndex, newOffset, newLevelWidth);
-			insert(quadtree, edgeIndex, edgeLine, baseIndex + 1, newOffset, newLevelWidth);
-			insert(quadtree, edgeIndex, edgeLine, baseIndex + 2, newOffset, newLevelWidth);
-			insert(quadtree, edgeIndex, edgeLine, baseIndex + 3, newOffset, newLevelWidth);
-		}
 	}
-
-#ifdef _DEBUG
-	ATOMIC_ADD(quadtree->numCollisionChecks, unsigned int, 1);
-#endif
-}
-
-//////////////////////////////////////////////////////////////////////////
-DEVICE_CODE void remove(QuadTree* quadtree, int edgeIndex, const Line2D& edgeLine, unsigned int index = 0, unsigned int offset = 0, unsigned int levelWidth = 1)
-{
-	Quadrant* quadrant = &quadtree->quadrants[offset + index];
-
-	if (quadrant->bounds.isIntersected(edgeLine))
-	{
-		if (quadrant->depth == quadtree->maxDepth - 1)
-		{
-			// FIXME: checking invariants
-			if (quadrant->edges == -1)
-			{
-				THROW_EXCEPTION("quadrant.edges == -1");
-			}
-
-			QuadrantEdges* quadrantEdges = &quadtree->quadrantsEdges[quadrant->edges];
-			removeEdgeReferencesInQuadrant(quadrantEdges, edgeIndex);
-		}
-
-		else
-		{
-			unsigned int baseIndex = (index * 4);
-			unsigned int newOffset = offset + levelWidth;
-			unsigned int newLevelWidth = levelWidth * 4;
-			insert(quadtree, edgeIndex, edgeLine, baseIndex, newOffset, newLevelWidth);
-			insert(quadtree, edgeIndex, edgeLine, baseIndex + 1, newOffset, newLevelWidth);
-			insert(quadtree, edgeIndex, edgeLine, baseIndex + 2, newOffset, newLevelWidth);
-			insert(quadtree, edgeIndex, edgeLine, baseIndex + 3, newOffset, newLevelWidth);
-		}
-	}
-
-#ifdef _DEBUG
-	ATOMIC_ADD(quadtree->numCollisionChecks, unsigned int, 1);
-#endif
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -268,74 +273,72 @@ DEVICE_CODE void removeEdgeReferencesInQuadrant(QuadrantEdges* quadrantEdges, in
 }
 
 //////////////////////////////////////////////////////////////////////////
-template<typename T>
-DEVICE_CODE void query(QuadTree* quadtree, const T& shape, QueryResults* queryResult, unsigned int offset = 0)
+DEVICE_CODE void query(QuadTree* quadtree, const Line2D& edgeLine, QueryResults* queryResults)
 {
-	queryResult->numResults = offset;
-	recursiveQuery(quadtree, shape, queryResult, 0, 0, 1);
-}
+	unsigned int index, offset, levelWidth;
 
-//////////////////////////////////////////////////////////////////////////
-template<typename T>
-DEVICE_CODE void recursiveQuery(QuadTree* quadtree, const T& shape, QueryResults* queryResults, unsigned int index, unsigned int offset, unsigned int levelWidth)
-{
-	int quadrantIndex = offset + index;
+	queryResults->numResults = 0;
 
-	// FIXME: checking invariants
-	if (quadrantIndex >= (int)quadtree->maxQuadrants)
+	SimpleQuadTreeStack stack;
+
+	stack.push(0, 0, 1);
+
+	while (stack.notEmpty())
 	{
-		THROW_EXCEPTION("quadrantIndex >= quadtree->maxQuadrants");
-	}
+		stack.pop(index, offset, levelWidth);
 
-	Quadrant* quadrant = &quadtree->quadrants[quadrantIndex];
+		int quadrantIndex = index + offset;
 
-	if (quadrant->bounds.intersects(shape))
-	{
-		if (quadrant->depth == quadtree->maxDepth - 1)
+		// FIXME: checking invariants
+		if (quadrantIndex >= (int)quadtree->maxQuadrants)
 		{
-			// FIXME: checking invariants
-			if (quadrant->edges == -1)
-			{
-				THROW_EXCEPTION("quadrant.edges == -1");
-			}
+			THROW_EXCEPTION("quadrantIndex >= quadtree->maxQuadrants");
+		}
 
-			QuadrantEdges* quadrantEdges = &quadtree->quadrantsEdges[quadrant->edges];
+		Quadrant* quadrant = &quadtree->quadrants[quadrantIndex];
 
-			for (unsigned int i = 0; i < quadrantEdges->lastEdgeIndex; i++)
+		if (quadrant->bounds.isIntersected(edgeLine))
+		{
+			if (quadrant->depth == quadtree->maxDepth - 1)
 			{
+				// FIXME: checking invariants
+				if (quadrant->edges == -1)
+				{
+					THROW_EXCEPTION("quadrant.edges == -1");
+				}
+
 				// FIXME: checking boundaries
 				if (queryResults->numResults >= MAX_RESULTS_PER_QUERY)
 				{
 					THROW_EXCEPTION("max. results per query overflow");
 				}
 
-				queryResults->results[queryResults->numResults++] = quadrantEdges->edges[i];
+				queryResults->results[queryResults->numResults++] = quadrant->edges;
+
+	#ifdef COLLECT_STATISTICS
+				ATOMIC_MAX(quadtree->maxResultsPerQueryInUse, unsigned int, queryResults->numResults);
+	#endif
 			}
 
-#ifdef _DEBUG
-			// URGENT: protect from concurrent writes!!!
-			quadtree->maxResultsPerQueryInUse = MathExtras::max(quadtree->maxResultsPerQueryInUse, queryResults->numResults);
+			else
+			{
+				unsigned int baseIndex = (index * 4);
+				unsigned int newOffset = offset + levelWidth;
+				unsigned int newLevelWidth = levelWidth * 4;
+				
+				stack.push(baseIndex, newOffset, newLevelWidth);
+				stack.push(baseIndex + 1, newOffset, newLevelWidth);
+				stack.push(baseIndex + 2, newOffset, newLevelWidth);
+				stack.push(baseIndex + 3, newOffset, newLevelWidth);
+			}
+		}
+#ifdef COLLECT_STATISTICS
+		ATOMIC_ADD(quadtree->numCollisionChecks, unsigned int, 1);
 #endif
-		}
-
-		else
-		{
-			unsigned int baseIndex = (index * 4);
-			unsigned int newOffset = offset + levelWidth;
-			unsigned int newLevelWidth = levelWidth * 4;
-			recursiveQuery(quadtree, shape, queryResults, baseIndex, newOffset, newLevelWidth);
-			recursiveQuery(quadtree, shape, queryResults, baseIndex + 1, newOffset, newLevelWidth);
-			recursiveQuery(quadtree, shape, queryResults, baseIndex + 2, newOffset, newLevelWidth);
-			recursiveQuery(quadtree, shape, queryResults, baseIndex + 3, newOffset, newLevelWidth);
-		}
 	}
-
-#ifdef _DEBUG
-	ATOMIC_ADD(quadtree->numCollisionChecks, unsigned int, 1);
-#endif
 }
 
-#ifdef _DEBUG
+#ifdef COLLECT_STATISTICS
 //////////////////////////////////////////////////////////////////////////
 HOST_CODE unsigned int getAllocatedMemory(QuadTree* quadtree)
 {

@@ -24,12 +24,6 @@ struct Line2D
 		return *this;
 	}
 
-	inline HOST_AND_DEVICE_CODE bool intersects(const Line2D& line) const
-	{
-		vml_vec2 intersection;
-		return intersects2(line, intersection);
-	}
-
 	inline HOST_AND_DEVICE_CODE bool onSegment(const vml_vec2& p, const vml_vec2& q, const vml_vec2& r) const
 	{
 		if (q.x <= MathExtras::max(p.x, r.x) && q.x >= MathExtras::min(p.x, r.x) &&
@@ -56,7 +50,7 @@ struct Line2D
 		return (value > 0) ? 1 : 2; // clock or counterclockwise
 	}
 
-	inline HOST_AND_DEVICE_CODE bool intersects2(const Line2D& line, vml_vec2& intersection) const
+	HOST_AND_DEVICE_CODE bool intersects(const Line2D& line, vml_vec2& intersection) const
 	{
 		vml_vec2 s1 = getStart(); vml_vec2 s2 = line.getStart();
 		vml_vec2 e1 = getEnd(); vml_vec2 e2 = line.getEnd();
@@ -73,7 +67,7 @@ struct Line2D
 			float determinant = (s1.x - e1.x) * (s2.y - e2.y) - (s1.y - e1.y) * (s2.x - e2.x);
 
 			// FIXME: checking invariants
-			 if (determinant == 0)
+			if (determinant == 0)
 			{
 				THROW_EXCEPTION("determinant == 0");
 			}
@@ -120,13 +114,7 @@ struct Line2D
 		return false;
 	}
 
-	inline HOST_AND_DEVICE_CODE bool intersects3(const Circle2D& circle) const
-	{
-		vml_vec2 i1, i2;
-		return intersects4(circle, i1, i2) > 0;
-	}
-
-	inline HOST_AND_DEVICE_CODE unsigned int intersects4(const Circle2D& circle, vml_vec2& intersection1, vml_vec2& intersection2) const
+	HOST_AND_DEVICE_CODE unsigned int intersects(const Circle2D& circle, vml_vec2& intersection1, vml_vec2& intersection2) const
 	{
 		// FIXME: circle == point case
 		if (MathExtras::isZero(circle.radius))

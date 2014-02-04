@@ -154,60 +154,26 @@ public:
 		{
 			Primitive& primitive = primitives[j];
 
-			switch (primitive.type)
+			for (unsigned int k = 0; k < primitive.numEdges; k++)
 			{
-			case MINIMAL_CYCLE:
-				for (unsigned int k = 0; k < primitive.numVertices; k++)
-				{
-					vml_vec2& v0 = primitive.vertices[k];
-					vml_vec2 v1;
-					if (k == primitive.numVertices - 1)
-					{
-						v1 = primitive.vertices[0];
-					}
-					else
-					{
-						v1 = primitive.vertices[k + 1];
-					}
+				Edge& edge = graph->edges[primitive.edges[k]];
 
-					vertices[lastVerticesIndex] = vml_vec4(v0.x, v0.y, 0.0f, 1.0f);
-					vertices[lastVerticesIndex + 1] = vml_vec4(v1.x, v1.y, 0.0f, 1.0f);
+				vml_vec2 v0 = graph->vertices[edge.source].getPosition();
+				vml_vec2 v1 = graph->vertices[edge.destination].getPosition();
 
-					colors[lastVerticesIndex] = cycleColor;
-					colors[lastVerticesIndex + 1] = cycleColor;
-
-					indices[lastIndicesIndex] = lastVerticesIndex;
-					indices[lastIndicesIndex + 1] = lastVerticesIndex + 1;
-
-					lastVerticesIndex += 2;
-					lastIndicesIndex += 2;
-				}
-				break;
-			case FILAMENT:
-				for (unsigned int k = 0; k < primitive.numVertices - 1; k++)
-				{
-					vml_vec2& v0 = primitive.vertices[k];
-					vml_vec2& v1 = primitive.vertices[k + 1];
-
-					vertices[lastVerticesIndex] = vml_vec4(v0.x, v0.y, 0.0f, 1.0f);
-					vertices[lastVerticesIndex + 1] = vml_vec4(v1.x, v1.y, 0.0f, 1.0f);
-
-					colors[lastVerticesIndex] = filamentColor;
-					colors[lastVerticesIndex + 1] = filamentColor;
-
-					indices[lastIndicesIndex] = lastVerticesIndex;
-					indices[lastIndicesIndex + 1] = lastVerticesIndex + 1;
-
-					lastVerticesIndex += 2;
-					lastIndicesIndex += 2;
-				}
-				break;
-			case ISOLATED_VERTEX:
-				vml_vec2& v0 = primitive.vertices[0];
 				vertices[lastVerticesIndex] = vml_vec4(v0.x, v0.y, 0.0f, 1.0f);
-				colors[lastVerticesIndex] = isolatedVertexColor;
-				indices[lastIndicesIndex++] = lastVerticesIndex++;
-				break;
+				vertices[lastVerticesIndex + 1] = vml_vec4(v1.x, v1.y, 0.0f, 1.0f);
+
+				vml_vec4 color = (primitive.type == MINIMAL_CYCLE) ? cycleColor : filamentColor;
+
+				colors[lastVerticesIndex] = color;
+				colors[lastVerticesIndex + 1] = color;
+
+				indices[lastIndicesIndex] = lastVerticesIndex;
+				indices[lastIndicesIndex + 1] = lastVerticesIndex + 1;
+
+				lastVerticesIndex += 2;
+				lastIndicesIndex += 2;
 			}
 		}
 

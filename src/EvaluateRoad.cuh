@@ -119,7 +119,7 @@ DEVICE_CODE void evaluateLocalContraints(Road<StreetRuleAttributes>& road, Conte
 		return;
 	}
 
-	vml_vec2 position = getPosition(context->graph, road.roadAttributes.source);
+	vml_vec2 position = context->graph->vertices[road.roadAttributes.source].getPosition();
 
 	// remove roads that cross world boundaries
 	if (position.x < 0 || position.x > (float)context->configuration->worldWidth ||
@@ -145,7 +145,14 @@ DEVICE_CODE void evaluateLocalContraints(Road<StreetRuleAttributes>& road, Conte
 //////////////////////////////////////////////////////////////////////////
 DEVICE_CODE void evaluateLocalContraints(Road<HighwayRuleAttributes>& road, Context* context)
 {
-	vml_vec2 position = getPosition(context->graph, road.roadAttributes.source);
+	// remove highways that have exceeded max highway branch depth
+	if (road.ruleAttributes.branchDepth > context->configuration->maxHighwayBranchDepth)
+	{
+		road.state = FAILED;
+		return;
+	}
+
+	vml_vec2 position = context->graph->vertices[road.roadAttributes.source].getPosition();
 
 	// remove roads that cross world boundaries
 	if (position.x < 0 || position.x > (float)context->configuration->worldWidth ||

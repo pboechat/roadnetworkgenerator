@@ -18,8 +18,8 @@ struct QuadTree
 	unsigned int totalNumQuadrants;
 	unsigned int numLeafQuadrants;
 	volatile int numQuadrantEdges;
-#ifdef _DEBUG
-	volatile unsigned long numCollisionChecks;
+#ifdef COLLECT_STATISTICS
+	volatile unsigned int numCollisionChecks;
 	volatile unsigned int maxEdgesPerQuadrantInUse;
 	volatile unsigned int maxResultsPerQueryInUse;
 #endif

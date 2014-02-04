@@ -113,7 +113,7 @@ HOST_AND_DEVICE_CODE void removeEdgeReferencesInVertices(BaseGraph* graph, int e
 }
 
 //////////////////////////////////////////////////////////////////////////
-HOST_AND_DEVICE_CODE void removeEdgeReferencesInVertices(BaseGraph* graph, Vertex& v0, Vertex& v1)
+HOST_AND_DEVICE_CODE int removeEdgeReferencesInVertices(BaseGraph* graph, Vertex& v0, Vertex& v1)
 {
 	int edgeIndex = findEdge(graph, v0, v1);
 	Edge& edge = graph->edges[edgeIndex];
@@ -126,10 +126,12 @@ HOST_AND_DEVICE_CODE void removeEdgeReferencesInVertices(BaseGraph* graph, Verte
 
 	removeOutEdge(sourceVertex, edgeIndex);
 	removeInEdge(destinationVertex, edgeIndex);
+
+	return edgeIndex;
 }
 
 //////////////////////////////////////////////////////////////////////////
-HOST_AND_DEVICE_CODE void removeEdgeReferencesInVertices(BaseGraph* graph, Vertex* v0, Vertex* v1)
+HOST_AND_DEVICE_CODE int removeEdgeReferencesInVertices(BaseGraph* graph, Vertex* v0, Vertex* v1)
 {
 	int edgeIndex = findEdge(graph, v0, v1);
 	Edge& edge = graph->edges[edgeIndex];
@@ -142,10 +144,12 @@ HOST_AND_DEVICE_CODE void removeEdgeReferencesInVertices(BaseGraph* graph, Verte
 
 	removeOutEdge(sourceVertex, edgeIndex);
 	removeInEdge(destinationVertex, edgeIndex);
+
+	return edgeIndex;
 }
 
 //////////////////////////////////////////////////////////////////////////
-HOST_AND_DEVICE_CODE void removeEdgeReferencesInVertices(BaseGraph* graph, int v0, int v1)
+HOST_AND_DEVICE_CODE int removeEdgeReferencesInVertices(BaseGraph* graph, int v0, int v1)
 {
 	int edgeIndex = findEdge(graph, v0, v1);
 	Edge& edge = graph->edges[edgeIndex];
@@ -158,6 +162,8 @@ HOST_AND_DEVICE_CODE void removeEdgeReferencesInVertices(BaseGraph* graph, int v
 
 	removeOutEdge(sourceVertex, edgeIndex);
 	removeInEdge(destinationVertex, edgeIndex);
+
+	return edgeIndex;
 }
 
 

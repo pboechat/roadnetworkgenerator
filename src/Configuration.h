@@ -19,18 +19,19 @@ struct Configuration
 	unsigned int worldHeight;
 	unsigned int maxVertices;
 	unsigned int maxEdges;
-	unsigned int maxQueryResults;
 	unsigned int maxQuadrants;
 	unsigned int highwayLength;
 	unsigned int minSamplingRayLength;
 	unsigned int maxSamplingRayLength;
 	unsigned int streetLength;
 	unsigned int maxStreetBranchDepth;
+	unsigned int maxHighwayBranchDepth;
 	unsigned int minHighwayBranchingDistance;
 	unsigned int streetBranchingDelay;
 	unsigned int maxHighwayDerivation;
 	unsigned int maxStreetDerivation;
 	unsigned int maxHighwayGoalDeviation; // degrees
+	unsigned int minSamplingWeight;
 	unsigned int goalDistanceThreshold;
 	int halfMaxHighwayGoalDeviation; // degrees
 	unsigned int maxObstacleDeviationAngle; // degrees

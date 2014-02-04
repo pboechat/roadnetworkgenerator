@@ -14,8 +14,9 @@ struct Edge
 	unsigned char attr2;
 	unsigned char attr3;
 	unsigned char attr4;
+	volatile int owner;
 
-	HOST_AND_DEVICE_CODE Edge() : attr1(0), attr2(0), attr3(0), attr4(0) {}
+	HOST_AND_DEVICE_CODE Edge() : attr1(0), attr2(0), attr3(0), attr4(0), owner(-1) {}
 	HOST_AND_DEVICE_CODE ~Edge() {}
 	
 	/*HOST_AND_DEVICE_CODE Edge& operator = (const Edge& other)

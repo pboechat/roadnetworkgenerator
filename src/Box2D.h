@@ -14,7 +14,7 @@ struct Box2D
 	vec2FieldDeclaration(Max, HOST_AND_DEVICE_CODE)
 
 	HOST_AND_DEVICE_CODE Box2D() {}
-	HOST_AND_DEVICE_CODE Box2D(const vml_vec2& min, const vml_vec2& max) { setMin(min); setMax(max); }
+	HOST_AND_DEVICE_CODE Box2D(const vml_vec2& min, const vml_vec2& max) { x_Min = min.x; y_Min = min.y; x_Max = max.x; y_Max = max.y; }
 	HOST_AND_DEVICE_CODE Box2D(float x, float y, float width, float height)
 	{
 		x_Min = x; y_Min = y;
@@ -67,8 +67,8 @@ struct Box2D
 
 	HOST_AND_DEVICE_CODE Box2D& operator = (const Box2D& other)
 	{
-		setMin(other.getMin());
-		setMax(other.getMax());
+		x_Min = other.x_Min; y_Min = other.y_Min;
+		x_Max = other.x_Max; y_Max = other.y_Max;
 		return *this;
 	}
 
@@ -78,7 +78,7 @@ struct Box2D
 		return size.x * size.y;
 	}
 
-	inline HOST_AND_DEVICE_CODE bool intersects(const Circle2D& circle) const
+	/*inline HOST_AND_DEVICE_CODE bool intersects(const Circle2D& circle) const
 	{
 		vml_vec2 a(x_Min, y_Max);
 		vml_vec2 b(x_Max, y_Max);
@@ -88,7 +88,9 @@ struct Box2D
 		Line2D BC(b, c);
 		Line2D CD(c, d);
 		Line2D DA(d, a);
-		return contains(circle.getCenter()) || AB.intersects3(circle) || BC.intersects3(circle) || CD.intersects3(circle) || DA.intersects3(circle);
+		vml_vec2 intersection1;
+		vml_vec2 intersection2;
+		return contains(circle.getCenter()) || AB.intersects(circle, intersection1, intersection2) || BC.intersects(circle, intersection1, intersection2) || CD.intersects(circle, intersection1, intersection2) || DA.intersects(circle, intersection1, intersection2);
 	}
 
 	inline HOST_AND_DEVICE_CODE bool intersects(const Box2D& aabb) const
@@ -99,7 +101,7 @@ struct Box2D
 		}
 
 		return true;
-	}
+	}*/
 
 	inline HOST_AND_DEVICE_CODE bool isIntersected(const Line2D& line) const
 	{
@@ -107,11 +109,45 @@ struct Box2D
 		vml_vec2 b(x_Max, y_Max);
 		vml_vec2 c(x_Max, y_Min);
 		vml_vec2 d(x_Min, y_Min);
+		
+		if (contains(line.getStart()))
+		{
+			return true;
+		}
+		
+		if (contains(line.getEnd()))
+		{
+			return true;
+		}
+		
+		
 		Line2D AB(a, b);
 		Line2D BC(b, c);
 		Line2D CD(c, d);
 		Line2D DA(d, a);
-		return contains(line.getStart()) || contains(line.getEnd()) || AB.intersects(line) || BC.intersects(line) || CD.intersects(line) || DA.intersects(line);
+		vml_vec2 intersection;
+
+		if (AB.intersects(line, intersection))
+		{
+			return true;
+		}
+		
+		if (BC.intersects(line, intersection))
+		{
+			return true;
+		}
+		
+		if (CD.intersects(line, intersection))
+		{
+			return true;
+		}
+		
+		if (DA.intersects(line, intersection))
+		{
+			return true;
+		}
+		
+		return false;
 	}
 
 };

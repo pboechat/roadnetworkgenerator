@@ -241,7 +241,8 @@ void extractFilament(BaseGraph* graph, SortedSet<int>& heap, Array<Primitive>& p
 		if (v0->numAdjacencies >= 3)
 		{
 			insert(primitive, v0->getPosition());
-			removeEdgeReferencesInVertices(graph, v0, v1);
+			int edgeIndex = removeEdgeReferencesInVertices(graph, v0, v1);
+			insert(primitive, edgeIndex);
 			v0 = v1;
 
 			if (v0->numAdjacencies == 1)
@@ -255,7 +256,8 @@ void extractFilament(BaseGraph* graph, SortedSet<int>& heap, Array<Primitive>& p
 			insert(primitive, v0->getPosition());
 			v1 = &graph->vertices[v0->adjacencies[0]];
 			heap.remove(v0->index);
-			removeEdgeReferencesInVertices(graph, v0, v1);
+			int edgeIndex = removeEdgeReferencesInVertices(graph, v0, v1);
+			insert(primitive, edgeIndex);
 			v0 = v1;
 		}
 
@@ -315,11 +317,12 @@ void extractPrimitive(BaseGraph* graph, SortedSet<int>& heap, Array<Primitive>& 
 
 		for (unsigned int i = 0; i < sequence.size(); i++)
 		{
-			graph->edges[sequence[i]].attr2 = 1; // is cycle edge
+			int edgeIndex = sequence[i];
+			graph->edges[edgeIndex].attr2 = 1; // is cycle edge
+			insert(primitive, edgeIndex);
 		}
 
 		insert(primitive, currentVertex->getPosition());
-
 		for (int i = (int)visited.size() - 1; i >= 0; i--)
 		{
 			insert(primitive, graph->vertices[visited[i]].getPosition());

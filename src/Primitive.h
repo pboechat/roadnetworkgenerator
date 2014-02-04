@@ -4,7 +4,6 @@
 #pragma once
 
 #include <Constants.h>
-#include <VectorMath.h>
 
 #include <exception>
 
@@ -20,12 +19,26 @@ enum PrimitiveType
 struct Primitive
 {
 	PrimitiveType type;
+	int edges[MAX_EDGES_PER_PRIMITIVE];
 	vml_vec2 vertices[MAX_VERTICES_PER_PRIMITIVE];
+	unsigned int numEdges;
 	unsigned int numVertices;
 
-	Primitive() : numVertices(0) {}
+	Primitive() : numEdges(0), numVertices(0) {}
 
 };
+
+//////////////////////////////////////////////////////////////////////////
+inline void insert(Primitive& primitive, int edgeIndex)
+{
+	// FIXME: checking boundaries
+	if (primitive.numEdges >= MAX_EDGES_PER_PRIMITIVE)
+	{
+		throw std::exception("max. number of primitive edges overflow");
+	}
+
+	primitive.edges[primitive.numEdges++] = edgeIndex;
+}
 
 //////////////////////////////////////////////////////////////////////////
 inline void insert(Primitive& primitive, const vml_vec2& vertex)

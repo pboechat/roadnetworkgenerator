@@ -20,6 +20,7 @@
 			asm("trap;")
 		#define ATOMIC_ADD(__variable, __type, __increment) atomicAdd((__type*)&__variable, (__type)__increment)
 		#define ATOMIC_EXCH(__variable, __type, __value) atomicExch((__type*)&__variable, (__type)__value)
+		#define ATOMIC_MAX(__variable, __type, __value) atomicMax((__type*)&__variable, (__type)__value)
 		#define THREADFENCE() __threadfence()
 	#else
 		#include <exception>
@@ -38,6 +39,13 @@
 			*variable = value;
 			return tmp;
 		}
+		template<typename T>
+		inline T atomicMaxMock(T* variable, T value)
+		{
+			T tmp = *variable;
+			*variable = (tmp < value) ? value : tmp;
+			return tmp;
+		}
 		#define THREAD_IDX_X 1
 		#define THROW_EXCEPTION(__message) \
 			{ \
@@ -46,7 +54,8 @@
 				throw std::exception(stringStream.str().c_str()); \
 			}
 		#define ATOMIC_ADD(__variable, __type, __increment) atomicAddMock((__type*)&__variable, (__type)__increment)
-		#define ATOMIC_EXCH(__variable, __type, __increment) atomicExchMock((__type*)&__variable, (__type)__increment)
+		#define ATOMIC_EXCH(__variable, __type, __value) atomicExchMock((__type*)&__variable, (__type)__value)
+		#define ATOMIC_MAX(__variable, __type, __value) atomicMaxMock((__type*)&__variable, (__type)__value)
 		#define THREADFENCE()
 	#endif
 #else
@@ -66,6 +75,13 @@ inline T atomicExchMock(T* variable, T value)
 	*variable = value;
 	return tmp;
 }
+template<typename T>
+inline T atomicMaxMock(T* variable, T value)
+{
+	T tmp = *variable;
+	*variable = (tmp < value) ? value : tmp;
+	return tmp;
+}
 #define HOST_CODE
 #define DEVICE_CODE
 #define GLOBAL_CODE
@@ -78,7 +94,8 @@ inline T atomicExchMock(T* variable, T value)
 		throw std::exception(stringStream.str().c_str()); \
 	}
 #define ATOMIC_ADD(__variable, __type, __increment) atomicAddMock((__type*)&__variable, (__type)__increment)
-#define ATOMIC_EXCH(__variable, __type, __increment) atomicExchMock((__type*)&__variable, (__type)__increment)
+#define ATOMIC_EXCH(__variable, __type, __value) atomicExchMock((__type*)&__variable, (__type)__value)
+#define ATOMIC_MAX(__variable, __type, __value) atomicMaxMock((__type*)&__variable, (__type)__value)
 #define THREADFENCE()
 #endif
 	
