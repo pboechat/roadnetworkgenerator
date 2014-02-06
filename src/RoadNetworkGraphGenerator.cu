@@ -20,6 +20,8 @@
 #include <VectorMath.h>
 #include <Context.cuh>
 #include <WorkQueue.cuh>
+#include <Timer.h>
+#include <GlobalVariables.cuh>
 
 #include <exception>
 #include <memory>
@@ -35,17 +37,29 @@
 		throw std::exception("#__variable: insufficient memory"); \
 	}
 
+#define CREATE_CPU_TIMER(x) Timer x
+#define START_CPU_TIMER(x) x.start()
+#define STOP_CPU_TIMER(x) x.end()
+#define GET_CPU_TIMER_ELAPSED_TIME(x, y) y = x.elapsedTime()
+#define DESTROY_CPU_TIMER(x)
+
 #ifdef USE_CUDA
 #include <cutil.h>
 #include <cutil_timer.h>
-#define NUM_BLOCKS 1
-#define NUM_THREADS 128
+#define NUM_BLOCKS 3
+#define NUM_THREADS 512
 #define SAFE_MALLOC_ON_DEVICE(__variable, __type, __amount) cudaCheckedCall(cudaMalloc((void**)&__variable, sizeof(__type) * __amount))
 #define SAFE_FREE_ON_DEVICE(__variable) cudaCheckedCall(cudaFree(__variable))
 #define MEMCPY_HOST_TO_DEVICE(__destination, __source, __size) cudaCheckedCall(cudaMemcpy(__destination, __source, __size, cudaMemcpyHostToDevice))
 #define MEMCPY_DEVICE_TO_DEVICE(__destination, __source, __size) cudaCheckedCall(cudaMemcpy(__destination, __source, __size, cudaMemcpyDeviceToDevice))
 #define MEMCPY_DEVICE_TO_HOST(__destination, __source, __size) cudaCheckedCall(cudaMemcpy(__destination, __source, __size, cudaMemcpyDeviceToHost))
 #define MEMSET_ON_DEVICE(__variable, __value, __size) cudaCheckedCall(cudaMemset(__variable, __value, __size))
+#define BIND_AS_TEXTURE2D(__deviceVariable, __texture, __width, __height) \
+	{ \
+		cudaChannelFormatDesc descriptor = cudaCreateChannelDesc<unsigned char>(); \
+		cudaCheckedCall(cudaBindTexture2D(0, __texture, __deviceVariable, descriptor, __width, __height, sizeof(unsigned char) * __width)); \
+	}
+#define UNBIND_TEXTURE2D(__texture) cudaCheckedCall(cudaUnbindTexture(__texture))
 #define INVOKE_GLOBAL_CODE(__function, __numBlocks, __numThreads) \
 	__function<<<__numBlocks, __numThreads>>>(); \
 	cudaCheckError()
@@ -85,13 +99,12 @@
 #define INVOKE_GLOBAL_CODE12(__function, __numBlocks, __numThreads, __arg1, __arg2, __arg3, __arg4, __arg5, __arg6, __arg7, __arg8, __arg9, __arg10, __arg11, __arg12) \
 	__function<<<__numBlocks, __numThreads>>>(__arg1, __arg2, __arg3, __arg4, __arg5, __arg6, __arg7, __arg8, __arg9, __arg10, __arg11, __arg12); \
 	cudaCheckError()
-#define CREATE_TIMER(x) createTimer(x)
-#define START_TIMER(x) startTimer(x)
-#define STOP_TIMER(x) stopTimer(x)
-#define GET_TIMER_ELAPSED_TIME(x, y) getTimerElapsedTime(x, y)
-#define DESTROY_TIMER(x) destroyTimer(x)
+#define CREATE_GPU_TIMER(x) createTimer(x)
+#define START_GPU_TIMER(x) startTimer(x)
+#define STOP_GPU_TIMER(x) stopTimer(x)
+#define GET_GPU_TIMER_ELAPSED_TIME(x, y) getTimerElapsedTime(x, y)
+#define DESTROY_GPU_TIMER(x) destroyTimer(x)
 #else
-#include <Timer.h>
 #define SAFE_MALLOC_ON_DEVICE(__variable, __type, __amount) \
 	__variable = 0; \
 	__variable = (__type*)malloc(sizeof(__type) * __amount); \
@@ -104,6 +117,11 @@
 #define MEMCPY_DEVICE_TO_DEVICE(__destination, __source, __size) memcpy(__destination, __source, __size)
 #define MEMCPY_DEVICE_TO_HOST(__destination, __source, __size) memcpy(__destination, __source, __size)
 #define MEMSET_ON_DEVICE(__variable, __value, __size) memset(__variable, __value, __size)
+#define BIND_AS_TEXTURE2D(__deviceVariable, __texture, __width, __height) \
+	__texture.width = __width; \
+	__texture.height = __height; \
+	__texture.data = __deviceVariable
+#define UNBIND_TEXTURE2D(__texture)
 #define INVOKE_GLOBAL_CODE(__function, __numBlocks, __numThreads) __function()
 #define INVOKE_GLOBAL_CODE1(__function, __numBlocks, __numThreads, __arg1) __function(__arg1)
 #define INVOKE_GLOBAL_CODE2(__function, __numBlocks, __numThreads, __arg1, __arg2) __function(__arg1, __arg2)
@@ -117,11 +135,11 @@
 #define INVOKE_GLOBAL_CODE10(__function, __numBlocks, __numThreads, __arg1, __arg2, __arg3, __arg4, __arg5, __arg6, __arg7, __arg8, __arg9, __arg10) __function(__arg1, __arg2, __arg3, __arg4, __arg5, __arg6, __arg7, __arg8, __arg9, __arg10)
 #define INVOKE_GLOBAL_CODE11(__function, __numBlocks, __numThreads, __arg1, __arg2, __arg3, __arg4, __arg5, __arg6, __arg7, __arg8, __arg9, __arg10, __arg11) __function(__arg1, __arg2, __arg3, __arg4, __arg5, __arg6, __arg7, __arg8, __arg9, __arg10, __arg11)
 #define INVOKE_GLOBAL_CODE12(__function, __numBlocks, __numThreads, __arg1, __arg2, __arg3, __arg4, __arg5, __arg6, __arg7, __arg8, __arg9, __arg10, __arg11, __arg12) __function(__arg1, __arg2, __arg3, __arg4, __arg5, __arg6, __arg7, __arg8, __arg9, __arg10, __arg11, __arg12)
-#define CREATE_TIMER(x) Timer x
-#define START_TIMER(x) x.start()
-#define STOP_TIMER(x) x.end()
-#define GET_TIMER_ELAPSED_TIME(x, y) y = x.elapsedTime()
-#define DESTROY_TIMER(x)
+#define CREATE_GPU_TIMER(x) CREATE_CPU_TIMER(x)
+#define START_GPU_TIMER(x) START_CPU_TIMER(x)
+#define STOP_GPU_TIMER(x) STOP_CPU_TIMER(x)
+#define GET_GPU_TIMER_ELAPSED_TIME(x, y) GET_CPU_TIMER_ELAPSED_TIME(x, y)
+#define DESTROY_GPU_TIMER(x) DESTROY_CPU_TIMER(x)
 #endif
 
 //////////////////////////////////////////////////////////////////////////
@@ -129,61 +147,71 @@
 //////////////////////////////////////////////////////////////////////////
 
 //////////////////////////////////////////////////////////////////////////
-DEVICE_CODE Graph* g_dGraph;
+DEVICE_VARIABLE Graph* g_dGraph;
 //////////////////////////////////////////////////////////////////////////
-DEVICE_CODE Configuration* g_dConfiguration;
+DEVICE_VARIABLE Configuration* g_dConfiguration;
 //////////////////////////////////////////////////////////////////////////
-DEVICE_CODE ImageMap* g_dPopulationDensityMap;
+DEVICE_VARIABLE ImageMap* g_dPopulationDensityMap;
 //////////////////////////////////////////////////////////////////////////
-DEVICE_CODE ImageMap* g_dWaterBodiesMap;
+DEVICE_VARIABLE ImageMap* g_dWaterBodiesMap;
 //////////////////////////////////////////////////////////////////////////
-DEVICE_CODE ImageMap* g_dBlockadesMap;
+DEVICE_VARIABLE ImageMap* g_dBlockadesMap;
 //////////////////////////////////////////////////////////////////////////
-DEVICE_CODE ImageMap* g_dNaturalPatternMap;
+DEVICE_VARIABLE ImageMap* g_dNaturalPatternMap;
 //////////////////////////////////////////////////////////////////////////
-DEVICE_CODE ImageMap* g_dRadialPatternMap;
+DEVICE_VARIABLE ImageMap* g_dRadialPatternMap;
 //////////////////////////////////////////////////////////////////////////
-DEVICE_CODE ImageMap* g_dRasterPatternMap;
+DEVICE_VARIABLE ImageMap* g_dRasterPatternMap;
 //////////////////////////////////////////////////////////////////////////
-DEVICE_CODE Context* g_dContext;
+DEVICE_VARIABLE Context* g_dContext;
 //////////////////////////////////////////////////////////////////////////
-DEVICE_CODE WorkQueue* g_dWorkQueues1;
+DEVICE_VARIABLE WorkQueue* g_dWorkQueues1;
 //////////////////////////////////////////////////////////////////////////
-DEVICE_CODE WorkQueue* g_dWorkQueues2;
+DEVICE_VARIABLE WorkQueue* g_dWorkQueues2;
 //////////////////////////////////////////////////////////////////////////
-DEVICE_CODE Vertex* g_dVertices;
+DEVICE_VARIABLE Vertex* g_dVertices;
 //////////////////////////////////////////////////////////////////////////
-DEVICE_CODE Edge* g_dEdges;
+DEVICE_VARIABLE Edge* g_dEdges;
 #ifdef USE_QUADTREE
 //////////////////////////////////////////////////////////////////////////
-DEVICE_CODE QuadTree* g_dQuadtree;
+DEVICE_VARIABLE QuadTree* g_dQuadtree;
 //////////////////////////////////////////////////////////////////////////
-DEVICE_CODE Quadrant* g_dQuadrants;
+DEVICE_VARIABLE Quadrant* g_dQuadrants;
 //////////////////////////////////////////////////////////////////////////
-DEVICE_CODE QuadrantEdges* g_dQuadrantsEdges;
+DEVICE_VARIABLE QuadrantEdges* g_dQuadrantsEdges;
 #endif
 //////////////////////////////////////////////////////////////////////////
-DEVICE_CODE unsigned char* g_dPopulationDensityMapData;
+DEVICE_VARIABLE unsigned char* g_dPopulationDensityMapData;
 //////////////////////////////////////////////////////////////////////////
-DEVICE_CODE unsigned char* g_dWaterBodiesMapData;
+DEVICE_VARIABLE unsigned char* g_dWaterBodiesMapData;
 //////////////////////////////////////////////////////////////////////////
-DEVICE_CODE unsigned char* g_dBlockadesMapData;
+DEVICE_VARIABLE unsigned char* g_dBlockadesMapData;
 //////////////////////////////////////////////////////////////////////////
-DEVICE_CODE unsigned char* g_dNaturalPatternMapData;
+DEVICE_VARIABLE unsigned char* g_dNaturalPatternMapData;
 //////////////////////////////////////////////////////////////////////////
-DEVICE_CODE unsigned char* g_dRadialPatternMapData;
+DEVICE_VARIABLE unsigned char* g_dRadialPatternMapData;
 //////////////////////////////////////////////////////////////////////////
-DEVICE_CODE unsigned char* g_dRasterPatternMapData;
+DEVICE_VARIABLE unsigned char* g_dRasterPatternMapData;
 //////////////////////////////////////////////////////////////////////////
-DEVICE_CODE Primitive* g_dPrimitives;
+DEVICE_VARIABLE Primitive* g_dPrimitives;
 
 //////////////////////////////////////////////////////////////////////////
-GLOBAL_CODE void initializeImageMapOnDevice(ImageMap* imageMap, unsigned int width, unsigned int height, unsigned char* data)
-{
-	imageMap->setWidth(width);
-	imageMap->setHeight(height);
-	imageMap->setData(data);
-}
+#define allocateAndInitializeImageMap(__name1, __name2) \
+	if (__name1##Map.data != 0) \
+	{ \
+		unsigned int mapSize = __name1##Map.width * __name1##Map.height; \
+		SAFE_MALLOC_ON_DEVICE(g_d##__name2##MapData, unsigned char, mapSize); \
+		BIND_AS_TEXTURE2D(g_d##__name2##MapData, __name1##Texture, __name1##Map.width, __name1##Map.height); \
+		MEMCPY_HOST_TO_DEVICE(g_d##__name2##MapData, __name1##Map.data, sizeof(unsigned char) * mapSize); \
+		SAFE_MALLOC_ON_DEVICE(g_d##__name2##Map, ImageMap, 1); \
+	}
+
+#define deallocateImageMap(__name1, __name2) \
+	if (__name1##Map.data != 0) \
+	{ \
+		UNBIND_TEXTURE2D(__name1##Texture); \
+		SAFE_FREE_ON_DEVICE(g_d##__name2##MapData); \
+	}
 
 //////////////////////////////////////////////////////////////////////////
 GLOBAL_CODE void initializeContext(Context* context,
@@ -207,17 +235,6 @@ GLOBAL_CODE void initializeContext(Context* context,
 	context->rasterPatternMap = rasterPatternMap;
 	context->primitives = primitives;
 }
-
-//////////////////////////////////////////////////////////////////////////
-#define allocateAndInitializeImageMap(__name1, __name2) \
-	if (__name1##Map.hasData()) \
-	{ \
-		unsigned int mapSize = __name1##Map.getWidth() * __name1##Map.getHeight(); \
-		SAFE_MALLOC_ON_DEVICE(g_d##__name2##MapData, unsigned char, mapSize); \
-		MEMCPY_HOST_TO_DEVICE(g_d##__name2##MapData, __name1##Map.getData(), sizeof(unsigned char) * mapSize); \
-		SAFE_MALLOC_ON_DEVICE(g_d##__name2##Map, ImageMap, 1); \
-		INVOKE_GLOBAL_CODE4(initializeImageMapOnDevice, 1, 1, g_d##__name2##Map, __name1##Map.getWidth(), __name1##Map.getHeight(), g_d##__name2##MapData); \
-	}
 
 //////////////////////////////////////////////////////////////////////////
 void RoadNetworkGraphGenerator::notifyObservers(Graph* graph, unsigned int numPrimitives, Primitive* primitives)
@@ -280,8 +297,10 @@ void RoadNetworkGraphGenerator::copyGraphToHost(Graph* graph)
 //////////////////////////////////////////////////////////////////////////
 void RoadNetworkGraphGenerator::execute()
 {
-	CREATE_TIMER(PrimaryRoadNetworkExpansion);
-	CREATE_TIMER(SecondaryRoadNetworkExpansion);
+	CREATE_GPU_TIMER(PrimaryRoadNetworkExpansion);
+	CREATE_GPU_TIMER(SecondaryRoadNetworkExpansion);
+	CREATE_GPU_TIMER(GraphMemoryCopy_GpuToCpu);
+	CREATE_CPU_TIMER(PrimitivesExtraction);
 
 	allocateAndInitializeImageMap(populationDensity, PopulationDensity);
 	allocateAndInitializeImageMap(waterBodies, WaterBodies);
@@ -386,17 +405,22 @@ void RoadNetworkGraphGenerator::execute()
 		g_dRasterPatternMap,
 		g_dPrimitives);
 
-	START_TIMER(PrimaryRoadNetworkExpansion);
+	START_GPU_TIMER(PrimaryRoadNetworkExpansion);
 
-	expand(configuration.maxHighwayDerivation);
+	// expand primary road network
+	expand(configuration.maxHighwayDerivation, 0, 3);
 
-	STOP_TIMER(PrimaryRoadNetworkExpansion);
+	STOP_GPU_TIMER(PrimaryRoadNetworkExpansion);
 
 	float elapsedTime;
-	GET_TIMER_ELAPSED_TIME(PrimaryRoadNetworkExpansion, elapsedTime);
+	GET_GPU_TIMER_ELAPSED_TIME(PrimaryRoadNetworkExpansion, elapsedTime);
 	std::cout << "Primary Road Network Expansion: " << elapsedTime << " (ms)" << std::endl;
 
+	START_GPU_TIMER(GraphMemoryCopy_GpuToCpu);
+
 	copyGraphToHost(graph);
+
+	STOP_GPU_TIMER(GraphMemoryCopy_GpuToCpu);
 
 	BaseGraph* graphCopy;
 	Vertex* verticesCopy;
@@ -420,9 +444,18 @@ void RoadNetworkGraphGenerator::execute()
 
 	memset(primitives, 0, sizeof(Primitive) * configuration.maxPrimitives);
 
-	// extract the allotments from graph copy
+	// extract the city cells
 	allocateExtractionBuffers(configuration.maxVertices, configuration.maxEdgeSequences, configuration.maxVisitedVertices);
+
+	START_CPU_TIMER(PrimitivesExtraction);
+
 	unsigned int numPrimitives = extractPrimitives(graphCopy, primitives, configuration.maxPrimitives);
+
+	STOP_CPU_TIMER(PrimitivesExtraction);
+
+	GET_CPU_TIMER_ELAPSED_TIME(PrimitivesExtraction, elapsedTime);
+	std::cout << "Primitives Extraction: " << elapsedTime << " (ms)" << std::endl;
+
 	freeExtractionBuffers();
 
 	free(graphCopy);
@@ -450,6 +483,19 @@ void RoadNetworkGraphGenerator::execute()
 
 		maxPrimitiveSize = MathExtras::max(maxPrimitiveSize, primitive.numEdges);
 
+		for (unsigned int j = 0; j < primitive.numEdges; j++)
+		{
+			Edge& edge = graph->edges[primitive.edges[j]];
+
+			// FIXME: checking invariants
+			if (edge.numPrimitives > 2)
+			{
+				THROW_EXCEPTION("edge.numPrimitives > 2");
+			}
+
+			edge.primitives[edge.numPrimitives++] = i;
+		}
+
 		vml_vec2 centroid;
 		float area;
 		MathExtras::getPolygonInfo(primitive.vertices, primitive.numVertices, area, centroid);
@@ -474,16 +520,24 @@ void RoadNetworkGraphGenerator::execute()
 	MEMCPY_HOST_TO_DEVICE(g_dWorkQueues1, workQueues1, sizeof(WorkQueue) * NUM_PROCEDURES);
 	MEMCPY_HOST_TO_DEVICE(g_dWorkQueues2, workQueues2, sizeof(WorkQueue) * NUM_PROCEDURES);
 
-	START_TIMER(SecondaryRoadNetworkExpansion);
+	START_GPU_TIMER(SecondaryRoadNetworkExpansion);
 
-	expand(configuration.maxStreetDerivation);
+	// expand secondary road network
+	expand(configuration.maxStreetDerivation, 3, 3);
 
-	STOP_TIMER(SecondaryRoadNetworkExpansion);
+	STOP_GPU_TIMER(SecondaryRoadNetworkExpansion);
 
-	GET_TIMER_ELAPSED_TIME(SecondaryRoadNetworkExpansion, elapsedTime);
+	GET_GPU_TIMER_ELAPSED_TIME(SecondaryRoadNetworkExpansion, elapsedTime);
 	std::cout << "Secondary Road Network Expansion: " << elapsedTime << " (ms)" << std::endl;
 
+	START_GPU_TIMER(GraphMemoryCopy_GpuToCpu);
+
 	copyGraphToHost(graph);
+
+	STOP_GPU_TIMER(GraphMemoryCopy_GpuToCpu);
+
+	GET_GPU_TIMER_ELAPSED_TIME(GraphMemoryCopy_GpuToCpu, elapsedTime);
+	std::cout << "Graph Memory Copy (Gpu -> Cpu): " << elapsedTime << " (ms)" << std::endl;
 
 	MEMCPY_DEVICE_TO_HOST(primitives, g_dPrimitives, sizeof(Primitive) * configuration.maxPrimitives);
 
@@ -499,12 +553,12 @@ void RoadNetworkGraphGenerator::execute()
 	SAFE_FREE_ON_DEVICE(g_dNaturalPatternMap);
 	SAFE_FREE_ON_DEVICE(g_dRadialPatternMap);
 	SAFE_FREE_ON_DEVICE(g_dRasterPatternMap);
-	SAFE_FREE_ON_DEVICE(g_dPopulationDensityMapData);
-	SAFE_FREE_ON_DEVICE(g_dWaterBodiesMapData);
-	SAFE_FREE_ON_DEVICE(g_dBlockadesMapData);
-	SAFE_FREE_ON_DEVICE(g_dNaturalPatternMapData);
-	SAFE_FREE_ON_DEVICE(g_dRadialPatternMapData);
-	SAFE_FREE_ON_DEVICE(g_dRasterPatternMapData);
+	deallocateImageMap(populationDensity, PopulationDensity);
+	deallocateImageMap(waterBodies, WaterBodies);
+	deallocateImageMap(blockades, Blockades);
+	deallocateImageMap(naturalPattern, NaturalPattern);
+	deallocateImageMap(radialPattern, RadialPattern);
+	deallocateImageMap(rasterPattern, RasterPattern);
 	SAFE_FREE_ON_DEVICE(g_dPrimitives);
 
 #ifdef USE_QUADTREE
@@ -528,8 +582,10 @@ void RoadNetworkGraphGenerator::execute()
 	free(vertices);
 	free(edges);
 
-	DESTROY_TIMER(PrimaryRoadNetworkExpansion);
-	DESTROY_TIMER(SecondaryRoadNetworkExpansion);
+	DESTROY_GPU_TIMER(PrimaryRoadNetworkExpansion);
+	DESTROY_GPU_TIMER(SecondaryRoadNetworkExpansion);
+	DESTROY_GPU_TIMER(GraphMemoryCopy_GpuToCpu);
+	DESTROY_CPU_TIMER(PrimitivesExtraction);
 }
 
 #ifdef USE_CUDA
@@ -537,165 +593,183 @@ void RoadNetworkGraphGenerator::execute()
 __device__ volatile int g_dCounterLevel1;
 //////////////////////////////////////////////////////////////////////////
 __device__ volatile int g_dCounterLevel2;
+//////////////////////////////////////////////////////////////////////////
+__device__ volatile int g_dCounterLevel3;
 
 //////////////////////////////////////////////////////////////////////////
 __global__ void initializeKernel()
 {
-	g_dCounterLevel1 = 0;
-	g_dCounterLevel2 = 0;
+	g_dCounterLevel1 = g_dCounterLevel2 = g_dCounterLevel3 = 0;
 }
 
 //////////////////////////////////////////////////////////////////////////
-__global__ void gpuKernel(unsigned int numDerivations, WorkQueue* workQueues1, WorkQueue* workQueues2, Context* context);
+__global__ void gpuKernel(unsigned int numDerivations, WorkQueue* workQueues1, WorkQueue* workQueues2, unsigned int startingQueue, unsigned int numQueues, Context* context);
 
 //////////////////////////////////////////////////////////////////////////
-void RoadNetworkGraphGenerator::expand(unsigned int numDerivations)
+void RoadNetworkGraphGenerator::expand(unsigned int numDerivations, unsigned int startingQueue, unsigned int numQueues)
 {
 	initializeKernel<<<1, 1>>>();
 	cudaCheckError();
-	gpuKernel<<<NUM_BLOCKS, NUM_THREADS>>>(numDerivations, g_dWorkQueues1, g_dWorkQueues2, g_dContext);
-	cudaDeviceSynchronize();
+	gpuKernel<<<NUM_BLOCKS, NUM_THREADS>>>(numDerivations, g_dWorkQueues1, g_dWorkQueues2, startingQueue, numQueues, g_dContext);
 	cudaCheckError();
 }
 
 //////////////////////////////////////////////////////////////////////////
-__global__ void gpuKernel(unsigned int numDerivations, WorkQueue* workQueues1, WorkQueue* workQueues2, Context* context)
+__global__ void gpuKernel(unsigned int numDerivations, WorkQueue* workQueues1, WorkQueue* workQueues2, unsigned int startingQueue, unsigned int numQueues, Context* context)
 {
 	__shared__ WorkQueue* frontQueues;
 	__shared__ WorkQueue* backQueues;
-	__shared__ volatile unsigned int derivation;
 	__shared__ unsigned int reservedPops;
 	__shared__ unsigned int head;
+	__shared__ volatile unsigned int derivation;
+	__shared__ volatile bool start;
 	__shared__ volatile unsigned int run;
 	__shared__ unsigned int currentQueue;
 
 	if (threadIdx.x == 0)
 	{
-		derivation = 0;
 		frontQueues = workQueues1;
 		backQueues = workQueues2;
+		start = true;
+		currentQueue = startingQueue + (blockIdx.x % numQueues);
 	}
 
 	__syncthreads();
 
 	while (derivation < numDerivations)
 	{
-		if (threadIdx.x == 0)
+		if (start)
 		{
-			atomicAdd((int*)&g_dCounterLevel1, 1);
-			atomicAdd((int*)&g_dCounterLevel2, 1);
-			run = 1;
-			currentQueue = (blockIdx.x % NUM_PROCEDURES);
-		}
+			if (threadIdx.x == 0)
+			{
+				atomicAdd((int*)&g_dCounterLevel1, 1);
+				atomicAdd((int*)&g_dCounterLevel2, 1);
+				atomicAdd((int*)&g_dCounterLevel3, 1);
+				run = 1;
+			}
 		
-		__syncthreads();
+			__syncthreads();
 
-		while (run > 0)
-		{
-			// block optimization
-			if (threadIdx.x == 0)
+			while (run > 0)
 			{
-				frontQueues[currentQueue].reservePops(blockDim.x, &head, &reservedPops);
-
-				unsigned int queueShifts = 0;
-				// round-robin through all the queues until pops can be reserved
-				while (reservedPops == 0 && ++queueShifts < NUM_PROCEDURES)
+				// block optimization
+				if (threadIdx.x == 0)
 				{
-					currentQueue = (currentQueue + 1) % NUM_PROCEDURES;
 					frontQueues[currentQueue].reservePops(blockDim.x, &head, &reservedPops);
+
+					/*unsigned int queueShifts = 0;
+					// round-robin through all the queues until pops can be reserved
+					while (reservedPops == 0 && ++queueShifts < numQueues)
+					{
+						currentQueue = startingQueue + ((currentQueue + 1) % numQueues);
+						frontQueues[currentQueue].reservePops(blockDim.x, &head, &reservedPops);
+					}*/
 				}
+
+				__syncthreads();
+
+				if (threadIdx.x < reservedPops)
+				{
+					switch (currentQueue)
+					{
+					case EVALUATE_HIGHWAY_BRANCH:
+						{
+							HighwayBranch highwayBranch;
+							frontQueues[EVALUATE_HIGHWAY_BRANCH].popReserved(head + threadIdx.x, highwayBranch);
+							EvaluateHighwayBranch::execute(highwayBranch, context, backQueues);
+						}
+						break;
+					case EVALUATE_HIGHWAY:
+						{
+							Highway highway;
+							frontQueues[EVALUATE_HIGHWAY].popReserved(head + threadIdx.x, highway);
+							EvaluateHighway::execute(highway, context, backQueues);
+						}
+						break;
+					case INSTANTIATE_HIGHWAY:
+						{
+							Highway highway;
+							frontQueues[INSTANTIATE_HIGHWAY].popReserved(head + threadIdx.x, highway);
+							InstantiateHighway::execute(highway, context, backQueues);
+						}
+						break;
+					case EVALUATE_STREET_BRANCH:
+						{
+							StreetBranch streetBranch;
+							frontQueues[EVALUATE_STREET_BRANCH].popReserved(head + threadIdx.x, streetBranch);
+							EvaluateStreetBranch::execute(streetBranch, context, backQueues);
+						}
+						break;
+					case EVALUATE_STREET:
+						{
+							Street street;
+							frontQueues[EVALUATE_STREET].popReserved(head + threadIdx.x, street);
+							EvaluateStreet::execute(street, context, backQueues);
+						}
+						break;
+					case INSTANTIATE_STREET:
+						{
+							Street street;
+							frontQueues[INSTANTIATE_STREET].popReserved(head + threadIdx.x, street);
+							InstantiateStreet::execute(street, context, backQueues);
+						}
+						break;
+					default:
+						THROW_EXCEPTION("invalid queue index");
+					}
+				}
+
+				if (threadIdx.x == 0)
+				{
+					if (reservedPops == 0 && run == 1)
+					{
+						atomicSub((int*)&g_dCounterLevel2, 1), run = 2;
+					}
+					else if (reservedPops == 0 && run == 2 && g_dCounterLevel2 == 0)
+					{
+						atomicSub((int*)&g_dCounterLevel3, 1), run = 3;
+					}
+					else if (reservedPops == 0 && run == 3 && g_dCounterLevel3 == 0)
+					{
+						run = 0;
+					}
+					else if (reservedPops != 0 && run != 1)
+					{
+						if (run == 2)
+						{
+							atomicAdd((int*)&g_dCounterLevel2, 1), run = 1;
+						}
+
+						if (run == 3)
+						{
+							atomicAdd((int*)&g_dCounterLevel2, 1), atomicAdd((int*)&g_dCounterLevel3, 1), run = 1;
+						}
+					}
+				}
+
+				__syncthreads();
 			}
-
-			__syncthreads();
-
-			if (threadIdx.x < reservedPops)
-			{
-				switch (currentQueue)
-				{
-				case EVALUATE_HIGHWAY_BRANCH:
-					{
-						HighwayBranch highwayBranch;
-						frontQueues[EVALUATE_HIGHWAY_BRANCH].popReserved(head + threadIdx.x, highwayBranch);
-						EvaluateHighwayBranch::execute(highwayBranch, context, backQueues);
-					}
-					break;
-				case EVALUATE_HIGHWAY:
-					{
-						Highway highway;
-						frontQueues[EVALUATE_HIGHWAY].popReserved(head + threadIdx.x, highway);
-						EvaluateHighway::execute(highway, context, backQueues);
-					}
-					break;
-				case INSTANTIATE_HIGHWAY:
-					{
-						Highway highway;
-						frontQueues[INSTANTIATE_HIGHWAY].popReserved(head + threadIdx.x, highway);
-						InstantiateHighway::execute(highway, context, backQueues);
-					}
-					break;
-				case EVALUATE_STREET_BRANCH:
-					{
-						StreetBranch streetBranch;
-						frontQueues[EVALUATE_STREET_BRANCH].popReserved(head + threadIdx.x, streetBranch);
-						EvaluateStreetBranch::execute(streetBranch, context, backQueues);
-					}
-					break;
-				case EVALUATE_STREET:
-					{
-						Street street;
-						frontQueues[EVALUATE_STREET].popReserved(head + threadIdx.x, street);
-						EvaluateStreet::execute(street, context, backQueues);
-					}
-					break;
-				case INSTANTIATE_STREET:
-					{
-						Street street;
-						frontQueues[INSTANTIATE_STREET].popReserved(head + threadIdx.x, street);
-						InstantiateStreet::execute(street, context, backQueues);
-					}
-					break;
-				default:
-					THROW_EXCEPTION("invalid queue index");
-				}
-			}
-
-			if (threadIdx.x == 0)
-			{
-				if (reservedPops == 0 && run == 1)
-				{
-					atomicSub((int*)&g_dCounterLevel1, 1), run = 2;
-				}
-				else if (reservedPops == 0 && run == 2 && g_dCounterLevel1 == 0)
-				{
-					atomicSub((int*)&g_dCounterLevel2, 1), run = 3;
-				}
-				else if (reservedPops == 0 && run == 3 && g_dCounterLevel2 == 0)
-				{
-					run = 0;
-				}
-				else if (reservedPops != 0 && run != 1)
-				{
-					if (run == 2)
-					{
-						atomicAdd((int*)&g_dCounterLevel1, 1), run = 1;
-					}
-
-					if (run == 3)
-					{
-						atomicAdd((int*)&g_dCounterLevel1, 1), atomicAdd((int*)&g_dCounterLevel2, 1), run = 1;
-					}
-				}
-			}
-
-			__syncthreads();
 		}
 
 		if (threadIdx.x == 0)
 		{
-			derivation++;
-			WorkQueue* tmp = frontQueues;
-			frontQueues = backQueues;
-			backQueues = tmp;
+			if (start)
+			{
+				atomicSub((int*)&g_dCounterLevel1, 1);
+			}
+			
+			if (g_dCounterLevel1 == 0)
+			{
+				derivation++;
+				WorkQueue* tmp = frontQueues;
+				frontQueues = backQueues;
+				backQueues = tmp;
+				start = true;
+			}
+			else if (start)
+			{
+				start = false;
+			}
 		}
 
 		__syncthreads();
@@ -703,24 +777,25 @@ __global__ void gpuKernel(unsigned int numDerivations, WorkQueue* workQueues1, W
 }
 #else
 //////////////////////////////////////////////////////////////////////////
-void cpuKernel(unsigned int numDerivations, WorkQueue* workQueues1, WorkQueue* workQueues2, Context* context);
+void cpuKernel(unsigned int numDerivations, WorkQueue* workQueues1, WorkQueue* workQueues2, unsigned int startingQueue, unsigned int numQueues, Context* context);
 
 //////////////////////////////////////////////////////////////////////////
-void RoadNetworkGraphGenerator::expand(unsigned int numDerivations)
+void RoadNetworkGraphGenerator::expand(unsigned int numDerivations, unsigned int startingQueue, unsigned int numQueues)
 {
-	cpuKernel(numDerivations, g_dWorkQueues1, g_dWorkQueues2, g_dContext);
+	cpuKernel(numDerivations, g_dWorkQueues1, g_dWorkQueues2, startingQueue, numQueues, g_dContext);
 }
 
 //////////////////////////////////////////////////////////////////////////
-void cpuKernel(unsigned int numDerivations, WorkQueue* workQueues1, WorkQueue* workQueues2, Context* context)
+void cpuKernel(unsigned int numDerivations, WorkQueue* workQueues1, WorkQueue* workQueues2, unsigned int startingQueue, unsigned int numQueues, Context* context)
 {
 	unsigned int derivations = 0;
 	WorkQueue* frontQueues = workQueues1;
 	WorkQueue* backQueues = workQueues2;
+	unsigned int currentQueue;
 
 	while (derivations < numDerivations)
 	{
-		for (unsigned int currentQueue = 0; currentQueue < NUM_PROCEDURES; currentQueue++)
+		for (unsigned int i = 0, currentQueue = startingQueue; i < numQueues; i++, currentQueue = (startingQueue + (currentQueue + 1) % numQueues))
 		{
 			switch (currentQueue)
 			{

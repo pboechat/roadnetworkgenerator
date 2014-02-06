@@ -6,15 +6,15 @@
 #include <Vertex.h>
 
 //////////////////////////////////////////////////////////////////////////
-DEVICE_CODE void replaceInEdge(Vertex* vertex, int oldInEdgeIndex, int newInEdgeIndex)
+DEVICE_CODE void replaceInEdge(Vertex& vertex, int oldInEdgeIndex, int newInEdgeIndex)
 {
 	bool found = false;
 
-	for (unsigned int i = 0; i < vertex->numIns; i++)
+	for (unsigned int i = 0; i < vertex.numIns; i++)
 	{
-		if (vertex->ins[i] == oldInEdgeIndex)
+		if (vertex.ins[i] == oldInEdgeIndex)
 		{
-			vertex->ins[i] = newInEdgeIndex;
+			vertex.ins[i] = newInEdgeIndex;
 			found = true;
 			break;
 		}
@@ -28,12 +28,12 @@ DEVICE_CODE void replaceInEdge(Vertex* vertex, int oldInEdgeIndex, int newInEdge
 }
 
 //////////////////////////////////////////////////////////////////////////
-DEVICE_CODE void replaceAdjacency(Vertex* vertex, int oldAdjacentVertexIndex, int newAdjacentVertexIndex)
+DEVICE_CODE void replaceAdjacency(Vertex& vertex, int oldAdjacentVertexIndex, int newAdjacentVertexIndex)
 {
 	// FIXME:
-	for (unsigned int i = 0; i < vertex->numAdjacencies; i++)
+	for (unsigned int i = 0; i < vertex.numAdjacencies; i++)
 	{
-		if (vertex->adjacencies[i] == newAdjacentVertexIndex)
+		if (vertex.adjacencies[i] == newAdjacentVertexIndex)
 		{
 			THROW_EXCEPTION("duplicate adjacency");
 		}
@@ -41,11 +41,11 @@ DEVICE_CODE void replaceAdjacency(Vertex* vertex, int oldAdjacentVertexIndex, in
 
 	bool found = false;
 
-	for (unsigned int i = 0; i < vertex->numAdjacencies; i++)
+	for (unsigned int i = 0; i < vertex.numAdjacencies; i++)
 	{
-		if (vertex->adjacencies[i] == oldAdjacentVertexIndex)
+		if (vertex.adjacencies[i] == oldAdjacentVertexIndex)
 		{
-			vertex->adjacencies[i] = newAdjacentVertexIndex;
+			vertex.adjacencies[i] = newAdjacentVertexIndex;
 			found = true;
 			break;
 		}

@@ -11,6 +11,8 @@
 #include <cuda_runtime_api.h>
 #define HOST_CODE __host__
 #define DEVICE_CODE __device__
+#define DEVICE_VARIABLE __device__
+#define TEXTURE_VARIABLE texture<unsigned char, 2>
 #define GLOBAL_CODE __global__
 #define HOST_AND_DEVICE_CODE __host__ __device__
 	#ifdef __CUDA_ARCH__
@@ -59,6 +61,7 @@
 		#define THREADFENCE()
 	#endif
 #else
+#include <CudaTexture2DMock.h>
 #include <exception>
 #include <sstream>
 template<typename T>
@@ -84,6 +87,8 @@ inline T atomicMaxMock(T* variable, T value)
 }
 #define HOST_CODE
 #define DEVICE_CODE
+#define DEVICE_VARIABLE
+#define TEXTURE_VARIABLE CudaTexture2DMock
 #define GLOBAL_CODE
 #define HOST_AND_DEVICE_CODE
 #define THREAD_IDX_X 0

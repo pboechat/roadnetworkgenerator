@@ -33,10 +33,10 @@
 //////////////////////////////////////////////////////////////////////////
 //	WORK QUEUES
 //////////////////////////////////////////////////////////////////////////
-#define MAX_NUM_WORKITEMS 100000
+#define MAX_NUM_WORKITEMS 5000
 #define WORK_ITEM_SIZE 100
 // MAX_NUM_WORKITEMS * WORK_ITEM_SIZE
-#define WORK_QUEUE_DATA_SIZE 10000000
+#define WORK_QUEUE_DATA_SIZE 500000
 
 //////////////////////////////////////////////////////////////////////////
 // CONFIGURATION
@@ -62,8 +62,8 @@
 #define MAX_EDGES_PER_QUADRANT 10000
 #define MAX_EDGES_PER_PRIMITIVE 100
 #define MAX_VERTICES_PER_PRIMITIVE 200
-#define MAX_RESULTS_PER_QUERY 100
-#define QUADTREE_STACK_DATA_SIZE 1000
+#define MAX_RESULTS_PER_QUERY 10
+#define QUADTREE_STACK_DATA_SIZE 91
 
 //////////////////////////////////////////////////////////////////////////
 //	GENERAL

@@ -69,7 +69,7 @@ private:
 
 	void setUpImageMapRenderData(const ImageMap& imageMap, ImageMapRenderData& imageMapData, const vml_vec4& color1, const vml_vec4& color2)
 	{
-		imageMapData.texture = new Texture(imageMap.getWidth(), imageMap.getHeight(), GL_RED, GL_R8, GL_UNSIGNED_BYTE, GL_NEAREST, GL_CLAMP_TO_EDGE, (void*)imageMap.getData());
+		imageMapData.texture = new Texture(imageMap.width, imageMap.height, GL_RED, GL_R8, GL_UNSIGNED_BYTE, GL_NEAREST, GL_CLAMP_TO_EDGE, (void*)imageMap.data);
 		imageMapData.color1 = color1;
 		imageMapData.color2 = color2;
 	}
@@ -137,17 +137,17 @@ public:
 	{
 		destroyImageMaps();
 
-		if ((populationDensityMapData.enabled = (populationDensityMap.hasData())))
+		if ((populationDensityMapData.enabled = (populationDensityMap.data != 0)))
 		{
 			setUpImageMapRenderData(populationDensityMap, populationDensityMapData, BLACK_COLOR, WHITE_COLOR);
 		}
 
-		if ((waterBodiesMapData.enabled = (waterBodiesMap.hasData())))
+		if ((waterBodiesMapData.enabled = (waterBodiesMap.data != 0)))
 		{
 			setUpImageMapRenderData(waterBodiesMap, waterBodiesMapData, vml_vec4(0.0f, 0.0f, 0.0f, 0.0f), WATER_COLOR);
 		}
 
-		if ((blockadesMapData.enabled = (blockadesMap.hasData())))
+		if ((blockadesMapData.enabled = (blockadesMap.data != 0)))
 		{
 			setUpImageMapRenderData(blockadesMap, blockadesMapData, vml_vec4(0.0f, 0.0f, 0.0f, 0.0f), GRASS_COLOR);
 		}

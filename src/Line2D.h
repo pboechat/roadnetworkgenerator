@@ -24,6 +24,10 @@ struct Line2D
 		return *this;
 	}
 
+	/* ===================================================================================
+	 * Based on: http://www.geeksforgeeks.org/check-if-two-given-line-segments-intersect/
+	 * =================================================================================== */
+
 	inline HOST_AND_DEVICE_CODE bool onSegment(const vml_vec2& p, const vml_vec2& q, const vml_vec2& r) const
 	{
 		if (q.x <= MathExtras::max(p.x, r.x) && q.x >= MathExtras::min(p.x, r.x) &&
@@ -40,7 +44,7 @@ struct Line2D
 	// 2 -> counterclockwise
 	inline HOST_AND_DEVICE_CODE int orientation(const vml_vec2& p, const vml_vec2& q, const vml_vec2& r) const
 	{
-		float value = (r.x - q.x) * (q.y - p.y) - (r.y - q.y) * (q.x - p.x);
+		float value = (q.y - p.y) * (r.x - q.x) - (q.x - p.x) * (r.y - q.y);
 
 		if (MathExtras::isZero(value))
 		{
@@ -52,19 +56,21 @@ struct Line2D
 
 	HOST_AND_DEVICE_CODE bool intersects(const Line2D& line, vml_vec2& intersection) const
 	{
-		vml_vec2 s1 = getStart(); vml_vec2 s2 = line.getStart();
-		vml_vec2 e1 = getEnd(); vml_vec2 e2 = line.getEnd();
+		vml_vec2 p1 = getStart(); 
+		vml_vec2 q1 = getEnd(); 
+		vml_vec2 p2 = line.getStart();
+		vml_vec2 q2 = line.getEnd();
 
 		// find the four orientations needed for general and special cases
-		int o1 = orientation(s1, e1, s2);
-		int o2 = orientation(s1, e1, e2);
-		int o3 = orientation(s2, e2, s1);
-		int o4 = orientation(s2, e2, e1);
+		int o1 = orientation(p1, q1, p2);
+		int o2 = orientation(p1, q1, q2);
+		int o3 = orientation(p2, q2, p1);
+		int o4 = orientation(p2, q2, q1);
 
 		// general case:
 		if (o1 != o2 && o3 != o4)
 		{
-			float determinant = (s1.x - e1.x) * (s2.y - e2.y) - (s1.y - e1.y) * (s2.x - e2.x);
+			float determinant = (p1.x - q1.x) * (p2.y - q2.y) - (p1.y - q1.y) * (p2.x - q2.x);
 
 			// FIXME: checking invariants
 			if (determinant == 0)
@@ -72,9 +78,9 @@ struct Line2D
 				THROW_EXCEPTION("determinant == 0");
 			}
 
-			float pre = (s1.x * e1.y - s1.y * e1.x), post = (s2.x * e2.y - s2.y * e2.x);
-			float x = (pre * (s2.x - e2.x) - (s1.x - e1.x) * post) / determinant;
-			float y = (pre * (s2.y - e2.y) - (s1.y - e1.y) * post) / determinant;
+			float pre = (p1.x * q1.y - p1.y * q1.x), post = (p2.x * q2.y - p2.y * q2.x);
+			float x = (pre * (p2.x - q2.x) - (p1.x - q1.x) * post) / determinant;
+			float y = (pre * (p2.y - q2.y) - (p1.y - q1.y) * post) / determinant;
 
 			intersection.x = x;
 			intersection.y = y;
@@ -84,30 +90,30 @@ struct Line2D
 
 		// special cases:
 		// 's1', 'e1' and 's2' are collinear and 's2' lies on this segment
-		if (o1 == 0 && onSegment(s1, s2, e1))
+		if (o1 == 0 && onSegment(p1, p2, q1))
 		{
-			intersection = s2;
+			intersection = p2;
 			return true;
 		}
 
 		// 's1', 'e1' and 's2' are collinear and 'e2' lies on this segment
-		if (o2 == 0 && onSegment(s1, e2, e1))
+		if (o2 == 0 && onSegment(p1, q2, q1))
 		{
-			intersection = e2;
+			intersection = q2;
 			return true;
 		}
 
 		// 's2', 'e2' and 's1' are collinear and 's1' lies on line segment
-		if (o3 == 0 && onSegment(s2, s1, e2))
+		if (o3 == 0 && onSegment(p2, p1, q2))
 		{
-			intersection = s1;
+			intersection = p1;
 			return true;
 		}
 
 		// 's2', 'e2' and 'e1' are collinear and 'e1' lies on line segment
-		if (o4 == 0 && onSegment(s2, e1, e2))
+		if (o4 == 0 && onSegment(p2, q1, q2))
 		{
-			intersection = e1;
+			intersection = q1;
 			return true;
 		}
 

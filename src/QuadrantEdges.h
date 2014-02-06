@@ -8,18 +8,11 @@
 
 struct QuadrantEdges
 {
-	int edges[MAX_EDGES_PER_QUADRANT];
-	unsigned int lastEdgeIndex;
+	volatile int edges[MAX_EDGES_PER_QUADRANT];
+	volatile unsigned int lastEdgeIndex;
 
 	HOST_AND_DEVICE_CODE QuadrantEdges() : lastEdgeIndex(0) {}
 	HOST_AND_DEVICE_CODE ~QuadrantEdges() {}
-	
-	/*HOST_AND_DEVICE_CODE QuadrantEdges& operator = (const QuadrantEdges& other)
-	{
-		edges = other.edges;
-		lastEdgeIndex = other.lastEdgeIndex;
-		return *this;
-	}*/
 
 };
 

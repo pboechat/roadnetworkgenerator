@@ -10,6 +10,7 @@
 #include <Context.cuh>
 #include <WorkQueue.cuh>
 #include <GraphFunctions.cuh>
+#include <ImageMapFunctions.cuh>
 
 //////////////////////////////////////////////////////////////////////////
 template<typename RuleAttributesType>
@@ -31,7 +32,10 @@ DEVICE_CODE bool evaluateWaterBodies(Road<RuleAttributesType>& road, const vml_v
 		{
 			vml_vec2 direction = vml_normalize(vml_rotate2D(vml_vec2(0.0f, 1.0f), road.roadAttributes.angle + vml_radians((float)angleIncrement)));
 
-			if (context->waterBodiesMap->castRay(position, direction, length, 0))
+			bool hit;
+			vml_vec2 hitPoint;
+			CAST_RAY(waterBodiesTexture, position, direction, length, 0, hit, hitPoint);
+			if (!hit)
 			{
 				road.state = SUCCEED;
 				found = true;
@@ -78,7 +82,10 @@ DEVICE_CODE bool evaluateBlockades(Road<RuleAttributesType>& road, const vml_vec
 		{
 			vml_vec2 direction = vml_normalize(vml_rotate2D(vml_vec2(0.0f, 1.0f), road.roadAttributes.angle + vml_radians((float)angleIncrement)));
 
-			if (context->blockadesMap->castRay(position, direction, length, 0))
+			bool hit;
+			vml_vec2 hitPoint;
+			CAST_RAY(blockadesTexture, position, direction, length, 0, hit, hitPoint);
+			if (!hit)
 			{
 				road.state = SUCCEED;
 				found = true;

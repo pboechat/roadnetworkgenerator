@@ -19,17 +19,17 @@ enum PrimitiveType
 struct Primitive
 {
 	PrimitiveType type;
-	int edges[MAX_EDGES_PER_PRIMITIVE];
+	volatile int edges[MAX_EDGES_PER_PRIMITIVE];
 	vml_vec2 vertices[MAX_VERTICES_PER_PRIMITIVE];
-	unsigned int numEdges;
-	unsigned int numVertices;
+	volatile unsigned int numEdges;
+	volatile unsigned int numVertices;
 
 	Primitive() : numEdges(0), numVertices(0) {}
 
 };
 
 //////////////////////////////////////////////////////////////////////////
-inline void insert(Primitive& primitive, int edgeIndex)
+inline void insertEdge(Primitive& primitive, int edgeIndex)
 {
 	// FIXME: checking boundaries
 	if (primitive.numEdges >= MAX_EDGES_PER_PRIMITIVE)
@@ -41,7 +41,7 @@ inline void insert(Primitive& primitive, int edgeIndex)
 }
 
 //////////////////////////////////////////////////////////////////////////
-inline void insert(Primitive& primitive, const vml_vec2& vertex)
+inline void insertVertex(Primitive& primitive, const vml_vec2& vertex)
 {
 	// FIXME: checking boundaries
 	if (primitive.numVertices >= MAX_VERTICES_PER_PRIMITIVE)

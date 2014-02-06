@@ -15,14 +15,6 @@ struct Quadrant
 	HOST_AND_DEVICE_CODE Quadrant() : edges(-1) {}
 	HOST_AND_DEVICE_CODE ~Quadrant() {}
 	
-	/*HOST_AND_DEVICE_CODE Quadrant& operator = (const Quadrant& other)
-	{
-		depth = other.depth;
-		bounds = other.bounds;
-		edges = other.edges;
-		return *this;
-	}*/
-	
 };
 
 #endif

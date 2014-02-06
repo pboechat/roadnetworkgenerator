@@ -12,17 +12,20 @@ set(CUDA_NVCC_FLAGS "-use_fast_math;-w")
 
 if(CUDA_BUILD_CC20)
 	set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS};-gencode=arch=compute_20,code=sm_20")
+	add_definitions(/D "CUDA_CC=20")
 	add_definitions(-DCUDA_CC=20)
 endif()
 
 if(CUDA_BUILD_CC30)
 	set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS};-gencode=arch=compute_30,code=sm_30")
+	add_definitions(/D "CUDA_CC=30")
 	add_definitions(-DCUDA_CC=30)
 endif()
 
 if(CUDA_BUILD_CC35)
 	set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS};-gencode=arch=compute_35,code=sm_35;-maxrregcount=64")
-	add_definitions(--DCUDA_CC=35)
+	add_definitions(/D "CUDA_CC=35")
+	add_definitions(-DCUDA_CC=35)
 endif()
 
 if(CUDA_BUILD_INFO)

@@ -6,16 +6,7 @@
 #include <Constants.h>
 #include <CpuGpuCompatibility.h>
 #include <MathExtras.h>
-
-#ifdef USE_CUDA
-//////////////////////////////////////////////////////////////////////////
-inline __device__ unsigned int lanemask_lt()
-{
-	unsigned int lanemask;
-	asm("mov.u32 %0, %lanemask_lt;" : "=r" (lanemask));
-	return lanemask;
-}
-#endif
+#include <cutil.h>
 
 struct WorkQueue
 {
@@ -72,90 +63,45 @@ struct WorkQueue
 		readFlags[index] = false;
 	}
 
-	#if CUDA_CC >= 30
-		//////////////////////////////////////////////////////////////////////////
-		template<typename WorkItemType>
-		__device__ bool push(WorkItemType& item)
+	//////////////////////////////////////////////////////////////////////////
+	template<typename WorkItemType>
+	__device__ void push(WorkItemType& item)
+	{
+		if (count >= MAX_NUM_WORKITEMS)
 		{
+			THROW_EXCEPTION("WorkQueue: count >= MAX_NUM_WORKITEMS");
+		}
+
+		unsigned int mask = __ballot(1);
+		unsigned int numberOfActiveThreads = __popc(mask);
+		int laneId = __popc(lanemask_lt() & mask);
+		int leadingThreadId = __ffs(mask) - 1;
+
+		int firstPushIndex;
+		if (laneId == 0)
+		{
+			atomicAdd((int*)&count, numberOfActiveThreads);
+
 			if (count >= MAX_NUM_WORKITEMS)
 			{
 				THROW_EXCEPTION("WorkQueue: count >= MAX_NUM_WORKITEMS");
 			}
 
-			unsigned int mask = __ballot(1);
-			unsigned int numberOfActiveThreads = __popc(mask);
-			int laneId = __popc(lanemask_lt() & mask);
-			int leadingThreadId = __ffs(mask) - 1;
-
-			int firstPushIndex;
-			int pushes = 0;
-			if (laneId == 0)
-			{
-				int oldCount = atomicAdd((int*)&count, numberOfActiveThreads);
-
-				if (oldCount < MAX_NUM_WORKITEMS)
-				{
-					int overflow = MathExtras::min(MAX_NUM_WORKITEMS - (int)numberOfActiveThreads - oldCount, 0);
-					if (overflow < 0)
-					{
-						atomicAdd((int*)&count, overflow);
-					}
-
-					pushes = numberOfActiveThreads + overflow;
-					firstPushIndex = atomicAdd(&tail, pushes);
-				}
-			}
-
-			firstPushIndex = __shfl(firstPushIndex, leadingThreadId);
-			pushes = __shfl(pushes, leadingThreadId);
-
-			if (laneId < pushes)
-			{
-				unsigned int index = ((firstPushIndex + laneId) % MAX_NUM_WORKITEMS);
-
-				while (readFlags[index]);
-
-				pack(index, item);
-
-				__threadfence();
-
-				readFlags[index] = true;
-
-				return true;
-			}
-
-			return false;
+			firstPushIndex = atomicAdd(&tail, numberOfActiveThreads);
 		}
-	#else
-		template<typename WorkItemType>
-		__device__ bool push(WorkItemType& item)
-		{
-			if (count >= MAX_NUM_WORKITEMS)
-			{
-				THROW_EXCEPTION("WorkQueue: count >= MAX_NUM_WORKITEMS");
-			}
 
-			int oldCount = atomicAdd((int*)&count, 1);
+		firstPushIndex = __shfl(firstPushIndex, leadingThreadId);
 
-			if (oldCount >= MAX_NUM_WORKITEMS)
-			{
-				atomicSub((int*)&count, 1);
-				return false;
-			}
+		unsigned int index = ((firstPushIndex + laneId) % MAX_NUM_WORKITEMS);
 
-			unsigned int index = atomicAdd(&tail, 1);
+		while (readFlags[index]);
 
-			while (readFlags[index]);
+		pack(index, item);
 
-			pack(index, item);
+		__threadfence();
 
-			__threadfence();
-
-			readFlags[index] = true;
-
-			return true;
-		}
-	#endif
+		readFlags[index] = true;
+	}
 #else
 	//////////////////////////////////////////////////////////////////////////
 	template<typename WorkItemType>

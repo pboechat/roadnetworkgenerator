@@ -36,14 +36,14 @@ private:
 		virtual bool operator () (const Vertex& source, const Vertex& destination, const Edge& edge)
 		{
 			std::stringstream label;
-			label << source.index;
+			/*label << source.index;
 			labels.push_back(Label(label.str(), source.getPosition(), VERTEX_LABEL_COLOR));
 			label.str(std::string());
 			label.clear();
 			label << destination.index;
 			labels.push_back(Label(label.str(), destination.getPosition(), VERTEX_LABEL_COLOR));
 			label.str(std::string());
-			label.clear();
+			label.clear();*/
 			label << edge.index;
 			vml_vec2 edgePosition = vml_mix(source.getPosition(), destination.getPosition(), 0.5f);
 			labels.push_back(Label(label.str(), edgePosition, EDGE_LABEL_COLOR));

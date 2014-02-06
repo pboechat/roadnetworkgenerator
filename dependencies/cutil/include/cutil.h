@@ -7,21 +7,29 @@
 #include <sstream>
 #include <exception>
 
+//////////////////////////////////////////////////////////////////////////
 __host__ void checkCudaError(cudaError_t error, const char* file, int line)
 {
-#ifdef _DEBUG
 	if (error != cudaSuccess)
 	{
 		std::stringstream stream;
 		stream << cudaGetErrorString(error) << " (@" << file << ":" << line << ")";
 		throw std::exception(stream.str().c_str());
 	}
-#endif
 }
 
+//////////////////////////////////////////////////////////////////////////
 __host__ void checkCudaError(const char* file, int line)
 {
 	checkCudaError(cudaGetLastError(), file, line);
+}
+
+//////////////////////////////////////////////////////////////////////////
+inline __device__ unsigned int lanemask_lt()
+{
+	unsigned int lanemask;
+	asm("mov.u32 %0, %lanemask_lt;" : "=r" (lanemask));
+	return lanemask;
 }
 
 #define cudaCheckedCall(call) checkCudaError(call, __FILE__, __LINE__)

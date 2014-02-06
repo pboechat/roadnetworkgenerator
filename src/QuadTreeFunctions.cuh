@@ -12,7 +12,7 @@
 #include <QuadTreeStacks.h>
 
 //////////////////////////////////////////////////////////////////////////
-HOST_AND_DEVICE_CODE void removeEdgeReferencesInQuadrant(QuadrantEdges* quadrantEdges, int edgeIndex);
+HOST_AND_DEVICE_CODE void removeEdgeReferencesInQuadrant(QuadrantEdges& quadrantEdges, int edgeIndex);
 
 //////////////////////////////////////////////////////////////////////////
 HOST_AND_DEVICE_CODE void initializeQuadtreeOnHost(QuadTree* quadtree, Box2D worldBounds, unsigned int depth, unsigned int maxQuadrants, Quadrant* quadrants, QuadrantEdges* quadrantEdges)
@@ -135,19 +135,19 @@ DEVICE_CODE void insert(QuadTree* quadtree, int edgeIndex, const Line2D& edgeLin
 	{
 		stack.pop(index, offset, levelWidth);
 
-		Quadrant* quadrant = &quadtree->quadrants[index + offset];
+		Quadrant& quadrant = quadtree->quadrants[index + offset];
 
-		if (quadrant->bounds.isIntersected(edgeLine))
+		if (quadrant.bounds.isIntersected(edgeLine))
 		{
-			if (quadrant->depth == quadtree->maxDepth - 1)
+			if (quadrant.depth == quadtree->maxDepth - 1)
 			{
 				// FIXME: checking invariants
-				if (quadrant->edges == -1)
+				if (quadrant.edges == -1)
 				{
 					THROW_EXCEPTION("quadrant.edges == -1");
 				}
 
-				QuadrantEdges* quadrantEdges = &quadtree->quadrantsEdges[quadrant->edges];
+				QuadrantEdges* quadrantEdges = &quadtree->quadrantsEdges[quadrant.edges];
 
 				// FIXME: checking boundaries
 				if (quadrantEdges->lastEdgeIndex >= MAX_EDGES_PER_QUADRANT)
@@ -194,19 +194,19 @@ DEVICE_CODE void remove(QuadTree* quadtree, int edgeIndex, const Line2D& edgeLin
 	{
 		stack.pop(index, offset, levelWidth);
 
-		Quadrant* quadrant = &quadtree->quadrants[index + offset];
+		Quadrant& quadrant = quadtree->quadrants[index + offset];
 
-		if (quadrant->bounds.isIntersected(edgeLine))
+		if (quadrant.bounds.isIntersected(edgeLine))
 		{
-			if (quadrant->depth == quadtree->maxDepth - 1)
+			if (quadrant.depth == quadtree->maxDepth - 1)
 			{
 				// FIXME: checking invariants
-				if (quadrant->edges == -1)
+				if (quadrant.edges == -1)
 				{
 					THROW_EXCEPTION("quadrant.edges == -1");
 				}
 
-				QuadrantEdges* quadrantEdges = &quadtree->quadrantsEdges[quadrant->edges];
+				QuadrantEdges& quadrantEdges = quadtree->quadrantsEdges[quadrant.edges];
 				removeEdgeReferencesInQuadrant(quadrantEdges, edgeIndex);
 			}
 
@@ -230,16 +230,10 @@ DEVICE_CODE void remove(QuadTree* quadtree, int edgeIndex, const Line2D& edgeLin
 }
 
 //////////////////////////////////////////////////////////////////////////
-DEVICE_CODE void removeEdgeReferencesInQuadrant(QuadrantEdges* quadrantEdges, int edgeIndex)
+DEVICE_CODE void removeEdgeReferencesInQuadrant(QuadrantEdges& quadrantEdges, int edgeIndex)
 {
-	// FIXME: checking invariants
-	if (quadrantEdges == 0)
-	{
-		THROW_EXCEPTION("quadrantEdges == 0");
-	}
-
 	// FIXME: checking boundaries
-	if (quadrantEdges->lastEdgeIndex == 0)
+	if (quadrantEdges.lastEdgeIndex == 0)
 	{
 		THROW_EXCEPTION("tried to remove edge from an empty quadrant");
 	}
@@ -247,9 +241,9 @@ DEVICE_CODE void removeEdgeReferencesInQuadrant(QuadrantEdges* quadrantEdges, in
 	unsigned int i = 0;
 	bool found = false;
 
-	for (unsigned int j = 0; j < quadrantEdges->lastEdgeIndex; j++)
+	for (unsigned int j = 0; j < quadrantEdges.lastEdgeIndex; j++)
 	{
-		if (quadrantEdges->edges[j] == edgeIndex)
+		if (quadrantEdges.edges[j] == edgeIndex)
 		{
 			i = j;
 			found = true;
@@ -264,20 +258,20 @@ DEVICE_CODE void removeEdgeReferencesInQuadrant(QuadrantEdges* quadrantEdges, in
 		THROW_EXCEPTION("!found");
 	}
 
-	for (unsigned int j = i; j < quadrantEdges->lastEdgeIndex - 1; j++)
+	for (unsigned int j = i; j < quadrantEdges.lastEdgeIndex - 1; j++)
 	{
-		quadrantEdges->edges[j] = quadrantEdges->edges[j + 1];
+		quadrantEdges.edges[j] = quadrantEdges.edges[j + 1];
 	}
 
-	quadrantEdges->lastEdgeIndex--;
+	quadrantEdges.lastEdgeIndex--;
 }
 
 //////////////////////////////////////////////////////////////////////////
-DEVICE_CODE void query(QuadTree* quadtree, const Line2D& edgeLine, QueryResults* queryResults)
+DEVICE_CODE void query(QuadTree* quadtree, const Line2D& edgeLine, QueryResults& queryResults)
 {
 	unsigned int index, offset, levelWidth;
 
-	queryResults->numResults = 0;
+	queryResults.numResults = 0;
 
 	SimpleQuadTreeStack stack;
 
@@ -308,15 +302,15 @@ DEVICE_CODE void query(QuadTree* quadtree, const Line2D& edgeLine, QueryResults*
 				}
 
 				// FIXME: checking boundaries
-				if (queryResults->numResults >= MAX_RESULTS_PER_QUERY)
+				if (queryResults.numResults >= MAX_RESULTS_PER_QUERY)
 				{
 					THROW_EXCEPTION("max. results per query overflow");
 				}
 
-				queryResults->results[queryResults->numResults++] = quadrant->edges;
+				queryResults.results[queryResults.numResults++] = quadrant->edges;
 
 	#ifdef COLLECT_STATISTICS
-				ATOMIC_MAX(quadtree->maxResultsPerQueryInUse, unsigned int, queryResults->numResults);
+				ATOMIC_MAX(quadtree->maxResultsPerQueryInUse, unsigned int, queryResults.numResults);
 	#endif
 			}
 

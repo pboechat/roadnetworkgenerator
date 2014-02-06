@@ -12,6 +12,7 @@
 #include <WorkQueue.cuh>
 #include <GraphFunctions.cuh>
 #include <PseudoRandomNumbers.cuh>
+#include <GlobalVariables.cuh>
 
 //////////////////////////////////////////////////////////////////////////
 template<typename RuleAttributesType>
@@ -142,21 +143,21 @@ DEVICE_CODE Pattern findUnderlyingPattern(const vml_vec2& position, Context* con
 
 	if (context->naturalPatternMap != 0)
 	{
-		naturalPattern = context->naturalPatternMap->sample(position);
+		naturalPattern = TEX2D(naturalPatternTexture, (int)position.x, (int)position.y);
 	}
 
 	unsigned char radialPattern = 0;
 
 	if (context->radialPatternMap != 0)
 	{
-		radialPattern = context->radialPatternMap->sample(position);
+		radialPattern = TEX2D(radialPatternTexture, (int)position.x, (int)position.y);
 	}
 
 	unsigned char rasterPattern = 0;
 
 	if (context->rasterPatternMap != 0)
 	{
-		rasterPattern = context->rasterPatternMap->sample(position);
+		rasterPattern = TEX2D(rasterPatternTexture, (int)position.x, (int)position.y);
 	}
 
 	if (rasterPattern > radialPattern)
@@ -199,7 +200,7 @@ DEVICE_CODE bool findHighestPopulationDensity(const vml_vec2& start, float start
 		vml_vec2 direction = vml_normalize(vml_rotate2D(vml_vec2(0.0f, 1.0f), startingAngle + vml_radians((float)currentAngleStep)));
 		unsigned char populationDensity;
 		int distance;
-		context->populationDensityMap->scan(start, direction, context->configuration->minSamplingRayLength, context->configuration->maxSamplingRayLength, populationDensity, distance);
+		SCAN(populationDensityTexture, start, direction, context->configuration->minSamplingRayLength, context->configuration->maxSamplingRayLength, populationDensity, distance);
 		populationDensitiesSamplingBuffer[i] = populationDensity;
 		distancesSamplingBuffer[i] = distance;
 	}
@@ -319,8 +320,7 @@ struct InstantiateStreet
 		vml_vec2 direction = vml_rotate2D(vml_vec2(0.0f, road.roadAttributes.length), road.roadAttributes.angle);
 		int newSource;
 		vml_vec2 position;
-		Primitive* bounds = &context->primitives[road.ruleAttributes.boundsIndex];
-		bool interrupted = addStreet(context->graph, road.roadAttributes.source, direction, bounds, newSource, position);
+		bool interrupted = addStreet(context->graph, context->primitives, road.roadAttributes.source, direction, road.ruleAttributes.boundsIndex, newSource, position);
 
 		int delays[3];
 		RoadAttributes roadAttributes[3];

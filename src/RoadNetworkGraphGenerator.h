@@ -87,7 +87,7 @@ private:
 
 	void copyGraphToDevice(Graph* graph);
 	void copyGraphToHost(Graph* graph);
-	void expand(unsigned int numDerivations);
+	void expand(unsigned int numDerivations, unsigned int startingQueue, unsigned int numQueues);
 	void notifyObservers(Graph* graph, unsigned int numPrimitives, Primitive* primitives);
 
 };

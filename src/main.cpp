@@ -30,9 +30,9 @@
 		{ \
 			__map##Data = (unsigned char*)malloc(sizeof(unsigned char) * configuration.worldWidth * configuration.worldHeight); \
 			ImageUtils::loadImage(configuration.##__map##FilePath, configuration.worldWidth, configuration.worldHeight, __map##Data); \
-			__map.setWidth(configuration.worldWidth); \
-			__map.setHeight(configuration.worldHeight); \
-			__map.setData(__map##Data); \
+			__map.width = configuration.worldWidth; \
+			__map.height = configuration.worldHeight; \
+			__map.data = __map##Data; \
 		} \
 	}
 
@@ -90,6 +90,10 @@ int main(int argc, char** argv)
 {
 	int returnValue = -1;
 
+#ifdef USE_CUDA
+	bool cudaInitialized = false;
+#endif
+
 	try
 	{
 		if (argc < 4)
@@ -123,10 +127,7 @@ int main(int argc, char** argv)
 		cudaDeviceProp deviceProperties;
 		cudaGetDeviceProperties(&deviceProperties, 0);
 		cudaSetDevice(0);
-		/*if (cudaDeviceSetLimit(cudaLimitStackSize, 256 * 1024) != cudaSuccess)
-		{
-			throw std::runtime_error("couldn't set cuda stack size limit");
-		}*/
+		cudaInitialized = true;
 #endif
 
 		Camera camera(screenWidth, screenHeight, FOVY_DEG, ZNEAR, ZFAR);
@@ -151,7 +152,15 @@ int main(int argc, char** argv)
 		std::cout << std::endl << "Unknown error" << std::endl << std::endl;
 	}
 
+#ifdef USE_CUDA
+	if (cudaInitialized)
+	{
+		cudaDeviceReset();
+	}
+#endif
+
 	// DEBUG:
 	system("pause");
+
 	return returnValue;
 }

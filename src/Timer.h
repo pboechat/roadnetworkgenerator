@@ -14,7 +14,7 @@ public:
 
 		if (QueryPerformanceFrequency(&frequency))
 		{
-			_miliseconds = 1000.0 / frequency.QuadPart;
+			_miliseconds = frequency.QuadPart;
 		}
 
 		else
@@ -33,7 +33,7 @@ public:
 
 		if (QueryPerformanceCounter(&time))
 		{
-			return (double)time.QuadPart * _miliseconds;
+			return (double)time.QuadPart / _miliseconds;
 		}
 
 		else

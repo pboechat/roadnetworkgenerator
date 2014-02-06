@@ -13,11 +13,13 @@
 	cudaCheckedCall(cudaEventRecord(startEvent_##x, 0))
 
 #define stopTimer(x) \
-	cudaCheckedCall(cudaEventRecord(stopEvent_##x, 0)); \
-	cudaCheckedCall(cudaEventSynchronize(stopEvent_##x)); \
-	float tmpElapsedTime_##x; \
-	cudaCheckedCall(cudaEventElapsedTime(&tmpElapsedTime_##x, startEvent_##x, stopEvent_##x)); \
-	elapsedTime_##x += tmpElapsedTime_##x
+	{ \
+		cudaCheckedCall(cudaEventRecord(stopEvent_##x, 0)); \
+		cudaCheckedCall(cudaEventSynchronize(stopEvent_##x)); \
+		float tmpElapsedTime_##x; \
+		cudaCheckedCall(cudaEventElapsedTime(&tmpElapsedTime_##x, startEvent_##x, stopEvent_##x)); \
+		elapsedTime_##x += tmpElapsedTime_##x; \
+	}
 
 #define getTimerElapsedTime(x, y) y = elapsedTime_##x
 
