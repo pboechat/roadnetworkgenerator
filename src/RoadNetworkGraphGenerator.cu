@@ -703,13 +703,13 @@ __global__ void expansionKernel(unsigned int numDerivations, WorkQueue* workQueu
 				{
 					frontQueues[currentQueue].reservePops(blockDim.x, &head, &reservedPops);
 
-					/*unsigned int queueShifts = 0;
+					unsigned int queueShifts = 0;
 					// round-robin through all the queues until pops can be reserved
 					while (reservedPops == 0 && ++queueShifts < numQueues)
 					{
 						currentQueue = startingQueue + ((currentQueue + 1) % numQueues);
 						frontQueues[currentQueue].reservePops(blockDim.x, &head, &reservedPops);
-					}*/
+					}
 				}
 
 				__syncthreads();
@@ -812,7 +812,7 @@ __global__ void expansionKernel(unsigned int numDerivations, WorkQueue* workQueu
 				backQueues = tmp;
 				start = true;
 			}
-			else if (start)
+			else
 			{
 				start = false;
 			}
