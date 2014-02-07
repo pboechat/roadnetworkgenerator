@@ -612,19 +612,19 @@ DEVICE_CODE void coalesceEdges(Graph* graph, QuadrantEdges* quadrantEdges)
 	{
 		Edge& thisEdge = graph->edges[quadrantEdges->edges[i]];
 
-		bool tryAgain = false;
-		unsigned int j = 0;
-		do
+		for (unsigned int j = 0; j < quadrantEdges->lastEdgeIndex; j++)
 		{
-			for (; j < quadrantEdges->lastEdgeIndex; j++)
+			if (j == i)
 			{
-				if (j == i)
-				{
-					continue;
-				}
+				continue;
+			}
 
-				Edge& otherEdge = graph->edges[quadrantEdges->edges[j]];
+			Edge& otherEdge = graph->edges[quadrantEdges->edges[j]];
 
+			bool tryAgain;
+			do
+			{
+				tryAgain = true;
 				if (ATOMIC_EXCH(otherEdge.owner, int, THREAD_IDX_X) == -1)
 				{
 					vml_vec2 intersection;
@@ -639,13 +639,8 @@ DEVICE_CODE void coalesceEdges(Graph* graph, QuadrantEdges* quadrantEdges)
 					tryAgain = false;
 					ATOMIC_EXCH(otherEdge.owner, int, -1);
 				}
-				else
-				{
-					tryAgain = true;
-					break;
-				}
-			}
-		} while (tryAgain);
+			} while (tryAgain);
+		}
 
 		i += BLOCK_DIM_X;
 	}
