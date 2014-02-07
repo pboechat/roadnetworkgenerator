@@ -361,23 +361,13 @@ struct InstantiateHighway
 		vml_vec2 direction = vml_rotate2D(vml_vec2(0.0f, road.roadAttributes.length), road.roadAttributes.angle);
 		int newSource;
 		vml_vec2 position;
-		bool interrupted = addHighway(context->graph, road.roadAttributes.source, direction, newSource, position);
+		addHighway(context->graph, road.roadAttributes.source, direction, newSource, position);
 
 		int delays[3];
 		RoadAttributes roadAttributes[3];
 		HighwayRuleAttributes ruleAttributes[3];
 
-		if (interrupted)
-		{
-			delays[0] = -1;
-			delays[1] = -1;
-			delays[2] = -1;
-		}
-
-		else
-		{
-			evaluateGlobalGoals(road, newSource, position, delays, roadAttributes, ruleAttributes, context);
-		}
+		evaluateGlobalGoals(road, newSource, position, delays, roadAttributes, ruleAttributes, context);
 
 		backQueues[EVALUATE_HIGHWAY_BRANCH].push(Branch<HighwayRuleAttributes>(delays[0], roadAttributes[0], ruleAttributes[0]));
 		backQueues[EVALUATE_HIGHWAY_BRANCH].push(Branch<HighwayRuleAttributes>(delays[1], roadAttributes[1], ruleAttributes[1]));

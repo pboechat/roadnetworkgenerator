@@ -26,9 +26,11 @@
 enum IntersectionType
 {
 	NONE,
-	SOURCE,
-	DESTINATION,
-	EDGE
+	SOURCE_SOURCE_SNAPPING,
+	SOURCE_DESTINATION_SNAPPING,
+	DESTINATION_SOURCE_SNAPPING,
+	DESTINATION_DESTINATION_SNAPPING,
+	EDGE_INTERSECTION
 };
 
 #ifdef USE_QUADTREE
@@ -304,6 +306,7 @@ DEVICE_CODE int connect(Graph* graph, int sourceVertexIndex, int destinationVert
 	newEdge.attr2 = attr2;
 	newEdge.attr3 = attr3;
 	newEdge.attr4 = attr4;
+	newEdge.numPrimitives = 0;
 	newEdge.owner = -1;
 
 	unsigned int lastIndex = ATOMIC_ADD(sourceVertex.numOuts, unsigned int, 1);
@@ -405,6 +408,10 @@ DEVICE_CODE int splitEdge(Graph* graph, Edge& edge, int splitVertexIndex)
 	newEdge.source = splitVertexIndex;
 	newEdge.destination = oldDestinationVertexIndex;
 	newEdge.attr1 = edge.attr1;
+	newEdge.attr2 = edge.attr2;
+	newEdge.attr3 = edge.attr3;
+	newEdge.attr4 = edge.attr4;
+	newEdge.numPrimitives = 0;
 	newEdge.owner = -1;
 
 	replaceAdjacency(oldDestinationVertex, edge.source, splitVertexIndex);
@@ -438,74 +445,47 @@ DEVICE_CODE int splitEdge(Graph* graph, Edge& edge, int splitVertexIndex)
 }
 
 //////////////////////////////////////////////////////////////////////////
-DEVICE_CODE bool checkIntersection(Graph* graph, const Line2D& newEdgeLine, int& start, int sourceIndex, int& edgeIndex, float& closestIntersectionDistance, vml_vec2& closestIntersection, IntersectionType& intersectionType)
+DEVICE_CODE bool checkIntersection(Graph* graph, Edge& edge1, Edge& edge2, vml_vec2& intersection)
 {
-	closestIntersectionDistance = FLT_MAX;
-	intersectionType = NONE;
-
-	for (int i = start; i < graph->numEdges; i++)
+	// avoid intersecting parent or sibling
+	if (edge1.source == edge2.source || 
+		edge1.source == edge2.destination ||
+		edge1.destination == edge2.source ||
+		edge1.destination == edge2.destination)
 	{
-		Edge& edge = graph->edges[i];
+		return false;
+	}
 
-		// avoid intersecting parent or sibling
-		if (edge.destination == sourceIndex || edge.source == sourceIndex)
-		{
-			continue;
-		}
+	vml_vec2 start1 = graph->vertices[edge1.source].getPosition();
+	vml_vec2 end1 = graph->vertices[edge1.destination].getPosition();
 
-		vml_vec2 sourceVertexPosition = graph->vertices[edge.source].getPosition();
-		vml_vec2 destinationVertexPosition = graph->vertices[edge.destination].getPosition();
+	vml_vec2 start2 = graph->vertices[edge2.source].getPosition();
+	vml_vec2 end2 = graph->vertices[edge2.destination].getPosition();
 
-		Line2D edgeLine(sourceVertexPosition, destinationVertexPosition);
+	Line2D edgeLine1(start1, end1);
+	Line2D edgeLine2(start2, end2);
 
-		vml_vec2 intersection;
-		if (newEdgeLine.intersects(edgeLine, intersection))
-		{
-			float distance = vml_distance(newEdgeLine.getStart(), intersection);
-
-			if (distance < closestIntersectionDistance)
-			{
-				if (vml_distance(sourceVertexPosition, intersection) <= graph->snapRadius)
-				{
-					intersection = sourceVertexPosition;
-					intersectionType = SOURCE;
-				}
-
-				else if (vml_distance(destinationVertexPosition, intersection) <= graph->snapRadius)
-				{
-					intersection = destinationVertexPosition;
-					intersectionType = DESTINATION;
-				}
-
-				else
-				{
-					intersectionType = EDGE;
-				}
-
-				closestIntersectionDistance = distance;
-				closestIntersection = intersection;
-				edgeIndex = i;
-				start = i;
-			}
-		}
+	if (edgeLine1.intersects(edgeLine2, intersection))
+	{
+		return true;
+	}
 
 #ifdef COLLECT_STATISTICS
 	ATOMIC_ADD(graph->numCollisionChecks, unsigned int, 1);
 #endif
-	}
 
-	return (intersectionType != NONE);
+	return false;
 }
 
 //////////////////////////////////////////////////////////////////////////
-DEVICE_CODE bool checkIntersection(Graph* graph, const Line2D& newEdgeLine, int* edgesList, unsigned int edgesListSize, unsigned int& start, int sourceIndex, int& edgeIndex, float& closestIntersectionDistance, vml_vec2& closestIntersection, IntersectionType& intersectionType)
+DEVICE_CODE bool checkIntersectionWithBoundaries(Graph* graph, const Line2D& newEdgeLine, Primitive& primitive, unsigned int& start, int sourceIndex, int& edgeIndex, float& closestIntersectionDistance, vml_vec2& closestIntersection, IntersectionType& intersectionType)
 {
 	closestIntersectionDistance = FLT_MAX;
 	intersectionType = NONE;
 
-	for (unsigned int i = start; i < edgesListSize; i++)
+	for (unsigned int i = start; i < primitive.numEdges; i++)
 	{
-		int edgeIndex1 = edgesList[i];
+		int edgeIndex1 = primitive.edges[i];
 		Edge& edge = graph->edges[edgeIndex1];
 
 		// avoid intersecting parent or sibling
@@ -514,10 +494,10 @@ DEVICE_CODE bool checkIntersection(Graph* graph, const Line2D& newEdgeLine, int*
 			continue;
 		}
 
-		vml_vec2 sourceVertexPosition = graph->vertices[edge.source].getPosition();
-		vml_vec2 destinationVertexPosition = graph->vertices[edge.destination].getPosition();
+		vml_vec2 start2 = graph->vertices[edge.source].getPosition();
+		vml_vec2 end2 = graph->vertices[edge.destination].getPosition();
 
-		Line2D edgeLine(sourceVertexPosition, destinationVertexPosition);
+		Line2D edgeLine(start2, end2);
 
 		vml_vec2 intersection;
 		if (newEdgeLine.intersects(edgeLine, intersection))
@@ -526,21 +506,37 @@ DEVICE_CODE bool checkIntersection(Graph* graph, const Line2D& newEdgeLine, int*
 
 			if (distance < closestIntersectionDistance)
 			{
-				if (vml_distance(sourceVertexPosition, intersection) <= graph->snapRadius)
+				if (vml_distance(start2, intersection) <= graph->snapRadius)
 				{
-					intersection = sourceVertexPosition;
-					intersectionType = SOURCE;
+					if (vml_distance(newEdgeLine.getStart(), intersection) > vml_distance(newEdgeLine.getEnd(), intersection))
+					{
+						intersectionType = SOURCE_SOURCE_SNAPPING;
+					}
+					else
+					{
+						intersectionType = DESTINATION_SOURCE_SNAPPING;
+					}
+
+					intersection = start2;
 				}
 
-				else if (vml_distance(destinationVertexPosition, intersection) <= graph->snapRadius)
+				else if (vml_distance(end2, intersection) <= graph->snapRadius)
 				{
-					intersection = destinationVertexPosition;
-					intersectionType = DESTINATION;
+					if (vml_distance(newEdgeLine.getStart(), intersection) > vml_distance(newEdgeLine.getEnd(), intersection))
+					{
+						intersectionType = SOURCE_DESTINATION_SNAPPING;
+					}
+					else
+					{
+						intersectionType = DESTINATION_DESTINATION_SNAPPING;
+					}
+
+					intersection = end2;
 				}
 
 				else
 				{
-					intersectionType = EDGE;
+					intersectionType = EDGE_INTERSECTION;
 				}
 
 				closestIntersectionDistance = distance;
@@ -558,227 +554,18 @@ DEVICE_CODE bool checkIntersection(Graph* graph, const Line2D& newEdgeLine, int*
 	return (intersectionType != NONE);
 }
 
-#ifdef USE_QUADTREE
 //////////////////////////////////////////////////////////////////////////
-DEVICE_CODE bool checkIntersection(Graph* graph, const Line2D& newEdgeLine, QueryResults& queryResults, unsigned int& start1, unsigned int& start2, int sourceIndex, int& edgeIndex, float& closestIntersectionDistance, vml_vec2& closestIntersection, IntersectionType& intersectionType)
-{
-	closestIntersectionDistance = FLT_MAX;
-	intersectionType = NONE;
-
-	for (unsigned int i = start1; i < queryResults.numResults; i++)
-	{
-		QuadrantEdges& quadrantEdges = graph->quadtree->quadrantsEdges[queryResults.results[i]];
-		for (unsigned int j = start2; j < quadrantEdges.lastEdgeIndex; j++)
-		{
-			int edgeIndex1 = quadrantEdges.edges[j];
-			Edge& edge = graph->edges[edgeIndex1];
-
-			// avoid intersecting parent or sibling
-			if (edge.destination == sourceIndex || edge.source == sourceIndex)
-			{
-				continue;
-			}
-
-			vml_vec2 sourceVertexPosition = graph->vertices[edge.source].getPosition();
-			vml_vec2 destinationVertexPosition = graph->vertices[edge.destination].getPosition();
-
-			Line2D edgeLine(sourceVertexPosition, destinationVertexPosition);
-
-			vml_vec2 intersection;
-			if (newEdgeLine.intersects(edgeLine, intersection))
-			{
-				float distance = vml_distance(newEdgeLine.getStart(), intersection);
-
-				if (distance < closestIntersectionDistance)
-				{
-					if (vml_distance(sourceVertexPosition, intersection) <= graph->snapRadius)
-					{
-						intersection = sourceVertexPosition;
-						intersectionType = SOURCE;
-					}
-
-					else if (vml_distance(destinationVertexPosition, intersection) <= graph->snapRadius)
-					{
-						intersection = destinationVertexPosition;
-						intersectionType = DESTINATION;
-					}
-
-					else
-					{
-						intersectionType = EDGE;
-					}
-
-					closestIntersectionDistance = distance;
-					closestIntersection = intersection;
-					edgeIndex = edgeIndex1;
-					start1 = i;
-					start2 = j;
-				}
-			}
-
-#ifdef COLLECT_STATISTICS
-			ATOMIC_ADD(graph->numCollisionChecks, unsigned int, 1);
-#endif
-		}
-	}
-
-	return (intersectionType != NONE);
-}
-
-//////////////////////////////////////////////////////////////////////////
-DEVICE_CODE bool addHighway(Graph* graph, int sourceIndex, const vml_vec2& direction, int& destinationIndex, vml_vec2& end)
+DEVICE_CODE void addHighway(Graph* graph, int sourceIndex, const vml_vec2& direction, int& destinationIndex, vml_vec2& end)
 {
 	vml_vec2 start = graph->vertices[sourceIndex].getPosition();
 	end = start + direction;
-	Line2D newEdgeLine(start, end);
-
-	QueryResults queryResults;
-	query(graph->quadtree, newEdgeLine, queryResults);
-
-	int edgeIndex;
-	float closestIntersectionDistance;
-	vml_vec2 closestIntersection;
-	IntersectionType intersectionType;
-	bool tryAgain = false;
-	bool intersected = false;
-	unsigned int i = 0;
-	unsigned int j = 0;
-	do
+	destinationIndex = createVertex(graph, end);
+	if (connect(graph, sourceIndex, destinationIndex, 1) == -1)
 	{
-		if (checkIntersection(graph, newEdgeLine, queryResults, i, j, sourceIndex, edgeIndex, closestIntersectionDistance, closestIntersection, intersectionType))
-		{
-			Edge& edge = graph->edges[edgeIndex];
-			if (ATOMIC_EXCH(edge.owner, int, THREAD_IDX_X) == -1)
-			{
-				end = closestIntersection;
-
-				if (intersectionType == SOURCE)
-				{
-					destinationIndex = edge.source;
-					connect(graph, sourceIndex, destinationIndex, 1);
-				}
-
-				else if (intersectionType == DESTINATION)
-				{
-					destinationIndex = edge.destination;
-					connect(graph, sourceIndex, destinationIndex, 1);
-				}
-
-				else if (intersectionType == EDGE)
-				{
-					destinationIndex = createVertex(graph, end);
-					splitEdge(graph, edge, destinationIndex);
-					if (connect(graph, sourceIndex, destinationIndex, 1) == -1)
-					{
-						// FIXME: checking invariants
-						THROW_EXCEPTION("unexpected situation");
-					}
-				}
-
-				else
-				{
-					// FIXME: checking invariants
-					THROW_EXCEPTION("unknown intersection type");
-				}
-
-				intersected = true;
-				tryAgain = false;
-				ATOMIC_EXCH(edge.owner, int, -1);
-			}
-			else
-			{
-				tryAgain = true;
-			} // atomicExch if-else
-		} // check intersection if
-	} while (tryAgain); // critical-section do-while
-
-	if (intersected)
-	{
-		return true;
-	}
-	else 
-	{
-		destinationIndex = createVertex(graph, end);
-		connect(graph, sourceIndex, destinationIndex, 1);
-		return false;
+		// FIXME: checking invariants
+		THROW_EXCEPTION("connect(..) == -1");
 	}
 }
-#else
-//////////////////////////////////////////////////////////////////////////
-DEVICE_CODE bool addHighway(Graph* graph, int sourceIndex, const vml_vec2& direction, int& destinationIndex, vml_vec2& end)
-{
-	vml_vec2 start = graph->vertices[sourceIndex].getPosition();
-	end = start + direction;
-	Line2D newEdgeLine(start, end);
-
-	int edgeIndex;
-	float closestIntersectionDistance;
-	vml_vec2 closestIntersection;
-	IntersectionType intersectionType;
-	bool intersected = false;
-	bool tryAgain = false;
-	int i = 0;
-	do
-	{
-		if (checkIntersection(graph, newEdgeLine, i, sourceIndex, edgeIndex, closestIntersectionDistance, closestIntersection, intersectionType))
-		{
-			Edge& edge = graph->edges[edgeIndex];
-			if (ATOMIC_EXCH(edge.owner, int, THREAD_IDX_X) == -1)
-			{
-				end = closestIntersection;
-
-				if (intersectionType == SOURCE)
-				{
-					destinationIndex = edge.source;
-					connect(graph, sourceIndex, destinationIndex, 1);
-				}
-
-				else if (intersectionType == DESTINATION)
-				{
-					destinationIndex = edge.destination;
-					connect(graph, sourceIndex, destinationIndex, 1);
-				}
-
-				else if (intersectionType == EDGE)
-				{
-					destinationIndex = createVertex(graph, end);
-					splitEdge(graph, edge, destinationIndex);
-					if (connect(graph, sourceIndex, destinationIndex, 1) == -1)
-					{
-						// FIXME: checking invariants
-						THROW_EXCEPTION("unexpected situation");
-					}
-				}
-
-				else
-				{
-					// FIXME: checking invariants
-					THROW_EXCEPTION("unknown intersection type");
-				}
-
-				intersected = true;
-				tryAgain = false;
-				ATOMIC_EXCH(edge.owner, int, -1);
-			}
-			else
-			{
-				tryAgain = true;
-			} // atomicExch if-else
-		} // check intersection if
-	} while (tryAgain); // critical-section do-while
-
-	if (intersected)
-	{
-		return true;
-	}
-	else 
-	{
-		destinationIndex = createVertex(graph, end);
-		connect(graph, sourceIndex, destinationIndex, 1);
-		return false;
-	}
-}
-#endif
 
 //////////////////////////////////////////////////////////////////////////
 DEVICE_CODE bool addStreet(Graph* graph, Primitive* primitives, int sourceIndex, const vml_vec2& direction, int boundsIndex, int& destinationIndex, vml_vec2& end)
@@ -786,8 +573,8 @@ DEVICE_CODE bool addStreet(Graph* graph, Primitive* primitives, int sourceIndex,
 	vml_vec2 start = graph->vertices[sourceIndex].getPosition();
 	end = start + direction;
 	Line2D newEdgeLine(start, end);
-	
-	int edgeIndex;
+
+	int boundaryEdgeIndex;
 	float closestIntersectionDistance;
 	vml_vec2 closestIntersection;
 	IntersectionType intersectionType;
@@ -797,29 +584,35 @@ DEVICE_CODE bool addStreet(Graph* graph, Primitive* primitives, int sourceIndex,
 	Primitive& bounds = primitives[boundsIndex];
 	do
 	{
-		if (checkIntersection(graph, newEdgeLine, (int*)bounds.edges, (unsigned int)bounds.numEdges, i, sourceIndex, edgeIndex, closestIntersectionDistance, closestIntersection, intersectionType))
+		if (checkIntersectionWithBoundaries(graph, newEdgeLine, bounds, i, sourceIndex, boundaryEdgeIndex, closestIntersectionDistance, closestIntersection, intersectionType))
 		{
-			Edge& edge = graph->edges[edgeIndex];
-			if (ATOMIC_EXCH(edge.owner, int, THREAD_IDX_X) == -1)
+			Edge& boundaryEdge = graph->edges[boundaryEdgeIndex];
+			if (ATOMIC_EXCH(boundaryEdge.owner, int, THREAD_IDX_X) == -1)
 			{
 				end = closestIntersection;
 
-				if (intersectionType == SOURCE)
+				if (intersectionType == SOURCE_SOURCE_SNAPPING || intersectionType == SOURCE_DESTINATION_SNAPPING)
 				{
-					destinationIndex = edge.source;
+					destinationIndex = boundaryEdge.source;
 					connect(graph, sourceIndex, destinationIndex, 0);
 				}
 
-				else if (intersectionType == DESTINATION)
+				else if (intersectionType == DESTINATION_SOURCE_SNAPPING)
 				{
-					destinationIndex = edge.destination;
+					destinationIndex = boundaryEdge.source;
 					connect(graph, sourceIndex, destinationIndex, 0);
 				}
 
-				else if (intersectionType == EDGE)
+				else if (intersectionType == DESTINATION_DESTINATION_SNAPPING)
+				{
+					destinationIndex = boundaryEdge.destination;
+					connect(graph, sourceIndex, destinationIndex, 0);
+				}
+
+				else if (intersectionType == EDGE_INTERSECTION)
 				{
 					destinationIndex = createVertex(graph, end);
-					int newEdgeIndex = splitEdge(graph, edge, destinationIndex);
+					int newEdgeIndex = splitEdge(graph, boundaryEdge, destinationIndex);
 					if (connect(graph, sourceIndex, destinationIndex, 0) == -1)
 					{
 						// FIXME: checking invariants
@@ -828,10 +621,10 @@ DEVICE_CODE bool addStreet(Graph* graph, Primitive* primitives, int sourceIndex,
 
 					// update bounds edges and vertices
 					Edge& newEdge = graph->edges[newEdgeIndex];
-					newEdge.numPrimitives = edge.numPrimitives;
-					for (unsigned j = 0; j < edge.numPrimitives; j++)
+					newEdge.numPrimitives = boundaryEdge.numPrimitives;
+					for (unsigned j = 0; j < boundaryEdge.numPrimitives; j++)
 					{
-						unsigned int primitiveIndex = edge.primitives[j];
+						unsigned int primitiveIndex = boundaryEdge.primitives[j];
 						newEdge.primitives[j] = primitiveIndex;
 						Primitive& primitive = primitives[primitiveIndex];
 
@@ -865,7 +658,7 @@ DEVICE_CODE bool addStreet(Graph* graph, Primitive* primitives, int sourceIndex,
 
 				intersected = true;
 				tryAgain = false;
-				ATOMIC_EXCH(edge.owner, int, -1);
+				ATOMIC_EXCH(boundaryEdge.owner, int, -1);
 			}
 			else
 			{

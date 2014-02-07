@@ -78,6 +78,12 @@ inline HOST_AND_DEVICE_CODE T min(T a, T b)
 	return (a < b) ? a : b;
 }
 
+template<typename T>
+inline HOST_AND_DEVICE_CODE T pow(T a, T b)
+{
+	return (T)::pow((double)a, (double)b);
+}
+
 inline HOST_AND_DEVICE_CODE vml_vec2 min(vml_vec2 a, vml_vec2 b)
 {
 	return vml_vec2(min(a.x, b.x), min(a.y, b.y));

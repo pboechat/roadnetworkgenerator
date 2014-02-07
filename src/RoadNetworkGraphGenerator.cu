@@ -46,8 +46,12 @@
 #ifdef USE_CUDA
 #include <cutil.h>
 #include <cutil_timer.h>
-#define NUM_BLOCKS 3
-#define NUM_THREADS 512
+#define NUM_EXPANSION_KERNEL_BLOCKS 9
+#define NUM_EXPANSION_KERNEL_THREADS 128
+#ifdef USE_QUADTREE
+#define NUM_EXPANSION_KERNEL_BLOCKS_PER_QUADRANT 2
+#define NUM_COALESCENCE_KERNEL_THREADS 128
+#endif
 #define SAFE_MALLOC_ON_DEVICE(__variable, __type, __amount) cudaCheckedCall(cudaMalloc((void**)&__variable, sizeof(__type) * __amount))
 #define SAFE_FREE_ON_DEVICE(__variable) cudaCheckedCall(cudaFree(__variable))
 #define MEMCPY_HOST_TO_DEVICE(__destination, __source, __size) cudaCheckedCall(cudaMemcpy(__destination, __source, __size, cudaMemcpyHostToDevice))
@@ -300,6 +304,7 @@ void RoadNetworkGraphGenerator::execute()
 	CREATE_GPU_TIMER(PrimaryRoadNetworkExpansion);
 	CREATE_GPU_TIMER(SecondaryRoadNetworkExpansion);
 	CREATE_GPU_TIMER(GraphMemoryCopy_GpuToCpu);
+	CREATE_GPU_TIMER(Coalescence);
 	CREATE_CPU_TIMER(PrimitivesExtraction);
 
 	allocateAndInitializeImageMap(populationDensity, PopulationDensity);
@@ -415,6 +420,17 @@ void RoadNetworkGraphGenerator::execute()
 	float elapsedTime;
 	GET_GPU_TIMER_ELAPSED_TIME(PrimaryRoadNetworkExpansion, elapsedTime);
 	std::cout << "Primary Road Network Expansion: " << elapsedTime << " (ms)" << std::endl;
+
+#ifdef USE_QUADTREE
+	START_GPU_TIMER(Coalescence);
+
+	coalesce();
+
+	STOP_GPU_TIMER(Coalescence);
+#endif
+
+	GET_GPU_TIMER_ELAPSED_TIME(Coalescence, elapsedTime);
+	std::cout << "Coalescence: " << elapsedTime << " (ms)" << std::endl;
 
 	START_GPU_TIMER(GraphMemoryCopy_GpuToCpu);
 
@@ -588,6 +604,53 @@ void RoadNetworkGraphGenerator::execute()
 	DESTROY_CPU_TIMER(PrimitivesExtraction);
 }
 
+//////////////////////////////////////////////////////////////////////////
+DEVICE_CODE void coalesceEdges(Graph* graph, QuadrantEdges* quadrantEdges)
+{
+	unsigned int i = THREAD_IDX_X;
+	while (i < quadrantEdges->lastEdgeIndex)
+	{
+		Edge& thisEdge = graph->edges[quadrantEdges->edges[i]];
+
+		bool tryAgain = false;
+		unsigned int j = 0;
+		do
+		{
+			for (; j < quadrantEdges->lastEdgeIndex; j++)
+			{
+				if (j == i)
+				{
+					continue;
+				}
+
+				Edge& otherEdge = graph->edges[quadrantEdges->edges[j]];
+
+				if (ATOMIC_EXCH(otherEdge.owner, int, THREAD_IDX_X) == -1)
+				{
+					vml_vec2 intersection;
+					if (checkIntersection(graph, thisEdge, otherEdge, intersection))
+					{
+						int newVertexIndex = createVertex(graph, intersection);
+						splitEdge(graph, otherEdge, newVertexIndex);
+						// TODO: unsafe!!!
+						splitEdge(graph, thisEdge, newVertexIndex);
+					}
+					
+					tryAgain = false;
+					ATOMIC_EXCH(otherEdge.owner, int, -1);
+				}
+				else
+				{
+					tryAgain = true;
+					break;
+				}
+			}
+		} while (tryAgain);
+
+		i += BLOCK_DIM_X;
+	}
+}
+
 #ifdef USE_CUDA
 //////////////////////////////////////////////////////////////////////////
 __device__ volatile int g_dCounterLevel1;
@@ -597,25 +660,13 @@ __device__ volatile int g_dCounterLevel2;
 __device__ volatile int g_dCounterLevel3;
 
 //////////////////////////////////////////////////////////////////////////
-__global__ void initializeKernel()
+__global__ void initializeCounters()
 {
 	g_dCounterLevel1 = g_dCounterLevel2 = g_dCounterLevel3 = 0;
 }
 
 //////////////////////////////////////////////////////////////////////////
-__global__ void gpuKernel(unsigned int numDerivations, WorkQueue* workQueues1, WorkQueue* workQueues2, unsigned int startingQueue, unsigned int numQueues, Context* context);
-
-//////////////////////////////////////////////////////////////////////////
-void RoadNetworkGraphGenerator::expand(unsigned int numDerivations, unsigned int startingQueue, unsigned int numQueues)
-{
-	initializeKernel<<<1, 1>>>();
-	cudaCheckError();
-	gpuKernel<<<NUM_BLOCKS, NUM_THREADS>>>(numDerivations, g_dWorkQueues1, g_dWorkQueues2, startingQueue, numQueues, g_dContext);
-	cudaCheckError();
-}
-
-//////////////////////////////////////////////////////////////////////////
-__global__ void gpuKernel(unsigned int numDerivations, WorkQueue* workQueues1, WorkQueue* workQueues2, unsigned int startingQueue, unsigned int numQueues, Context* context)
+__global__ void expansionKernel(unsigned int numDerivations, WorkQueue* workQueues1, WorkQueue* workQueues2, unsigned int startingQueue, unsigned int numQueues, Context* context)
 {
 	__shared__ WorkQueue* frontQueues;
 	__shared__ WorkQueue* backQueues;
@@ -647,7 +698,7 @@ __global__ void gpuKernel(unsigned int numDerivations, WorkQueue* workQueues1, W
 				atomicAdd((int*)&g_dCounterLevel3, 1);
 				run = 1;
 			}
-		
+
 			__syncthreads();
 
 			while (run > 0)
@@ -757,7 +808,7 @@ __global__ void gpuKernel(unsigned int numDerivations, WorkQueue* workQueues1, W
 			{
 				atomicSub((int*)&g_dCounterLevel1, 1);
 			}
-			
+
 			if (g_dCounterLevel1 == 0)
 			{
 				derivation++;
@@ -775,18 +826,44 @@ __global__ void gpuKernel(unsigned int numDerivations, WorkQueue* workQueues1, W
 		__syncthreads();
 	}
 }
-#else
-//////////////////////////////////////////////////////////////////////////
-void cpuKernel(unsigned int numDerivations, WorkQueue* workQueues1, WorkQueue* workQueues2, unsigned int startingQueue, unsigned int numQueues, Context* context);
 
 //////////////////////////////////////////////////////////////////////////
 void RoadNetworkGraphGenerator::expand(unsigned int numDerivations, unsigned int startingQueue, unsigned int numQueues)
 {
-	cpuKernel(numDerivations, g_dWorkQueues1, g_dWorkQueues2, startingQueue, numQueues, g_dContext);
+	initializeCounters<<<1, 1>>>();
+	cudaCheckError();
+	expansionKernel<<<NUM_EXPANSION_KERNEL_BLOCKS, NUM_EXPANSION_KERNEL_THREADS>>>(numDerivations, g_dWorkQueues1, g_dWorkQueues2, startingQueue, numQueues, g_dContext);
+	cudaCheckError();
+}
+
+#ifdef USE_QUADTREE
+//////////////////////////////////////////////////////////////////////////
+__global__ void coalescenceKernel(Graph* graph)
+{
+	__shared__ QuadrantEdges* quadrantEdges;
+
+	if (threadIdx.x == 0)
+	{
+		quadrantEdges = &graph->quadtree->quadrantsEdges[blockIdx.x % graph->quadtree->numLeafQuadrants];
+	}
+
+	__syncthreads();
+
+	coalesceEdges(graph, quadrantEdges);
 }
 
 //////////////////////////////////////////////////////////////////////////
-void cpuKernel(unsigned int numDerivations, WorkQueue* workQueues1, WorkQueue* workQueues2, unsigned int startingQueue, unsigned int numQueues, Context* context)
+void RoadNetworkGraphGenerator::coalesce()
+{
+	unsigned int numBlocks = MathExtras::pow(4u, configuration.quadtreeDepth) * NUM_EXPANSION_KERNEL_BLOCKS_PER_QUADRANT;
+	coalescenceKernel<<<numBlocks, NUM_COALESCENCE_KERNEL_THREADS>>>(g_dGraph);
+	cudaCheckError();
+}
+#endif
+
+#else
+//////////////////////////////////////////////////////////////////////////
+void expansionKernel(unsigned int numDerivations, WorkQueue* workQueues1, WorkQueue* workQueues2, unsigned int startingQueue, unsigned int numQueues, Context* context)
 {
 	unsigned int derivations = 0;
 	WorkQueue* frontQueues = workQueues1;
@@ -869,4 +946,29 @@ void cpuKernel(unsigned int numDerivations, WorkQueue* workQueues1, WorkQueue* w
 		derivations++;
 	}
 }
+
+//////////////////////////////////////////////////////////////////////////
+void RoadNetworkGraphGenerator::expand(unsigned int numDerivations, unsigned int startingQueue, unsigned int numQueues)
+{
+	expansionKernel(numDerivations, g_dWorkQueues1, g_dWorkQueues2, startingQueue, numQueues, g_dContext);
+}
+
+#ifdef USE_QUADTREE
+//////////////////////////////////////////////////////////////////////////
+void coalescenceKernel(Graph* graph)
+{
+	QuadTree* quadtree = graph->quadtree;
+	for (unsigned int i = 0; i < quadtree->numLeafQuadrants; i++)
+	{
+		coalesceEdges(graph, &quadtree->quadrantsEdges[i]);
+	}
+}
+
+//////////////////////////////////////////////////////////////////////////
+void RoadNetworkGraphGenerator::coalesce()
+{
+	coalescenceKernel(g_dGraph);
+}
+#endif
+
 #endif

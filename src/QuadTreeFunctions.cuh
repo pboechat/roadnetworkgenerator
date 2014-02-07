@@ -147,16 +147,16 @@ DEVICE_CODE void insert(QuadTree* quadtree, int edgeIndex, const Line2D& edgeLin
 					THROW_EXCEPTION("quadrant.edges == -1");
 				}
 
-				QuadrantEdges* quadrantEdges = &quadtree->quadrantsEdges[quadrant.edges];
+				QuadrantEdges& quadrantEdges = quadtree->quadrantsEdges[quadrant.edges];
+
+				unsigned int i = ATOMIC_ADD(quadrantEdges.lastEdgeIndex, unsigned int, 1);
+				quadrantEdges.edges[i] = edgeIndex;
 
 				// FIXME: checking boundaries
-				if (quadrantEdges->lastEdgeIndex >= MAX_EDGES_PER_QUADRANT)
+				if (quadrantEdges.lastEdgeIndex >= MAX_EDGES_PER_QUADRANT)
 				{
 					THROW_EXCEPTION("max. edges per quadrant overflow");
 				}
-
-				unsigned int i = ATOMIC_ADD(quadrantEdges->lastEdgeIndex, unsigned int, 1);
-				quadrantEdges->edges[i] = edgeIndex;
 
 #ifdef COLLECT_STATISTICS
 				ATOMIC_MAX(quadtree->maxEdgesPerQuadrantInUse, unsigned int, quadrantEdges->lastEdgeIndex);

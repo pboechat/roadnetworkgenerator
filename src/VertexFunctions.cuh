@@ -28,6 +28,28 @@ DEVICE_CODE void replaceInEdge(Vertex& vertex, int oldInEdgeIndex, int newInEdge
 }
 
 //////////////////////////////////////////////////////////////////////////
+DEVICE_CODE void replaceOutEdge(Vertex& vertex, int oldOutEdgeIndex, int newOutEdgeIndex)
+{
+	bool found = false;
+
+	for (unsigned int i = 0; i < vertex.numOuts; i++)
+	{
+		if (vertex.outs[i] == oldOutEdgeIndex)
+		{
+			vertex.ins[i] = newOutEdgeIndex;
+			found = true;
+			break;
+		}
+	}
+
+	// FIXME: checking invariants
+	if (!found)
+	{
+		THROW_EXCEPTION("!found");
+	}
+}
+
+//////////////////////////////////////////////////////////////////////////
 DEVICE_CODE void replaceAdjacency(Vertex& vertex, int oldAdjacentVertexIndex, int newAdjacentVertexIndex)
 {
 	// FIXME:

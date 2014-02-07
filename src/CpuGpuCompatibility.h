@@ -17,6 +17,7 @@
 #define HOST_AND_DEVICE_CODE __host__ __device__
 	#ifdef __CUDA_ARCH__
 		#define THREAD_IDX_X threadIdx.x
+		#define BLOCK_DIM_X blockDim.x
 		#define THROW_EXCEPTION(__message) \
 			printf("%s (@%s, %d)\n", __message, __FILE__, __LINE__); \
 			asm("trap;")
@@ -48,7 +49,8 @@
 			*variable = (tmp < value) ? value : tmp;
 			return tmp;
 		}
-		#define THREAD_IDX_X 1
+		#define THREAD_IDX_X 0
+		#define BLOCK_DIM_X 1
 		#define THROW_EXCEPTION(__message) \
 			{ \
 				std::stringstream stringStream; \
@@ -92,6 +94,7 @@ inline T atomicMaxMock(T* variable, T value)
 #define GLOBAL_CODE
 #define HOST_AND_DEVICE_CODE
 #define THREAD_IDX_X 0
+#define BLOCK_DIM_X 1
 #define THROW_EXCEPTION(__message) \
 	{ \
 		std::stringstream stringStream; \

@@ -120,7 +120,6 @@ struct Box2D
 			return true;
 		}
 		
-		
 		Line2D AB(a, b);
 		Line2D BC(b, c);
 		Line2D CD(c, d);
