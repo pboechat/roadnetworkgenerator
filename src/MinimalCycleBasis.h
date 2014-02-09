@@ -6,28 +6,19 @@
 #include <BaseGraph.h>
 #include <Primitive.h>
 #include <VectorMath.h>
-#include <SortedSet.h>
 #include <Array.h>
 #include <BaseGraphFunctions.cuh>
+#include <algorithm>
+#include <list>
+#include <set>
+#include <vector>
 
 //////////////////////////////////////////////////////////////////////////
-int* g_heapBuffer = 0;
+void extractIsolatedVertex(std::list<int>& heap, Array<Primitive>& primitives, Vertex* v0);
 //////////////////////////////////////////////////////////////////////////
-unsigned int g_heapBufferSize = 0;
+void extractFilament(BaseGraph* graph, std::list<int>& heap, Array<Primitive>& primitives, Vertex* v0, Vertex* v1, int edgeIndex);
 //////////////////////////////////////////////////////////////////////////
-int* g_sequenceBuffer = 0;
-//////////////////////////////////////////////////////////////////////////
-unsigned int g_sequenceBufferSize = 0;
-//////////////////////////////////////////////////////////////////////////
-int* g_visitedBuffer = 0;
-//////////////////////////////////////////////////////////////////////////
-unsigned int g_visitedBufferSize = 0;
-//////////////////////////////////////////////////////////////////////////
-void extractIsolatedVertex(SortedSet<int>& heap, Array<Primitive>& primitives, Vertex* v0);
-//////////////////////////////////////////////////////////////////////////
-void extractFilament(BaseGraph* graph, SortedSet<int>& heap, Array<Primitive>& primitives, Vertex* v0, Vertex* v1, int edgeIndex);
-//////////////////////////////////////////////////////////////////////////
-void extractPrimitive(BaseGraph* graph, SortedSet<int>& heap, Array<Primitive>& primitives, Vertex* v0);
+void extractPrimitive(BaseGraph* graph, std::list<int>& heap, Array<Primitive>& primitives, Vertex* v0);
 //////////////////////////////////////////////////////////////////////////
 Vertex* getClockwiseMostVertex(BaseGraph* graph, Vertex* previousVertex, Vertex* currentVertex);
 //////////////////////////////////////////////////////////////////////////
@@ -38,64 +29,40 @@ Vertex* getCounterclockwiseMostVertex(BaseGraph* graph, Vertex* previousVertex, 
 #define convex(_v0, _v1) vml_dot_perp(_v0, _v1) >= 0
 
 //////////////////////////////////////////////////////////////////////////
-struct VertexIndexComparer : public SortedSet<int>::Comparer
-{
-	virtual int operator()(const int& i0, const int& i1) const
-	{
-		if (i0 > i1)
-		{
-			return 1;
-		}
-
-		else if (i0 == i1)
-		{
-			return 0;
-		}
-
-		else
-		{
-			return -1;
-		}
-	}
-
-};
-
-//////////////////////////////////////////////////////////////////////////
-struct MinXMinYComparer : public SortedSet<int>::Comparer
+struct MinXMinYComparer
 {
 	MinXMinYComparer(BaseGraph* graph) : graph(graph) {}
 
-	virtual int operator()(const int& i0, const int& i1) const
+	bool operator()(int i0, int i1)
 	{
 		const Vertex& v0 = graph->vertices[i0];
 		const Vertex& v1 = graph->vertices[i1];
 
 		if (v0.getPosition().x > v1.getPosition().x)
 		{
-			return 1;
+			return false;
 		}
 
 		else if (v0.getPosition().x == v1.getPosition().x)
 		{
-			if (v0.getPosition().y == v1.getPosition().y)
+			if (v0.getPosition().y > v1.getPosition().y)
 			{
-				return 0;
+				return false;
 			}
 
-			else if (v0.getPosition().y > v1.getPosition().y)
+			else if (v0.getPosition().y < v1.getPosition().y)
 			{
-				return 1;
+				return true;
 			}
-
 			else
 			{
-				return -1;
+				return i0 < i1;
 			}
 		}
 
 		else
 		{
-			return -1;
+			return true;
 		}
 	}
 
@@ -105,56 +72,22 @@ private:
 };
 
 //////////////////////////////////////////////////////////////////////////
-void freeExtractionBuffers()
-{
-	if (g_heapBuffer != 0)
-	{
-		free(g_heapBuffer);
-		g_heapBuffer = 0;
-		g_heapBufferSize = 0;
-	}
-
-	if (g_sequenceBuffer != 0)
-	{
-		free(g_sequenceBuffer);
-		g_sequenceBuffer = 0;
-		g_sequenceBufferSize = 0;
-	}
-
-	if (g_visitedBuffer != 0)
-	{
-		free(g_visitedBuffer);
-		g_visitedBuffer = 0;
-		g_visitedBufferSize = 0;
-	}
-}
-
-//////////////////////////////////////////////////////////////////////////
-void allocateExtractionBuffers(unsigned int heapBufferSize, unsigned int sequenceBufferSize, unsigned int visitedBufferSize)
-{
-	freeExtractionBuffers();
-	g_heapBufferSize = heapBufferSize;
-	g_sequenceBufferSize = sequenceBufferSize;
-	g_visitedBufferSize = visitedBufferSize;
-	g_heapBuffer = (int*)malloc(sizeof(int) * g_heapBufferSize);
-	g_sequenceBuffer = (int*)malloc(sizeof(int) * g_sequenceBufferSize);
-	g_visitedBuffer = (int*)malloc(sizeof(int) * g_visitedBufferSize);
-}
-
-//////////////////////////////////////////////////////////////////////////
 unsigned int extractPrimitives(BaseGraph* graph, Primitive* primitivesBuffer, unsigned int maxPrimitives)
 {
-	SortedSet<int> heap(g_heapBuffer, g_heapBufferSize, MinXMinYComparer(graph));
+	std::list<int> heap;
 	Array<Primitive> primitives(primitivesBuffer, maxPrimitives);
 
 	for (int vertexIndex = 0; vertexIndex < graph->numVertices; vertexIndex++)
 	{
-		heap.insert(vertexIndex);
+		heap.push_back(vertexIndex);
 	}
+
+	heap.sort(MinXMinYComparer(graph));
 
 	while (heap.size() > 0)
 	{
-		Vertex* v0 = &graph->vertices[heap[0]];
+		int i0 = heap.front();
+		Vertex* v0 = &graph->vertices[i0];
 
 		if (v0->numAdjacencies == 0)
 		{
@@ -178,7 +111,7 @@ unsigned int extractPrimitives(BaseGraph* graph, Primitive* primitivesBuffer, un
 }
 
 //////////////////////////////////////////////////////////////////////////
-void extractIsolatedVertex(SortedSet<int>& heap, Array<Primitive>& primitives, Vertex* v0)
+void extractIsolatedVertex(std::list<int>& heap, Array<Primitive>& primitives, Vertex* v0)
 {
 	Primitive primitive;
 	primitive.type = ISOLATED_VERTEX;
@@ -188,7 +121,7 @@ void extractIsolatedVertex(SortedSet<int>& heap, Array<Primitive>& primitives, V
 }
 
 //////////////////////////////////////////////////////////////////////////
-void extractFilament(BaseGraph* graph, SortedSet<int>& heap, Array<Primitive>& primitives, Vertex* v0, Vertex* v1, int edgeIndex)
+void extractFilament(BaseGraph* graph, std::list<int>& heap, Array<Primitive>& primitives, Vertex* v0, Vertex* v1, int edgeIndex)
 {
 	if (v0->numAdjacencies == 2)
 	{
@@ -273,21 +206,19 @@ void extractFilament(BaseGraph* graph, SortedSet<int>& heap, Array<Primitive>& p
 }
 
 //////////////////////////////////////////////////////////////////////////
-void extractPrimitive(BaseGraph* graph, SortedSet<int>& heap, Array<Primitive>& primitives, Vertex* v0)
+void extractPrimitive(BaseGraph* graph, std::list<int>& heap, Array<Primitive>& primitives, Vertex* v0)
 {
-	//SortedSet<int> visited(g_visitedBuffer, g_visitedBufferSize, VertexIndexComparer());
-	Array<int> visited(g_visitedBuffer, g_visitedBufferSize);
-	Array<int> sequence(g_sequenceBuffer, g_sequenceBufferSize);
+	std::vector<int> visited;
+	std::vector<int> sequence;
 	Vertex* v1 = getClockwiseMostVertex(graph, 0, v0);
 	Vertex* previousVertex = v0;
 	Vertex* currentVertex = v1;
 
-	while (currentVertex != 0 && currentVertex->index != v0->index && visited.indexOf(currentVertex->index) == -1)
+	while (currentVertex != 0 && currentVertex->index != v0->index && std::find(visited.begin(), visited.end(), currentVertex->index) == visited.end())
 	{
 		int edgeIndex = findEdge(graph, previousVertex, currentVertex);
-		sequence.push(edgeIndex);
-		//visited.insert(currentVertex->index);
-		visited.push(currentVertex->index);
+		sequence.push_back(edgeIndex);
+		visited.push_back(currentVertex->index);
 		Vertex* nextVertex = getCounterclockwiseMostVertex(graph, previousVertex, currentVertex);
 		previousVertex = currentVertex;
 		currentVertex = nextVertex;
@@ -313,7 +244,7 @@ void extractPrimitive(BaseGraph* graph, SortedSet<int>& heap, Array<Primitive>& 
 		// minimal cycle found
 		Primitive primitive;
 		primitive.type = MINIMAL_CYCLE;
-		sequence.push(findEdge(graph, previousVertex, currentVertex));
+		sequence.push_back(findEdge(graph, previousVertex, currentVertex));
 
 		for (unsigned int i = 0; i < sequence.size(); i++)
 		{
@@ -323,9 +254,11 @@ void extractPrimitive(BaseGraph* graph, SortedSet<int>& heap, Array<Primitive>& 
 		}
 
 		insertVertex(primitive, currentVertex->getPosition());
-		for (int i = (int)visited.size() - 1; i >= 0; i--)
+		std::vector<int>::reverse_iterator it = visited.rbegin();
+		while (it != visited.rend())
 		{
-			insertVertex(primitive, graph->vertices[visited[i]].getPosition());
+			insertVertex(primitive, graph->vertices[*it].getPosition());
+			it++;
 		}
 
 		removeEdgeReferencesInVertices(graph, v0, v1);

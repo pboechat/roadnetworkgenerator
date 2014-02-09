@@ -11,11 +11,9 @@
 #include <Line2D.h>
 #include <Circle2D.h>
 #include <VectorMath.h>
-#ifdef USE_QUADTREE
 #include <QuadTree.h>
 #include <QueryResults.h>
 #include <QuadTreeFunctions.cuh>
-#endif
 #include <VertexFunctions.cuh>
 #include <Primitive.h>
 #ifdef USE_CUDA
@@ -33,7 +31,6 @@ enum IntersectionType
 	EDGE_INTERSECTION
 };
 
-#ifdef USE_QUADTREE
 //////////////////////////////////////////////////////////////////////////
 GLOBAL_CODE void initializeGraphOnDevice(Graph* graph, float snapRadius, unsigned int maxVertices, unsigned int maxEdges, Vertex* vertices, Edge* edges, QuadTree* quadtree)
 {
@@ -65,40 +62,9 @@ HOST_CODE void initializeGraphOnHost(Graph* graph, float snapRadius, unsigned in
 	graph->numCollisionChecks = 0;
 #endif
 }
-#else
-//////////////////////////////////////////////////////////////////////////
-GLOBAL_CODE void initializeGraphOnDevice(Graph* graph, float snapRadius, unsigned int maxVertices, unsigned int maxEdges, Vertex* vertices, Edge* edges)
-{
-	graph->numVertices = 0;
-	graph->numEdges = 0;
-	graph->vertices = vertices;
-	graph->edges = edges;
-	graph->maxVertices = maxVertices;
-	graph->maxEdges = maxEdges;
-	graph->snapRadius = snapRadius;
-#ifdef COLLECT_STATISTICS
-	graph->numCollisionChecks = 0;
-#endif
-}
 
 //////////////////////////////////////////////////////////////////////////
-HOST_CODE void initializeGraphOnHost(Graph* graph, float snapRadius, unsigned int maxVertices, unsigned int maxEdges, Vertex* vertices, Edge* edges)
-{
-	graph->numVertices = 0;
-	graph->numEdges = 0;
-	graph->vertices = vertices;
-	graph->edges = edges;
-	graph->maxVertices = maxVertices;
-	graph->maxEdges = maxEdges;
-	graph->snapRadius = snapRadius;
-#ifdef COLLECT_STATISTICS
-	graph->numCollisionChecks = 0;
-#endif
-}
-#endif
-
-//////////////////////////////////////////////////////////////////////////
-GLOBAL_CODE void updateNonPointerFields(Graph* graph, unsigned int numVertices, unsigned int numEdges, unsigned int maxVertices, unsigned int maxEdges
+GLOBAL_CODE void updateNonPointerFields(Graph* graph, unsigned int numVertices, unsigned int numEdges
 #ifdef COLLECT_STATISTICS
 	, unsigned long numCollisionChecks
 #endif	
@@ -106,8 +72,6 @@ GLOBAL_CODE void updateNonPointerFields(Graph* graph, unsigned int numVertices, 
 {
 	graph->numVertices = numVertices;
 	graph->numEdges = numEdges;
-	graph->maxVertices = maxVertices;
-	graph->maxEdges = maxEdges;
 #ifdef COLLECT_STATISTICS
 	graph->numCollisionChecks = numCollisionChecks;
 #endif
@@ -205,7 +169,7 @@ __device__ int connect(Graph* graph, int sourceVertexIndex, int destinationVerte
 		oldValue = atomicAdd((int*)&graph->numEdges, numberOfActiveThreads);
 
 		// FIXME: checking boundaries
-		if (graph->numEdges >= (int)graph->maxEdges)
+		if (graph->numEdges > (int)graph->maxEdges)
 		{
 			THROW_EXCEPTION("max. edges overflow");
 		}
@@ -229,7 +193,7 @@ __device__ int connect(Graph* graph, int sourceVertexIndex, int destinationVerte
 	unsigned int lastIndex = atomicAdd((unsigned int*)&sourceVertex.numOuts, 1);
 
 	// FIXME: checking boundaries
-	if (sourceVertex.numOuts >= MAX_VERTEX_OUT_CONNECTIONS)
+	if (sourceVertex.numOuts > MAX_VERTEX_OUT_CONNECTIONS)
 	{
 		THROW_EXCEPTION("max. vertex connections (out) overflow");
 	}
@@ -239,7 +203,7 @@ __device__ int connect(Graph* graph, int sourceVertexIndex, int destinationVerte
 	lastIndex = atomicAdd((unsigned int*)&sourceVertex.numAdjacencies, 1);
 
 	// FIXME: checking boundaries
-	if (sourceVertex.numAdjacencies >= MAX_VERTEX_ADJACENCIES)
+	if (sourceVertex.numAdjacencies > MAX_VERTEX_ADJACENCIES)
 	{
 		THROW_EXCEPTION("max. vertex adjacencies overflow");
 	}
@@ -249,7 +213,7 @@ __device__ int connect(Graph* graph, int sourceVertexIndex, int destinationVerte
 	lastIndex = atomicAdd((unsigned int*)&destinationVertex.numIns, 1);
 
 	// FIXME: checking boundaries
-	if (destinationVertex.numIns >= MAX_VERTEX_IN_CONNECTIONS)
+	if (destinationVertex.numIns > MAX_VERTEX_IN_CONNECTIONS)
 	{
 		THROW_EXCEPTION("max. vertex connections (in) overflow");
 	}
@@ -259,16 +223,14 @@ __device__ int connect(Graph* graph, int sourceVertexIndex, int destinationVerte
 	lastIndex = atomicAdd((unsigned int*)&destinationVertex.numAdjacencies, 1);
 
 	// FIXME: checking boundaries
-	if (destinationVertex.numAdjacencies >= MAX_VERTEX_ADJACENCIES)
+	if (destinationVertex.numAdjacencies > MAX_VERTEX_ADJACENCIES)
 	{
 		THROW_EXCEPTION("max. vertex adjacencies overflow");
 	}
 
 	destinationVertex.adjacencies[lastIndex] = sourceVertexIndex;
 
-#ifdef USE_QUADTREE
 	insert(graph->quadtree, newEdgeIndex, Line2D(sourceVertex.getPosition(), destinationVertex.getPosition()));
-#endif
 
 	return newEdgeIndex;
 }
@@ -292,7 +254,7 @@ DEVICE_CODE int connect(Graph* graph, int sourceVertexIndex, int destinationVert
 	int newEdgeIndex = ATOMIC_ADD(graph->numEdges, int, 1);
 
 	// FIXME: checking boundaries
-	if (graph->numEdges >= (int)graph->maxEdges)
+	if (graph->numEdges > (int)graph->maxEdges)
 	{
 		THROW_EXCEPTION("max. edges overflow");
 	}
@@ -312,7 +274,7 @@ DEVICE_CODE int connect(Graph* graph, int sourceVertexIndex, int destinationVert
 	unsigned int lastIndex = ATOMIC_ADD(sourceVertex.numOuts, unsigned int, 1);
 
 	// FIXME: checking boundaries
-	if (sourceVertex.numOuts >= MAX_VERTEX_OUT_CONNECTIONS)
+	if (sourceVertex.numOuts > MAX_VERTEX_OUT_CONNECTIONS)
 	{
 		THROW_EXCEPTION("max. vertex connections (out) overflow");
 	}
@@ -322,7 +284,7 @@ DEVICE_CODE int connect(Graph* graph, int sourceVertexIndex, int destinationVert
 	lastIndex = ATOMIC_ADD(sourceVertex.numAdjacencies, unsigned int, 1);
 
 	// FIXME: checking boundaries
-	if (sourceVertex.numAdjacencies >= MAX_VERTEX_ADJACENCIES)
+	if (sourceVertex.numAdjacencies > MAX_VERTEX_ADJACENCIES)
 	{
 		THROW_EXCEPTION("max. vertex adjacencies overflow");
 	}
@@ -332,7 +294,7 @@ DEVICE_CODE int connect(Graph* graph, int sourceVertexIndex, int destinationVert
 	lastIndex = ATOMIC_ADD(destinationVertex.numIns, unsigned int, 1);
 
 	// FIXME: checking boundaries
-	if (destinationVertex.numIns >= MAX_VERTEX_IN_CONNECTIONS)
+	if (destinationVertex.numIns > MAX_VERTEX_IN_CONNECTIONS)
 	{
 		THROW_EXCEPTION("max. vertex connections (in) overflow");
 	}
@@ -342,16 +304,14 @@ DEVICE_CODE int connect(Graph* graph, int sourceVertexIndex, int destinationVert
 	lastIndex = ATOMIC_ADD(destinationVertex.numAdjacencies, unsigned int, 1);
 
 	// FIXME: checking boundaries
-	if (destinationVertex.numAdjacencies >= MAX_VERTEX_ADJACENCIES)
+	if (destinationVertex.numAdjacencies > MAX_VERTEX_ADJACENCIES)
 	{
 		THROW_EXCEPTION("max. vertex adjacencies overflow");
 	}
 
 	destinationVertex.adjacencies[lastIndex] = sourceVertexIndex;
 
-#ifdef USE_QUADTREE
 	insert(graph->quadtree, newEdgeIndex, Line2D(sourceVertex.getPosition(), destinationVertex.getPosition()));
-#endif
 
 	return newEdgeIndex;
 }
@@ -437,9 +397,7 @@ DEVICE_CODE int splitEdge(Graph* graph, Edge& edge, int splitVertexIndex)
 
 	splitVertex.adjacencies[lastIndex] = oldDestinationVertexIndex;
 	
-#ifdef USE_QUADTREE
 	insert(graph->quadtree, newEdgeIndex, Line2D(splitVertex.getPosition(), oldDestinationVertex.getPosition()));
-#endif
 
 	return newEdgeIndex;
 }

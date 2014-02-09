@@ -17,9 +17,7 @@ struct Graph : public BaseGraph
 #ifdef COLLECT_STATISTICS
 	volatile unsigned long numCollisionChecks;
 #endif
-#ifdef USE_QUADTREE
 	QuadTree* quadtree;
-#endif
 
 	HOST_AND_DEVICE_CODE Graph() {}
 	HOST_AND_DEVICE_CODE ~Graph() {}

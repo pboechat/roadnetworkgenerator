@@ -63,11 +63,6 @@ if (MSVC)
 	add_definitions(/D "_CRT_SECURE_NO_WARNINGS")
 endif (MSVC)
 
-if (USE_QUADTREE)
-	add_definitions(/D "USE_QUADTREE")
-	set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS};-DUSE_QUADTREE")
-endif(USE_QUADTREE)
-
 add_definitions(/D "USE_GLM")
 set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS};-DUSE_GLM")
 
@@ -75,8 +70,6 @@ if (USE_CUDA)
 	add_definitions(/D "USE_CUDA")
 	set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS};-DUSE_CUDA")
 endif(USE_CUDA)
-
-#message("CUDA_NVCC_FLAGS: ${CUDA_NVCC_FLAGS}")
 
 cuda_add_executable(
 	roadnetworkgenerator

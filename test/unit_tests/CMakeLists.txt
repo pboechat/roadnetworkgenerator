@@ -12,10 +12,6 @@ include_directories(${CMAKE_SOURCE_DIR}/dependencies/glm/include
 					${CMAKE_CURRENT_SOURCE_DIR}
 )
 
-if (USE_QUADTREE)
-	add_definitions(/D "USE_QUADTREE")
-endif(USE_QUADTREE)
-
 add_definitions(/D "USE_GLM")
 
 add_executable(unit_tests ${CPP_SOURCES})

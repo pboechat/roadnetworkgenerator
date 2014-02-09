@@ -14,16 +14,14 @@ namespace RoadNetworkGraph
 #define WORLD_BOUNDS Box2D(vml_vec2(0, 0), vml_vec2(400, 200))
 #define SNAP_RADIUS 0.0f
 #define MAX_VERTICES 28
-#define MAX_EDGES 29
+#define MAX_EDGES 30
 #define MAX_PRIMITIVES 12
 #define HEAP_BUFFER_SIZE 28
 #define SEQUENCE_BUFFER_SIZE 29
 #define VISITED_BUFFER_SIZE 28
-#ifdef USE_QUADTREE
 #define QUADTREE_DEPTH 1
 #define MAX_QUADRANTS 1
 #define MAX_QUADRANT_EDGES 29
-#endif
 
 #define V0_POS vml_vec2(11, 188)
 #define V1_POS vml_vec2(22, 168)
@@ -178,16 +176,11 @@ TEST(minimal_cycle_basis, extract_primitives)
 	QuadTree quadtree;
 	Vertex vertices[MAX_VERTICES];
 	Edge edges[MAX_EDGES];
-#ifdef USE_QUADTREE
 	Quadrant quadrants[MAX_QUADRANTS];
 	QuadrantEdges quadrantEdges[MAX_QUADRANT_EDGES];
 	initializeQuadtreeOnHost(&quadtree, WORLD_BOUNDS, QUADTREE_DEPTH, MAX_QUADRANTS, quadrants, quadrantEdges);
 	initializeGraphOnHost(&graph, SNAP_RADIUS, MAX_VERTICES, MAX_EDGES, vertices, edges, &quadtree);
-#else
-	initializeGraphOnHost(&graph, SNAP_RADIUS, MAX_VERTICES, MAX_EDGES, vertices, edges);
-#endif
 	setUpGraph(&graph);
-	allocateExtractionBuffers(HEAP_BUFFER_SIZE, SEQUENCE_BUFFER_SIZE, VISITED_BUFFER_SIZE);
 	Primitive primitives[MAX_PRIMITIVES];
 	unsigned int numExtractedPrimitives = extractPrimitives(&graph, primitives, MAX_PRIMITIVES);
 	EXPECT_EQ(12, numExtractedPrimitives);
@@ -251,7 +244,6 @@ TEST(minimal_cycle_basis, extract_primitives)
 	EXPECT_EQ(V26_POS, primitives[11].vertices[0]);
 	EXPECT_EQ(V27_POS, primitives[11].vertices[1]);
 	EXPECT_EQ(V25_POS, primitives[11].vertices[2]);
-	freeExtractionBuffers();
 }
 
 }

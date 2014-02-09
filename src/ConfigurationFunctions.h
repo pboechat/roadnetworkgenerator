@@ -197,8 +197,6 @@ void loadFromFile(Configuration& configuration, const std::string& filePath)
 	configuration.quadtreeColor = getPropertyAsVec4(properties, "quadtree_color");
 	configuration.drawLabels = getPropertyAsBool(properties, "draw_labels");
 	configuration.maxPrimitives = getPropertyAsUnsignedInt(properties, "max_primitives");
-	configuration.maxEdgeSequences = getPropertyAsUnsignedInt(properties, "max_edge_sequences");
-	configuration.maxVisitedVertices = getPropertyAsUnsignedInt(properties, "max_visited_vertices");
 	configuration.minBlockArea = getPropertyAsFloat(properties, "min_block_area");
 	configuration.vertexBufferSize = getPropertyAsUnsignedInt(properties, "vertex_buffer_size");
 	configuration.indexBufferSize = getPropertyAsUnsignedInt(properties, "index_buffer_size");

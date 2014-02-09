@@ -55,8 +55,6 @@ struct Configuration
 	unsigned int numSpawnPoints;
 	vml_vec2 spawnPoints[MAX_SPAWN_POINTS];
 	unsigned int maxPrimitives;
-	unsigned int maxEdgeSequences;
-	unsigned int maxVisitedVertices;
 	float minBlockArea;
 	unsigned int vertexBufferSize;
 	unsigned int indexBufferSize;
