@@ -186,64 +186,64 @@ TEST(minimal_cycle_basis, extract_primitives)
 	EXPECT_EQ(12, numExtractedPrimitives);
 	// v6v5v4 (filament)
 	EXPECT_EQ(3, primitives[0].numVertices);
-	EXPECT_EQ(V6_POS, primitives[0].vertices[0]);
-	EXPECT_EQ(V5_POS, primitives[0].vertices[1]);
-	EXPECT_EQ(V4_POS, primitives[0].vertices[2]);
+	EXPECT_EQ(6, primitives[0].vertices[0]);
+	EXPECT_EQ(5, primitives[0].vertices[1]);
+	EXPECT_EQ(4, primitives[0].vertices[2]);
 	// v3v4v2v1 (minimal cycle basis)
 	EXPECT_EQ(4, primitives[1].numVertices);
-	EXPECT_EQ(V3_POS, primitives[1].vertices[0]);
-	EXPECT_EQ(V4_POS, primitives[1].vertices[1]);
-	EXPECT_EQ(V2_POS, primitives[1].vertices[2]);
-	EXPECT_EQ(V1_POS, primitives[1].vertices[3]);
+	EXPECT_EQ(3, primitives[1].vertices[0]);
+	EXPECT_EQ(4, primitives[1].vertices[1]);
+	EXPECT_EQ(2, primitives[1].vertices[2]);
+	EXPECT_EQ(1, primitives[1].vertices[3]);
 	// v0 (isolated vertex)
 	EXPECT_EQ(1, primitives[2].numVertices);
-	EXPECT_EQ(V0_POS, primitives[2].vertices[0]);
+	EXPECT_EQ(0, primitives[2].vertices[0]);
 	// v2v7v11 (filament)
 	EXPECT_EQ(3, primitives[3].numVertices);
-	EXPECT_EQ(V2_POS, primitives[3].vertices[0]);
-	EXPECT_EQ(V7_POS, primitives[3].vertices[1]);
-	EXPECT_EQ(V11_POS, primitives[3].vertices[2]);
+	EXPECT_EQ(2, primitives[3].vertices[0]);
+	EXPECT_EQ(7, primitives[3].vertices[1]);
+	EXPECT_EQ(11, primitives[3].vertices[2]);
 	// v9v10v8 (minimal cycle basis)
 	EXPECT_EQ(3, primitives[4].numVertices);
-	EXPECT_EQ(V9_POS, primitives[4].vertices[0]);
-	EXPECT_EQ(V10_POS, primitives[4].vertices[1]);
-	EXPECT_EQ(V8_POS, primitives[4].vertices[2]);
+	EXPECT_EQ(9, primitives[4].vertices[0]);
+	EXPECT_EQ(10, primitives[4].vertices[1]);
+	EXPECT_EQ(8, primitives[4].vertices[2]);
 	// v11v12v13 (minimal cycle basis)
 	EXPECT_EQ(3, primitives[5].numVertices);
-	EXPECT_EQ(V11_POS, primitives[5].vertices[0]);
-	EXPECT_EQ(V12_POS, primitives[5].vertices[1]);
-	EXPECT_EQ(V13_POS, primitives[5].vertices[2]);
+	EXPECT_EQ(11, primitives[5].vertices[0]);
+	EXPECT_EQ(12, primitives[5].vertices[1]);
+	EXPECT_EQ(13, primitives[5].vertices[2]);
 	// v12v20v19v18v13 (minimal cycle basis)
 	EXPECT_EQ(5, primitives[6].numVertices);
-	EXPECT_EQ(V12_POS, primitives[6].vertices[0]);
-	EXPECT_EQ(V20_POS, primitives[6].vertices[1]);
-	EXPECT_EQ(V19_POS, primitives[6].vertices[2]);
-	EXPECT_EQ(V18_POS, primitives[6].vertices[3]);
-	EXPECT_EQ(V13_POS, primitives[6].vertices[4]);
+	EXPECT_EQ(12, primitives[6].vertices[0]);
+	EXPECT_EQ(20, primitives[6].vertices[1]);
+	EXPECT_EQ(19, primitives[6].vertices[2]);
+	EXPECT_EQ(18, primitives[6].vertices[3]);
+	EXPECT_EQ(13, primitives[6].vertices[4]);
 	// v14v15v16 (filament)
 	EXPECT_EQ(3, primitives[7].numVertices);
-	EXPECT_EQ(V14_POS, primitives[7].vertices[0]);
-	EXPECT_EQ(V15_POS, primitives[7].vertices[1]);
-	EXPECT_EQ(V16_POS, primitives[7].vertices[2]);
+	EXPECT_EQ(14, primitives[7].vertices[0]);
+	EXPECT_EQ(15, primitives[7].vertices[1]);
+	EXPECT_EQ(16, primitives[7].vertices[2]);
 	// v17 (isolated vertex)
 	EXPECT_EQ(1, primitives[8].numVertices);
-	EXPECT_EQ(V17_POS, primitives[8].vertices[0]);
+	EXPECT_EQ(17, primitives[8].vertices[0]);
 	// v19v20v21 (minimal cycle basis)
 	EXPECT_EQ(3, primitives[9].numVertices);
-	EXPECT_EQ(V19_POS, primitives[9].vertices[0]);
-	EXPECT_EQ(V20_POS, primitives[9].vertices[1]);
-	EXPECT_EQ(V21_POS, primitives[9].vertices[2]);
+	EXPECT_EQ(19, primitives[9].vertices[0]);
+	EXPECT_EQ(20, primitives[9].vertices[1]);
+	EXPECT_EQ(21, primitives[9].vertices[2]);
 	// v22v23v24v20 (minimal cycle basis)
 	EXPECT_EQ(4, primitives[10].numVertices);
-	EXPECT_EQ(V22_POS, primitives[10].vertices[0]);
-	EXPECT_EQ(V23_POS, primitives[10].vertices[1]);
-	EXPECT_EQ(V24_POS, primitives[10].vertices[2]);
-	EXPECT_EQ(V20_POS, primitives[10].vertices[3]);
+	EXPECT_EQ(22, primitives[10].vertices[0]);
+	EXPECT_EQ(23, primitives[10].vertices[1]);
+	EXPECT_EQ(24, primitives[10].vertices[2]);
+	EXPECT_EQ(20, primitives[10].vertices[3]);
 	// v26v27v25 (minimal cycle basis)
 	EXPECT_EQ(3, primitives[11].numVertices);
-	EXPECT_EQ(V26_POS, primitives[11].vertices[0]);
-	EXPECT_EQ(V27_POS, primitives[11].vertices[1]);
-	EXPECT_EQ(V25_POS, primitives[11].vertices[2]);
+	EXPECT_EQ(26, primitives[11].vertices[0]);
+	EXPECT_EQ(27, primitives[11].vertices[1]);
+	EXPECT_EQ(25, primitives[11].vertices[2]);
 }
 
 }

@@ -141,9 +141,8 @@ int createVertex(Graph* graph, const vml_vec2& position)
 }
 #endif
 
-#if defined(USE_CUDA) && (CUDA_CC >= 30)
 //////////////////////////////////////////////////////////////////////////
-__device__ int connect(Graph* graph, int sourceVertexIndex, int destinationVertexIndex, char attr1 = 0, char attr2 = 0, char attr3 = 0, char attr4 = 0)
+HOST_AND_DEVICE_CODE int connect(Graph* graph, int sourceVertexIndex, int destinationVertexIndex, char attr1 = 0, char attr2 = 0, char attr3 = 0, char attr4 = 0)
 {
 	Vertex& sourceVertex = graph->vertices[sourceVertexIndex];
 
@@ -158,6 +157,7 @@ __device__ int connect(Graph* graph, int sourceVertexIndex, int destinationVerte
 	
 	Vertex& destinationVertex = graph->vertices[destinationVertexIndex];
 
+#ifdef __CUDA_ARCH__
 	unsigned int mask = __ballot(1);
 	unsigned int numberOfActiveThreads = __popc(mask);
 	int laneId = __popc(lanemask_lt() & mask);
@@ -177,80 +177,8 @@ __device__ int connect(Graph* graph, int sourceVertexIndex, int destinationVerte
 
 	oldValue = __shfl(oldValue, leadingThreadId);
 
-	unsigned int newEdgeIndex = oldValue + laneId;
-
-	Edge& newEdge = graph->edges[newEdgeIndex];
-
-	newEdge.index = newEdgeIndex;
-	newEdge.source = sourceVertexIndex;
-	newEdge.destination = destinationVertexIndex;
-	newEdge.attr1 = attr1;
-	newEdge.attr2 = attr2;
-	newEdge.attr3 = attr3;
-	newEdge.attr4 = attr4;
-	newEdge.owner = -1;
-
-	unsigned int lastIndex = atomicAdd((unsigned int*)&sourceVertex.numOuts, 1);
-
-	// FIXME: checking boundaries
-	if (sourceVertex.numOuts > MAX_VERTEX_OUT_CONNECTIONS)
-	{
-		THROW_EXCEPTION("max. vertex connections (out) overflow");
-	}
-
-	sourceVertex.outs[lastIndex] = newEdgeIndex;
-
-	lastIndex = atomicAdd((unsigned int*)&sourceVertex.numAdjacencies, 1);
-
-	// FIXME: checking boundaries
-	if (sourceVertex.numAdjacencies > MAX_VERTEX_ADJACENCIES)
-	{
-		THROW_EXCEPTION("max. vertex adjacencies overflow");
-	}
-
-	sourceVertex.adjacencies[lastIndex] = destinationVertexIndex;
-
-	lastIndex = atomicAdd((unsigned int*)&destinationVertex.numIns, 1);
-
-	// FIXME: checking boundaries
-	if (destinationVertex.numIns > MAX_VERTEX_IN_CONNECTIONS)
-	{
-		THROW_EXCEPTION("max. vertex connections (in) overflow");
-	}
-
-	destinationVertex.ins[lastIndex] = newEdgeIndex;
-
-	lastIndex = atomicAdd((unsigned int*)&destinationVertex.numAdjacencies, 1);
-
-	// FIXME: checking boundaries
-	if (destinationVertex.numAdjacencies > MAX_VERTEX_ADJACENCIES)
-	{
-		THROW_EXCEPTION("max. vertex adjacencies overflow");
-	}
-
-	destinationVertex.adjacencies[lastIndex] = sourceVertexIndex;
-
-	insert(graph->quadtree, newEdgeIndex, Line2D(sourceVertex.getPosition(), destinationVertex.getPosition()));
-
-	return newEdgeIndex;
-}
+	int newEdgeIndex = oldValue + laneId;
 #else
-//////////////////////////////////////////////////////////////////////////
-DEVICE_CODE int connect(Graph* graph, int sourceVertexIndex, int destinationVertexIndex, char attr1 = 0, char attr2 = 0, char attr3 = 0, char attr4 = 0)
-{
-	Vertex& sourceVertex = graph->vertices[sourceVertexIndex];
-
-	// FIXME: there's no guarantee that a thread that's trying to add an edge A->B will see another thread's attempt to add an edge B->A
-	for (unsigned int i = 0; i < sourceVertex.numAdjacencies; i++)
-	{
-		if (sourceVertex.adjacencies[i] == destinationVertexIndex)
-		{
-			return -1;
-		}
-	}
-	
-	Vertex& destinationVertex = graph->vertices[destinationVertexIndex];
-
 	int newEdgeIndex = ATOMIC_ADD(graph->numEdges, int, 1);
 
 	// FIXME: checking boundaries
@@ -258,6 +186,7 @@ DEVICE_CODE int connect(Graph* graph, int sourceVertexIndex, int destinationVert
 	{
 		THROW_EXCEPTION("max. edges overflow");
 	}
+#endif
 
 	Edge& newEdge = graph->edges[newEdgeIndex];
 
@@ -268,7 +197,6 @@ DEVICE_CODE int connect(Graph* graph, int sourceVertexIndex, int destinationVert
 	newEdge.attr2 = attr2;
 	newEdge.attr3 = attr3;
 	newEdge.attr4 = attr4;
-	newEdge.numPrimitives = 0;
 	newEdge.owner = -1;
 
 	unsigned int lastIndex = ATOMIC_ADD(sourceVertex.numOuts, unsigned int, 1);
@@ -315,7 +243,6 @@ DEVICE_CODE int connect(Graph* graph, int sourceVertexIndex, int destinationVert
 
 	return newEdgeIndex;
 }
-#endif
 
 //////////////////////////////////////////////////////////////////////////
 DEVICE_CODE int splitEdge(Graph* graph, Edge& edge, int splitVertexIndex)
@@ -604,7 +531,7 @@ DEVICE_CODE bool addStreet(Graph* graph, Primitive* primitives, int sourceIndex,
 							THROW_EXCEPTION("max. number of primitive vertices overflow");
 						}
 
-						primitive.vertices[lastIndex] = end;
+						primitive.vertices[lastIndex] = destinationIndex;
 					}
 				}
 

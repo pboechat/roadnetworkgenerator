@@ -20,9 +20,13 @@
 #include <WorkQueue.cuh>
 #include <Timer.h>
 #include <GlobalVariables.cuh>
+#include <PrimitiveFunctions.cuh>
 
 #include <exception>
 #include <memory>
+#include <algorithm>
+#include <vector>
+#include <iterator>
 
 // DEBUG:
 #include <iostream>
@@ -246,15 +250,15 @@ void RoadNetworkGraphGenerator::notifyObservers(Graph* graph, unsigned int numPr
 //////////////////////////////////////////////////////////////////////////
 void RoadNetworkGraphGenerator::copyGraphToDevice(Graph* graph)
 {
-	MEMCPY_HOST_TO_DEVICE(g_dQuadrants, graph->quadtree->quadrants, sizeof(Quadrant) * configuration.maxQuadrants);
-	MEMCPY_HOST_TO_DEVICE(g_dQuadrantsEdges, graph->quadtree->quadrantsEdges, sizeof(QuadrantEdges) * configuration.maxQuadrants);
+	MEMCPY_HOST_TO_DEVICE(g_dQuadrants, graph->quadtree->quadrants, sizeof(Quadrant) * graph->quadtree->totalNumQuadrants);
+	MEMCPY_HOST_TO_DEVICE(g_dQuadrantsEdges, graph->quadtree->quadrantsEdges, sizeof(QuadrantEdges) * graph->quadtree->numLeafQuadrants);
 #ifdef COLLECT_STATISTICS
 	INVOKE_GLOBAL_CODE10(updateNonPointerFields, 1, 1, g_dQuadtree, (int)graph->quadtree->numQuadrantEdges, graph->quadtree->worldBounds, graph->quadtree->maxDepth, graph->quadtree->maxQuadrants, graph->quadtree->totalNumQuadrants, graph->quadtree->numLeafQuadrants, (unsigned long)graph->quadtree->numCollisionChecks, (unsigned int)graph->quadtree->maxEdgesPerQuadrantInUse, (unsigned int)graph->quadtree->maxResultsPerQueryInUse);
 #else
 	INVOKE_GLOBAL_CODE7(updateNonPointerFields, 1, 1, g_dQuadtree, (int)graph->quadtree->numQuadrantEdges, graph->quadtree->worldBounds, graph->quadtree->maxDepth, graph->quadtree->maxQuadrants, graph->quadtree->totalNumQuadrants, graph->quadtree->numLeafQuadrants);
 #endif
-	MEMCPY_HOST_TO_DEVICE(g_dVertices, graph->vertices, sizeof(Vertex) * configuration.maxVertices);
-	MEMCPY_HOST_TO_DEVICE(g_dEdges, graph->edges, sizeof(Edge) * configuration.maxEdges);
+	MEMCPY_HOST_TO_DEVICE(g_dVertices, graph->vertices, sizeof(Vertex) * graph->numVertices);
+	MEMCPY_HOST_TO_DEVICE(g_dEdges, graph->edges, sizeof(Edge) * graph->numEdges);
 #ifdef COLLECT_STATISTICS
 	INVOKE_GLOBAL_CODE4(updateNonPointerFields, 1, 1, g_dGraph, (int)graph->numVertices, (int)graph->numEdges, (unsigned long)graph->numCollisionChecks);
 #else
@@ -288,6 +292,33 @@ void RoadNetworkGraphGenerator::copyGraphToHost(Graph* graph)
 	graph->quadtree = quadtree;
 	graph->vertices = vertices;
 	graph->edges = edges;
+}
+
+//////////////////////////////////////////////////////////////////////////
+void spawnStreetsForPrimitive(const Configuration& configuration, Graph* graph, WorkQueue* workQueues1, Primitive& primitive, unsigned int i)
+{
+	vml_vec2 centroid;
+	float area;
+	getAreaAndCentroid(graph, primitive, area, centroid);
+	if (area < configuration.minBlockArea)
+	{
+		return;
+	}
+
+	std::vector<vml_vec2> convexHull;
+	for (unsigned int k = 0; k < primitive.numVertices; k++)
+	{
+		convexHull.push_back(graph->vertices[primitive.vertices[k]].getPosition());
+	}
+
+	OBB2D obb(convexHull);
+	float angle = vml_angle(obb.axis[1], vml_vec2(0.0f, 1.0f));
+
+	int source = createVertex(graph, centroid);
+	workQueues1[EVALUATE_STREET].unsafePush(Street(0, RoadAttributes(source, configuration.streetLength, angle), StreetRuleAttributes(0, i), UNASSIGNED));
+	workQueues1[EVALUATE_STREET].unsafePush(Street(0, RoadAttributes(source, configuration.streetLength, -HALF_PI + angle), StreetRuleAttributes(0, i), UNASSIGNED));
+	workQueues1[EVALUATE_STREET].unsafePush(Street(0, RoadAttributes(source, configuration.streetLength, HALF_PI + angle), StreetRuleAttributes(0, i), UNASSIGNED));
+	workQueues1[EVALUATE_STREET].unsafePush(Street(0, RoadAttributes(source, configuration.streetLength, PI + angle), StreetRuleAttributes(0, i), UNASSIGNED));
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -458,8 +489,6 @@ void RoadNetworkGraphGenerator::execute()
 	free(verticesCopy);
 	free(edgesCopy);
 
-	MEMCPY_HOST_TO_DEVICE(g_dPrimitives, primitives, sizeof(Primitive) * configuration.maxPrimitives);
-
 	for (unsigned int i = 0; i < NUM_PROCEDURES; i++)
 	{
 		workQueues1[i].clear();
@@ -467,8 +496,9 @@ void RoadNetworkGraphGenerator::execute()
 	}
 
 	maxPrimitiveSize = 0;
+	unsigned int numPrimitives2 = numPrimitives;
 	// set street spawn points
-	for (unsigned int i = 0; i < numPrimitives; i++)
+	for (unsigned int i = 0; i < numPrimitives2; i++)
 	{
 		Primitive& primitive = primitives[i];
 
@@ -492,25 +522,90 @@ void RoadNetworkGraphGenerator::execute()
 			edge.primitives[edge.numPrimitives++] = i;
 		}
 
-		vml_vec2 centroid;
-		float area;
-		MathExtras::getPolygonInfo(primitive.vertices, primitive.numVertices, area, centroid);
-		if (area < configuration.minBlockArea)
+		if (!isConvex(graph, primitive))
 		{
-			continue;
+			std::list<Triangle> triangles;
+
+			clipEars(graph, primitive, triangles);
+
+			// FIXME: checking invariants
+			if (triangles.size() < 1)
+			{
+				throw std::exception("triangles.size() < 1");
+			}
+
+			std::vector<int> originalPolygon(primitive.vertices, primitive.vertices + primitive.numVertices);
+
+			unsigned int k = i;
+			do
+			{
+				std::vector<int> polygon;
+				Triangle triangle = triangles.front();
+				triangles.pop_front();
+				appendTriangle(polygon, triangle, originalPolygon);
+
+				bool found;
+				do
+				{
+					found = false;
+					std::list<Triangle>::iterator otherTriangle = triangles.begin();
+					while (otherTriangle != triangles.end())
+					{
+						unsigned int mask = appendTriangle(polygon, *otherTriangle, originalPolygon);
+
+						if (isConvex(graph, polygon))
+						{
+							otherTriangle = triangles.erase(otherTriangle);
+							found = true;
+						}
+						else
+						{
+							removeTriangle(polygon, *otherTriangle, originalPolygon, mask);
+							otherTriangle++;
+						}
+					}
+				} while (found);
+				
+				Primitive& newPrimitive = primitives[k];
+				newPrimitive.type = MINIMAL_CYCLE;
+				newPrimitive.numEdges = 0;
+				newPrimitive.numVertices = 0;
+
+				// copying back to primitive
+				for (unsigned int l = 0; l < polygon.size(); l++)
+				{
+					newPrimitive.vertices[newPrimitive.numVertices++] = polygon[l];
+				}
+
+				consolidadeEdges(graph, newPrimitive);
+				spawnStreetsForPrimitive(configuration, graph, workQueues1, newPrimitive, k);
+
+				if (triangles.size() > 0)
+				{
+					// FIXME: checking boundaries
+					if (numPrimitives >= configuration.maxPrimitives)
+					{
+						throw std::exception("max. number of primitives overflow");
+					}
+
+					k = numPrimitives++;
+				}
+				else
+				{
+					break;
+				}
+			} while (true);
+
+			//spawnStreetsForPrimitive(configuration, graph, workQueues1, *newPrimitive, k);
 		}
-
-		float angle;
-		ConvexHull convexHull(primitive.vertices, primitive.numVertices);
-		OBB2D obb(convexHull.hullPoints, convexHull.numHullPoints);
-		angle = vml_angle(obb.axis[1], vml_vec2(0.0f, 1.0f));
-
-		int source = createVertex(graph, centroid);
-		workQueues1[EVALUATE_STREET].unsafePush(Street(0, RoadAttributes(source, configuration.streetLength, angle), StreetRuleAttributes(0, i), UNASSIGNED));
-		workQueues1[EVALUATE_STREET].unsafePush(Street(0, RoadAttributes(source, configuration.streetLength, -HALF_PI + angle), StreetRuleAttributes(0, i), UNASSIGNED));
-		workQueues1[EVALUATE_STREET].unsafePush(Street(0, RoadAttributes(source, configuration.streetLength, HALF_PI + angle), StreetRuleAttributes(0, i), UNASSIGNED));
-		workQueues1[EVALUATE_STREET].unsafePush(Street(0, RoadAttributes(source, configuration.streetLength, PI + angle), StreetRuleAttributes(0, i), UNASSIGNED));
+		else
+		{
+			spawnStreetsForPrimitive(configuration, graph, workQueues1, primitive, i);
+		}
 	}
+
+	MEMCPY_HOST_TO_DEVICE(g_dPrimitives, primitives, sizeof(Primitive) * numPrimitives);
+
 	copyGraphToDevice(graph);
 
 	MEMCPY_HOST_TO_DEVICE(g_dWorkQueues1, workQueues1, sizeof(WorkQueue) * NUM_PROCEDURES);
@@ -534,8 +629,6 @@ void RoadNetworkGraphGenerator::execute()
 
 	GET_GPU_TIMER_ELAPSED_TIME(GraphMemoryCopy_GpuToCpu, elapsedTime);
 	std::cout << "Graph Memory Copy (Gpu -> Cpu): " << elapsedTime << " (ms)" << std::endl;
-
-	MEMCPY_DEVICE_TO_HOST(primitives, g_dPrimitives, sizeof(Primitive) * configuration.maxPrimitives);
 
 	notifyObservers(graph, numPrimitives, primitives);
 

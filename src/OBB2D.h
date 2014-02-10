@@ -4,6 +4,7 @@
 #pragma once
 
 #include <VectorMath.h>
+#include <vector>
 
 // compute a minimum-area oriented box containing the specified points.
 // the algorithm uses the rotating calipers method.
@@ -14,15 +15,16 @@ struct OBB2D
 	vml_vec2 axis[2];
 	float extent[2];
 
-	OBB2D(const vml_vec2* hullPoints, unsigned int numHullPoints)
+	//OBB2D(const vml_vec2* hullPoints, unsigned int numHullPoints)
+	OBB2D(std::vector<vml_vec2> hullPoints)
 	{
-		// the input points are V[0] through V[N-1] and are assumed to be the vertices of a convex polygon that are counterclockwise ordered.  
-		// the input points must not contain three consecutive collinear points.
-		// unit-length edge directions of convex polygon.  
-		// these could be precomputed and passed to this routine if the application requires it.
-		unsigned int numPointsM1 = numHullPoints - 1;
-		vml_vec2* edges = new vml_vec2[numHullPoints];
-		bool* visited = new bool[numHullPoints];
+		// the input points are V[0] through V[N-1] and are assumed to be the vertices of a convex polygon that are counterclockwise ordered
+		// the input points must not contain three consecutive collinear points
+		// unit-length edge directions of convex polygon
+		// these could be precomputed and passed to this routine if the application requires it
+		unsigned int numPointsM1 = hullPoints.size() - 1;
+		vml_vec2* edges = new vml_vec2[hullPoints.size()];
+		bool* visited = new bool[hullPoints.size()];
 		unsigned int i;
 		for (i = 0; i < numPointsM1; ++i)
 		{
@@ -34,7 +36,7 @@ struct OBB2D
 		edges[numPointsM1] = vml_normalize(edges[numPointsM1]);
 		visited[numPointsM1] = false;
 
-		// find the smallest axis-aligned box containing the points.  
+		// find the smallest axis-aligned box containing the points
 		// keep track of the extremity indices, L (left), R (right), B (bottom), and T (top) so that the following constraints are met:
 		//   V[L].x <= V[i].x for all i and V[(L+1)%N].x > V[L].x
 		//   V[R].x >= V[i].x for all i and V[(R+1)%N].x < V[R].x
@@ -43,7 +45,7 @@ struct OBB2D
 		float xmin = hullPoints[0].x, xmax = xmin;
 		float ymin = hullPoints[0].y, ymax = ymin;
 		unsigned int LIndex = 0, RIndex = 0, BIndex = 0, TIndex = 0;
-		for (i = 1; i < numHullPoints; ++i)
+		for (i = 1; i < hullPoints.size(); ++i)
 		{
 			if (hullPoints[i].x <= xmin)
 			{
@@ -68,7 +70,7 @@ struct OBB2D
 			}
 		}
 
-		// apply wrap-around tests to ensure the constraints mentioned above are satisfied.
+		// apply wrap-around tests to ensure the constraints mentioned above are satisfied
 		if (LIndex == numPointsM1)
 		{
 			if (hullPoints[0].x <= xmin)
@@ -105,8 +107,8 @@ struct OBB2D
 			}
 		}
 
-		// the dimensions of the axis-aligned box.  
-		// the extents store width and height for now.
+		// the dimensions of the axis-aligned box
+		// the extents store width and height for now
 		center.x = 0.5f * (xmin + xmax);
 		center.y = 0.5f * (ymin + ymax);
 		axis[0] = vml_vec2(1.0f, 0.0f);
@@ -115,14 +117,14 @@ struct OBB2D
 		extent[1] = 0.5f * (ymax - ymin);
 		float minAreaDiv4 = extent[0] * extent[1];
 
-		// the rotating calipers algorithm.
+		// the rotating calipers algorithm
 		vml_vec2 U = vml_vec2(1.0f, 0.0f);
 		vml_vec2 V = vml_vec2(0.0f, 1.0f);
 
 		bool done = false;
 		while (!done)
 		{
-			// determine the edge that forms the smallest angle with the current box edges.
+			// determine the edge that forms the smallest angle with the current box edges
 			int flag = F_NONE;
 			float maxDot = 0.0f;
 			float dot = vml_dot(U, edges[BIndex]);
@@ -162,14 +164,14 @@ struct OBB2D
 				}
 				else
 				{
-					// compute box axes with E[B] as an edge.
+					// compute box axes with E[B] as an edge
 					U = edges[BIndex];
 					V = -vml_perp(U);
 					updateBox(hullPoints[LIndex], hullPoints[RIndex], hullPoints[BIndex], hullPoints[TIndex], U, V, minAreaDiv4);
 
-					// mark edge visited and rotate the calipers.
+					// mark edge visited and rotate the calipers
 					visited[BIndex] = true;
-					if (++BIndex == numHullPoints)
+					if (++BIndex == hullPoints.size())
 					{
 						BIndex = 0;
 					}
@@ -182,14 +184,14 @@ struct OBB2D
 				}
 				else
 				{
-					// compute box axes with E[R] as an edge.
+					// compute box axes with E[R] as an edge
 					V = edges[RIndex];
 					U = vml_perp(V);
 					updateBox(hullPoints[LIndex], hullPoints[RIndex], hullPoints[BIndex], hullPoints[TIndex], U, V, minAreaDiv4);
 
-					// mark edge visited and rotate the calipers.
+					// mark edge visited and rotate the calipers
 					visited[RIndex] = true;
-					if (++RIndex == numHullPoints)
+					if (++RIndex == hullPoints.size())
 					{
 						RIndex = 0;
 					}
@@ -202,14 +204,14 @@ struct OBB2D
 				}
 				else
 				{
-					// compute box axes with E[T] as an edge.
+					// compute box axes with E[T] as an edge
 					U = -edges[TIndex];
 					V = -vml_perp(U);
 					updateBox(hullPoints[LIndex], hullPoints[RIndex], hullPoints[BIndex], hullPoints[TIndex], U, V, minAreaDiv4);
 
-					// mark edge visited and rotate the calipers.
+					// mark edge visited and rotate the calipers
 					visited[TIndex] = true;
-					if (++TIndex == numHullPoints)
+					if (++TIndex == hullPoints.size())
 					{
 						TIndex = 0;
 					}
@@ -222,21 +224,21 @@ struct OBB2D
 				}
 				else
 				{
-					// compute box axes with E[L] as an edge.
+					// compute box axes with E[L] as an edge
 					V = -edges[LIndex];
 					U = vml_perp(V);
 					updateBox(hullPoints[LIndex], hullPoints[RIndex], hullPoints[BIndex], hullPoints[TIndex], U, V, minAreaDiv4);
 
-					// mark edge visited and rotate the calipers.
+					// mark edge visited and rotate the calipers
 					visited[LIndex] = true;
-					if (++LIndex == numHullPoints)
+					if (++LIndex == hullPoints.size())
 					{
 						LIndex = 0;
 					}
 				}
 				break;
 			case F_NONE:
-				// the polygon is a rectangle.
+				// the polygon is a rectangle
 				done = true;
 				break;
 			}

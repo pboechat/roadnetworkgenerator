@@ -72,6 +72,7 @@ typedef glm::quat vml_quat;
 #define vml_perspective glm::perspective
 #define vml_look_at glm::lookAt
 #define vml_mix glm::mix
+#define vml_sign glm::sign
 
 #endif
 

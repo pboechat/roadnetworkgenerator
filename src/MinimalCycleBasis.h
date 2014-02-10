@@ -115,7 +115,7 @@ void extractIsolatedVertex(std::list<int>& heap, Array<Primitive>& primitives, V
 {
 	Primitive primitive;
 	primitive.type = ISOLATED_VERTEX;
-	insertVertex(primitive, v0->getPosition());
+	insertVertex(primitive, v0->index);
 	heap.remove(v0->index);
 	primitives.push(primitive);
 }
@@ -173,7 +173,7 @@ void extractFilament(BaseGraph* graph, std::list<int>& heap, Array<Primitive>& p
 
 		if (v0->numAdjacencies >= 3)
 		{
-			insertVertex(primitive, v0->getPosition());
+			insertVertex(primitive, v0->index);
 			int edgeIndex = removeEdgeReferencesInVertices(graph, v0, v1);
 			insertEdge(primitive, edgeIndex);
 			v0 = v1;
@@ -186,7 +186,7 @@ void extractFilament(BaseGraph* graph, std::list<int>& heap, Array<Primitive>& p
 
 		while (v0->numAdjacencies == 1)
 		{
-			insertVertex(primitive, v0->getPosition());
+			insertVertex(primitive, v0->index);
 			v1 = &graph->vertices[v0->adjacencies[0]];
 			heap.remove(v0->index);
 			int edgeIndex = removeEdgeReferencesInVertices(graph, v0, v1);
@@ -194,7 +194,7 @@ void extractFilament(BaseGraph* graph, std::list<int>& heap, Array<Primitive>& p
 			v0 = v1;
 		}
 
-		insertVertex(primitive, v0->getPosition());
+		insertVertex(primitive, v0->index);
 
 		if (v0->numAdjacencies == 0)
 		{
@@ -253,11 +253,11 @@ void extractPrimitive(BaseGraph* graph, std::list<int>& heap, Array<Primitive>& 
 			insertEdge(primitive, edgeIndex);
 		}
 
-		insertVertex(primitive, currentVertex->getPosition());
+		insertVertex(primitive, currentVertex->index);
 		std::vector<int>::reverse_iterator it = visited.rbegin();
 		while (it != visited.rend())
 		{
-			insertVertex(primitive, graph->vertices[*it].getPosition());
+			insertVertex(primitive, *it);
 			it++;
 		}
 

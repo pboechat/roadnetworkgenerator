@@ -195,7 +195,7 @@ GLOBAL_CODE void updateNonPointerFields(QuadTree* quadtree, int numQuadrantEdges
 }
 
 //////////////////////////////////////////////////////////////////////////
-DEVICE_CODE void insert(QuadTree* quadtree, int edgeIndex, const Line2D& edgeLine)
+HOST_AND_DEVICE_CODE void insert(QuadTree* quadtree, int edgeIndex, const Line2D& edgeLine)
 {
 	unsigned int index, offset, levelWidth;
 

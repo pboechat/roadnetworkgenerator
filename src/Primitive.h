@@ -20,7 +20,7 @@ struct Primitive
 {
 	PrimitiveType type;
 	volatile int edges[MAX_EDGES_PER_PRIMITIVE];
-	vml_vec2 vertices[MAX_VERTICES_PER_PRIMITIVE];
+	int vertices[MAX_VERTICES_PER_PRIMITIVE];
 	volatile unsigned int numEdges;
 	volatile unsigned int numVertices;
 
@@ -29,7 +29,7 @@ struct Primitive
 };
 
 //////////////////////////////////////////////////////////////////////////
-inline void insertEdge(Primitive& primitive, int edgeIndex)
+inline unsigned int insertEdge(Primitive& primitive, int edgeIndex)
 {
 	// FIXME: checking boundaries
 	if (primitive.numEdges >= MAX_EDGES_PER_PRIMITIVE)
@@ -37,11 +37,12 @@ inline void insertEdge(Primitive& primitive, int edgeIndex)
 		throw std::exception("max. number of primitive edges overflow");
 	}
 
-	primitive.edges[primitive.numEdges++] = edgeIndex;
+	primitive.edges[primitive.numEdges] = edgeIndex;
+	return primitive.numEdges++;
 }
 
 //////////////////////////////////////////////////////////////////////////
-inline void insertVertex(Primitive& primitive, const vml_vec2& vertex)
+inline unsigned int insertVertex(Primitive& primitive, int vertex)
 {
 	// FIXME: checking boundaries
 	if (primitive.numVertices >= MAX_VERTICES_PER_PRIMITIVE)
@@ -49,7 +50,8 @@ inline void insertVertex(Primitive& primitive, const vml_vec2& vertex)
 		throw std::exception("max. number of primitive vertices overflow");
 	}
 
-	primitive.vertices[primitive.numVertices++] = vertex;
+	primitive.vertices[primitive.numVertices] = vertex;
+	return primitive.numVertices++;
 }
 
 #endif

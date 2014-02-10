@@ -16,7 +16,7 @@ GLOBAL_CODE void initializeBaseGraph(BaseGraph* graph, Vertex* vertices, Edge* e
 }
 
 //////////////////////////////////////////////////////////////////////////
-HOST_AND_DEVICE_CODE int findEdge(BaseGraph* graph, Vertex& v0, Vertex& v1)
+HOST_AND_DEVICE_CODE int findEdge(const BaseGraph* graph, Vertex& v0, Vertex& v1)
 {
 	for (unsigned int i = 0; i < v0.numOuts; i++)
 	{
@@ -37,13 +37,13 @@ HOST_AND_DEVICE_CODE int findEdge(BaseGraph* graph, Vertex& v0, Vertex& v1)
 	}
 
 	// FIXME: checking invariants
-	THROW_EXCEPTION("edge not found");
+	//THROW_EXCEPTION("edge not found");
 
 	return -1;
 }
 
 //////////////////////////////////////////////////////////////////////////
-HOST_AND_DEVICE_CODE int findEdge(BaseGraph* graph, Vertex* v0, Vertex* v1)
+HOST_AND_DEVICE_CODE int findEdge(const BaseGraph* graph, Vertex* v0, Vertex* v1)
 {
 	for (unsigned int i = 0; i < v0->numOuts; i++)
 	{
@@ -64,13 +64,13 @@ HOST_AND_DEVICE_CODE int findEdge(BaseGraph* graph, Vertex* v0, Vertex* v1)
 	}
 
 	// FIXME: checking invariants
-	THROW_EXCEPTION("edge not found");
+	//THROW_EXCEPTION("edge not found");
 
 	return -1;
 }
 
 //////////////////////////////////////////////////////////////////////////
-HOST_AND_DEVICE_CODE int findEdge(BaseGraph* graph, int vertexIndex0, int vertexIndex1)
+HOST_AND_DEVICE_CODE int findEdge(const BaseGraph* graph, int vertexIndex0, int vertexIndex1)
 {
 	Vertex& v0 = graph->vertices[vertexIndex0];
 	for (unsigned int i = 0; i < v0.numOuts; i++)
@@ -92,7 +92,7 @@ HOST_AND_DEVICE_CODE int findEdge(BaseGraph* graph, int vertexIndex0, int vertex
 	}
 
 	// FIXME: checking invariants
-	THROW_EXCEPTION("edge not found");
+	//THROW_EXCEPTION("edge not found");
 
 	return -1;
 }
@@ -116,6 +116,12 @@ HOST_AND_DEVICE_CODE void removeEdgeReferencesInVertices(BaseGraph* graph, int e
 HOST_AND_DEVICE_CODE int removeEdgeReferencesInVertices(BaseGraph* graph, Vertex& v0, Vertex& v1)
 {
 	int edgeIndex = findEdge(graph, v0, v1);
+
+	if (edgeIndex == -1)
+	{
+		THROW_EXCEPTION("edge not found");
+	}
+
 	Edge& edge = graph->edges[edgeIndex];
 
 	Vertex& sourceVertex = graph->vertices[edge.source];
@@ -134,6 +140,12 @@ HOST_AND_DEVICE_CODE int removeEdgeReferencesInVertices(BaseGraph* graph, Vertex
 HOST_AND_DEVICE_CODE int removeEdgeReferencesInVertices(BaseGraph* graph, Vertex* v0, Vertex* v1)
 {
 	int edgeIndex = findEdge(graph, v0, v1);
+
+	if (edgeIndex == -1)
+	{
+		THROW_EXCEPTION("edge not found");
+	}
+
 	Edge& edge = graph->edges[edgeIndex];
 
 	Vertex& sourceVertex = graph->vertices[edge.source];
@@ -152,6 +164,12 @@ HOST_AND_DEVICE_CODE int removeEdgeReferencesInVertices(BaseGraph* graph, Vertex
 HOST_AND_DEVICE_CODE int removeEdgeReferencesInVertices(BaseGraph* graph, int v0, int v1)
 {
 	int edgeIndex = findEdge(graph, v0, v1);
+
+	if (edgeIndex == -1)
+	{
+		THROW_EXCEPTION("edge not found");
+	}
+
 	Edge& edge = graph->edges[edgeIndex];
 
 	Vertex& sourceVertex = graph->vertices[edge.source];

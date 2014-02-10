@@ -23,11 +23,11 @@ namespace MathExtras
 #define PI 3.14159265358979323846f
 #define HALF_PI 1.57079632679489661923f
 #define PI_AND_HALF 4.71238898038468985769f
-#define COLLISION_EPSILON 0.0000001f
+#define EPSILON 0.00001f
 
 inline HOST_AND_DEVICE_CODE bool isZero(float a)
 {
-	return a >= -COLLISION_EPSILON && a <= COLLISION_EPSILON;
+	return a >= -EPSILON && a <= EPSILON;
 }
 
 template<typename T>
@@ -156,22 +156,6 @@ inline HOST_AND_DEVICE_CODE float getOrientedAngle(const vml_vec2& a, const vml_
 	{
 		return -angle;
 	}
-}
-
-inline HOST_AND_DEVICE_CODE void getPolygonInfo(const vml_vec2* vertices, unsigned int numVertices, float& area, vml_vec2& center)
-{
-	float twiceArea = 0, x = 0, y = 0, f = 0;
-	for (unsigned int i = 0, j = numVertices - 1 ; i < numVertices; j = i++) {
-		const vml_vec2& p1 = vertices[i]; 
-		const vml_vec2& p2 = vertices[j];
-		f = p1.x * p2.y - p2.x * p1.y;
-		twiceArea += f;
-		x += (p1.x + p2.x) * f;
-		y += (p1.y + p2.y) * f;
-	}
-	area = abs(twiceArea * 0.5f);
-	f = twiceArea * 3.0f;
-	center = vml_vec2(x / f, y / f);
 }
 
 }
