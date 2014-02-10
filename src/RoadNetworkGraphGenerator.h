@@ -88,7 +88,7 @@ private:
 	void copyGraphToDevice(Graph* graph);
 	void copyGraphToHost(Graph* graph);
 	void expand(unsigned int numDerivations, unsigned int startingQueue, unsigned int numQueues);
-	void coalesce();
+	void computeCollisions();
 	void notifyObservers(Graph* graph, unsigned int numPrimitives, Primitive* primitives);
 
 };

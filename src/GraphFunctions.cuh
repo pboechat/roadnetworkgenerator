@@ -16,20 +16,10 @@
 #include <QuadTreeFunctions.cuh>
 #include <VertexFunctions.cuh>
 #include <Primitive.h>
+#include <IntersectionType.h>
 #ifdef USE_CUDA
 #include <cutil.h>
 #endif
-
-//////////////////////////////////////////////////////////////////////////
-enum IntersectionType
-{
-	NONE,
-	SOURCE_SOURCE_SNAPPING,
-	SOURCE_DESTINATION_SNAPPING,
-	DESTINATION_SOURCE_SNAPPING,
-	DESTINATION_DESTINATION_SNAPPING,
-	EDGE_INTERSECTION
-};
 
 //////////////////////////////////////////////////////////////////////////
 GLOBAL_CODE void initializeGraphOnDevice(Graph* graph, float snapRadius, unsigned int maxVertices, unsigned int maxEdges, Vertex* vertices, Edge* edges, QuadTree* quadtree)
@@ -143,7 +133,7 @@ int createVertex(Graph* graph, const vml_vec2& position)
 
 #if defined(USE_CUDA) && (CUDA_CC >= 30)
 //////////////////////////////////////////////////////////////////////////
-__device__ int connect(Graph* graph, int sourceVertexIndex, int destinationVertexIndex, char attr1 = 0, char attr2 = 0, char attr3 = 0, char attr4 = 0)
+__device__ int connect(Graph* graph, int sourceVertexIndex, int destinationVertexIndex, bool updateQuadtree = true, char attr1 = 0, char attr2 = 0, char attr3 = 0, char attr4 = 0)
 {
 	Vertex& sourceVertex = graph->vertices[sourceVertexIndex];
 
@@ -230,13 +220,16 @@ __device__ int connect(Graph* graph, int sourceVertexIndex, int destinationVerte
 
 	destinationVertex.adjacencies[lastIndex] = sourceVertexIndex;
 
-	insert(graph->quadtree, newEdgeIndex, Line2D(sourceVertex.getPosition(), destinationVertex.getPosition()));
+	if (updateQuadtree)
+	{
+		insert(graph->quadtree, newEdgeIndex, Line2D(sourceVertex.getPosition(), destinationVertex.getPosition()));
+	}
 
 	return newEdgeIndex;
 }
 #else
 //////////////////////////////////////////////////////////////////////////
-DEVICE_CODE int connect(Graph* graph, int sourceVertexIndex, int destinationVertexIndex, char attr1 = 0, char attr2 = 0, char attr3 = 0, char attr4 = 0)
+DEVICE_CODE int connect(Graph* graph, int sourceVertexIndex, int destinationVertexIndex, bool updateQuadtree = true, char attr1 = 0, char attr2 = 0, char attr3 = 0, char attr4 = 0)
 {
 	Vertex& sourceVertex = graph->vertices[sourceVertexIndex];
 
@@ -311,14 +304,17 @@ DEVICE_CODE int connect(Graph* graph, int sourceVertexIndex, int destinationVert
 
 	destinationVertex.adjacencies[lastIndex] = sourceVertexIndex;
 
-	insert(graph->quadtree, newEdgeIndex, Line2D(sourceVertex.getPosition(), destinationVertex.getPosition()));
+	if (updateQuadtree)
+	{
+		insert(graph->quadtree, newEdgeIndex, Line2D(sourceVertex.getPosition(), destinationVertex.getPosition()));
+	}
 
 	return newEdgeIndex;
 }
 #endif
 
 //////////////////////////////////////////////////////////////////////////
-DEVICE_CODE int splitEdge(Graph* graph, Edge& edge, int splitVertexIndex)
+DEVICE_CODE int splitEdge(Graph* graph, Edge& edge, int splitVertexIndex, bool updateQuadtree = true)
 {
 	Vertex& splitVertex = graph->vertices[splitVertexIndex];
 	Vertex& sourceVertex = graph->vertices[edge.source];
@@ -397,7 +393,10 @@ DEVICE_CODE int splitEdge(Graph* graph, Edge& edge, int splitVertexIndex)
 
 	splitVertex.adjacencies[lastIndex] = oldDestinationVertexIndex;
 	
-	insert(graph->quadtree, newEdgeIndex, Line2D(splitVertex.getPosition(), oldDestinationVertex.getPosition()));
+	if (updateQuadtree)
+	{
+		insert(graph->quadtree, newEdgeIndex, Line2D(splitVertex.getPosition(), oldDestinationVertex.getPosition()));
+	}
 
 	return newEdgeIndex;
 }
@@ -552,26 +551,26 @@ DEVICE_CODE bool addStreet(Graph* graph, Primitive* primitives, int sourceIndex,
 				if (intersectionType == SOURCE_SOURCE_SNAPPING || intersectionType == SOURCE_DESTINATION_SNAPPING)
 				{
 					destinationIndex = boundaryEdge.source;
-					connect(graph, sourceIndex, destinationIndex, 0);
+					connect(graph, sourceIndex, destinationIndex, false, 0);
 				}
 
 				else if (intersectionType == DESTINATION_SOURCE_SNAPPING)
 				{
 					destinationIndex = boundaryEdge.source;
-					connect(graph, sourceIndex, destinationIndex, 0);
+					connect(graph, sourceIndex, destinationIndex, false, 0);
 				}
 
 				else if (intersectionType == DESTINATION_DESTINATION_SNAPPING)
 				{
 					destinationIndex = boundaryEdge.destination;
-					connect(graph, sourceIndex, destinationIndex, 0);
+					connect(graph, sourceIndex, destinationIndex, false, 0);
 				}
 
 				else if (intersectionType == EDGE_INTERSECTION)
 				{
 					destinationIndex = createVertex(graph, end);
 					int newEdgeIndex = splitEdge(graph, boundaryEdge, destinationIndex);
-					if (connect(graph, sourceIndex, destinationIndex, 0) == -1)
+					if (connect(graph, sourceIndex, destinationIndex, false, 0) == -1)
 					{
 						// FIXME: checking invariants
 						THROW_EXCEPTION("unexpected situation");
@@ -589,7 +588,7 @@ DEVICE_CODE bool addStreet(Graph* graph, Primitive* primitives, int sourceIndex,
 						unsigned int lastIndex = ATOMIC_ADD(primitive.numEdges, unsigned int, 1);
 
 						// FIXME: checking boundaries
-						if (primitive.numEdges >= MAX_EDGES_PER_PRIMITIVE)
+						if (primitive.numEdges > MAX_EDGES_PER_PRIMITIVE)
 						{
 							THROW_EXCEPTION("max. number of primitive edges overflow");
 						}
@@ -599,7 +598,7 @@ DEVICE_CODE bool addStreet(Graph* graph, Primitive* primitives, int sourceIndex,
 						lastIndex = ATOMIC_ADD(primitive.numVertices, unsigned int, 1);
 
 						// FIXME: checking boundaries
-						if (primitive.numVertices >= MAX_VERTICES_PER_PRIMITIVE)
+						if (primitive.numVertices > MAX_VERTICES_PER_PRIMITIVE)
 						{
 							THROW_EXCEPTION("max. number of primitive vertices overflow");
 						}
@@ -632,7 +631,7 @@ DEVICE_CODE bool addStreet(Graph* graph, Primitive* primitives, int sourceIndex,
 	else
 	{
 		destinationIndex = createVertex(graph, end);
-		connect(graph, sourceIndex, destinationIndex, 0);
+		connect(graph, sourceIndex, destinationIndex, false, 0);
 		return false;
 	}
 }

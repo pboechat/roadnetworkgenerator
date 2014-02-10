@@ -32,7 +32,7 @@
 	__variable = (__type*)malloc(sizeof(__type) * __amount); \
 	if (__variable == 0) \
 	{ \
-		throw std::exception("#__variable: insufficient memory"); \
+		throw std::exception(#__variable": insufficient memory"); \
 	}
 
 #define CREATE_CPU_TIMER(x) Timer x
@@ -46,8 +46,8 @@
 #include <cutil_timer.h>
 #define NUM_EXPANSION_KERNEL_BLOCKS 9
 #define NUM_EXPANSION_KERNEL_THREADS 128
-#define NUM_EXPANSION_KERNEL_BLOCKS_PER_QUADRANT 2
-#define NUM_COALESCENCE_KERNEL_THREADS 128
+#define NUM_COMPUTE_COLLISION_KERNEL_BLOCKS_PER_QUADRANT 8
+#define NUM_COMPUTE_COLLISION_KERNEL_THREADS 128
 #define SAFE_MALLOC_ON_DEVICE(__variable, __type, __amount) cudaCheckedCall(cudaMalloc((void**)&__variable, sizeof(__type) * __amount))
 #define SAFE_FREE_ON_DEVICE(__variable) cudaCheckedCall(cudaFree(__variable))
 #define MEMCPY_HOST_TO_DEVICE(__destination, __source, __size) cudaCheckedCall(cudaMemcpy(__destination, __source, __size, cudaMemcpyHostToDevice))
@@ -110,7 +110,7 @@
 	__variable = (__type*)malloc(sizeof(__type) * __amount); \
 	if (__variable == 0) \
 	{ \
-		throw std::exception("#__variable: insufficient memory"); \
+		throw std::exception(#__variable": insufficient memory"); \
 	}
 #define SAFE_FREE_ON_DEVICE(__variable) free(__variable)
 #define MEMCPY_HOST_TO_DEVICE(__destination, __source, __size) memcpy(__destination, __source, __size)
@@ -296,7 +296,7 @@ void RoadNetworkGraphGenerator::execute()
 	CREATE_GPU_TIMER(PrimaryRoadNetworkExpansion);
 	CREATE_GPU_TIMER(SecondaryRoadNetworkExpansion);
 	CREATE_GPU_TIMER(GraphMemoryCopy_GpuToCpu);
-	CREATE_GPU_TIMER(Coalescence);
+	CREATE_GPU_TIMER(CollisionsComputation);
 	CREATE_CPU_TIMER(PrimitivesExtraction);
 
 	allocateAndInitializeImageMap(populationDensity, PopulationDensity);
@@ -406,14 +406,14 @@ void RoadNetworkGraphGenerator::execute()
 	GET_GPU_TIMER_ELAPSED_TIME(PrimaryRoadNetworkExpansion, elapsedTime);
 	std::cout << "Primary Road Network Expansion: " << elapsedTime << " (ms)" << std::endl;
 
-	START_GPU_TIMER(Coalescence);
+	START_GPU_TIMER(CollisionsComputation);
 
-	coalesce();
+	computeCollisions();
 
-	STOP_GPU_TIMER(Coalescence);
+	STOP_GPU_TIMER(CollisionsComputation);
 
-	GET_GPU_TIMER_ELAPSED_TIME(Coalescence, elapsedTime);
-	std::cout << "Coalescence: " << elapsedTime << " (ms)" << std::endl;
+	GET_GPU_TIMER_ELAPSED_TIME(CollisionsComputation, elapsedTime);
+	std::cout << "Collisions Computation: " << elapsedTime << " (ms)" << std::endl;
 
 	START_GPU_TIMER(GraphMemoryCopy_GpuToCpu);
 
@@ -581,7 +581,7 @@ void RoadNetworkGraphGenerator::execute()
 }
 
 //////////////////////////////////////////////////////////////////////////
-DEVICE_CODE void coalesceEdges(Graph* graph, QuadrantEdges* quadrantEdges)
+DEVICE_CODE void computeQuadrantCollisions(Graph* graph, QuadrantEdges* quadrantEdges)
 {
 	unsigned int i = THREAD_IDX_X;
 	while (i < quadrantEdges->lastEdgeIndex)
@@ -590,33 +590,55 @@ DEVICE_CODE void coalesceEdges(Graph* graph, QuadrantEdges* quadrantEdges)
 
 		for (unsigned int j = 0; j < quadrantEdges->lastEdgeIndex; j++)
 		{
-			if (j == i)
+			Edge& otherEdge = graph->edges[quadrantEdges->edges[j]];
+
+			if (thisEdge.index >= otherEdge.index)
 			{
 				continue;
 			}
 
-			Edge& otherEdge = graph->edges[quadrantEdges->edges[j]];
-
-			bool tryAgain;
-			do
+			vml_vec2 intersection;
+			if (checkIntersection(graph, thisEdge, otherEdge, intersection))
 			{
-				tryAgain = true;
-				if (ATOMIC_EXCH(otherEdge.owner, int, THREAD_IDX_X) == -1)
+				unsigned int lastIndex = ATOMIC_ADD(quadrantEdges->numCollisions, unsigned int, 1);
+
+				// FIXME: checking boundaries
+				if (quadrantEdges->numCollisions > MAX_NUM_COLLISIONS_PER_QUADRANT)
 				{
-					vml_vec2 intersection;
-					if (checkIntersection(graph, thisEdge, otherEdge, intersection))
-					{
-						int newVertexIndex = createVertex(graph, intersection);
-						splitEdge(graph, otherEdge, newVertexIndex);
-						// TODO: unsafe!!!
-						splitEdge(graph, thisEdge, newVertexIndex);
-					}
-					
-					tryAgain = false;
-					ATOMIC_EXCH(otherEdge.owner, int, -1);
+					THROW_EXCEPTION("max. number of collisions per quadrant overflow");
 				}
-			} while (tryAgain);
+
+				Collision& collision = quadrantEdges->collisions[lastIndex];
+				collision.edge1 = thisEdge.index;
+				collision.edge2 = otherEdge.index;
+				collision.setIntersection(intersection);
+			}
 		}
+
+		i += BLOCK_DIM_X;
+	}
+}
+
+//////////////////////////////////////////////////////////////////////////
+DEVICE_CODE void processQuadrantCollisions(Graph* graph, QuadrantEdges* quadrantEdges)
+{
+	unsigned int i = THREAD_IDX_X;
+	while (i < quadrantEdges->numCollisions)
+	{
+		Collision& collision = quadrantEdges->collisions[i];
+
+		Edge& edge1 = graph->edges[collision.edge1];
+		Edge& edge2 = graph->edges[collision.edge2];
+
+		// FIXME: checking invariants
+		if (edge1.index >= edge2.index)
+		{
+			THROW_EXCEPTION("edge1.index >= edge2.index");
+		}
+
+		int newVertexIndex = createVertex(graph, collision.getIntersection());
+		splitEdge(graph, edge1, newVertexIndex, false);
+		splitEdge(graph, edge2, newVertexIndex, false);
 
 		i += BLOCK_DIM_X;
 	}
@@ -808,7 +830,7 @@ void RoadNetworkGraphGenerator::expand(unsigned int numDerivations, unsigned int
 }
 
 //////////////////////////////////////////////////////////////////////////
-__global__ void coalescenceKernel(Graph* graph)
+__global__ void computeCollisionsKernel(Graph* graph)
 {
 	__shared__ QuadrantEdges* quadrantEdges;
 
@@ -819,14 +841,31 @@ __global__ void coalescenceKernel(Graph* graph)
 
 	__syncthreads();
 
-	coalesceEdges(graph, quadrantEdges);
+	computeQuadrantCollisions(graph, quadrantEdges);
 }
 
 //////////////////////////////////////////////////////////////////////////
-void RoadNetworkGraphGenerator::coalesce()
+__global__ void processCollisionsKernel(Graph* graph)
 {
-	unsigned int numBlocks = MathExtras::pow(4u, configuration.quadtreeDepth) * NUM_EXPANSION_KERNEL_BLOCKS_PER_QUADRANT;
-	coalescenceKernel<<<numBlocks, NUM_COALESCENCE_KERNEL_THREADS>>>(g_dGraph);
+	__shared__ QuadrantEdges* quadrantEdges;
+
+	if (threadIdx.x == 0)
+	{
+		quadrantEdges = &graph->quadtree->quadrantsEdges[blockIdx.x % graph->quadtree->numLeafQuadrants];
+	}
+
+	__syncthreads();
+
+	processQuadrantCollisions(graph, quadrantEdges);
+}
+
+//////////////////////////////////////////////////////////////////////////
+void RoadNetworkGraphGenerator::computeCollisions()
+{
+	unsigned int numBlocks = MathExtras::pow(4u, configuration.quadtreeDepth) * NUM_COMPUTE_COLLISION_KERNEL_BLOCKS_PER_QUADRANT;
+	computeCollisionsKernel<<<numBlocks, NUM_COMPUTE_COLLISION_KERNEL_THREADS>>>(g_dGraph);
+	cudaCheckError();
+	processCollisionsKernel<<<numBlocks, NUM_COMPUTE_COLLISION_KERNEL_THREADS>>>(g_dGraph);
 	cudaCheckError();
 }
 
@@ -923,19 +962,20 @@ void RoadNetworkGraphGenerator::expand(unsigned int numDerivations, unsigned int
 }
 
 //////////////////////////////////////////////////////////////////////////
-void coalescenceKernel(Graph* graph)
+void computeAndProcessCollisionsKernel(Graph* graph)
 {
 	QuadTree* quadtree = graph->quadtree;
 	for (unsigned int i = 0; i < quadtree->numLeafQuadrants; i++)
 	{
-		coalesceEdges(graph, &quadtree->quadrantsEdges[i]);
+		computeQuadrantCollisions(graph, &quadtree->quadrantsEdges[i]);
+		processQuadrantCollisions(graph, &quadtree->quadrantsEdges[i]);
 	}
 }
 
 //////////////////////////////////////////////////////////////////////////
-void RoadNetworkGraphGenerator::coalesce()
+void RoadNetworkGraphGenerator::computeCollisions()
 {
-	coalescenceKernel(g_dGraph);
+	computeAndProcessCollisionsKernel(g_dGraph);
 }
 
 #endif

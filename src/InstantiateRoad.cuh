@@ -14,6 +14,9 @@
 #include <PseudoRandomNumbers.cuh>
 #include <GlobalVariables.cuh>
 
+#define hasMask(x, y) (x & y) != 0
+#define addMask(x, y) x != y
+
 //////////////////////////////////////////////////////////////////////////
 template<typename RuleAttributesType>
 DEVICE_CODE void evaluateGlobalGoals(Road<RuleAttributesType>& road, int newOrigin, const vml_vec2& position, int* delays, RoadAttributes* roadAttributes, RuleAttributesType* ruleAttributes, Context* context);
@@ -31,34 +34,64 @@ DEVICE_CODE void applyRasterPatternRule(const vml_vec2& position, unsigned int g
 //////////////////////////////////////////////////////////////////////////
 DEVICE_CODE void evaluateGlobalGoals(Street& road, int source, const vml_vec2& position, int* delays, RoadAttributes* roadAttributes, StreetRuleAttributes* ruleAttributes, Context* context)
 {
-		unsigned int newDepth = road.ruleAttributes.branchDepth + 1;
-		// street branch left
-		delays[0] = context->configuration->streetBranchingDelay;
-		roadAttributes[0].source = source;
-		roadAttributes[0].length = context->configuration->streetLength;
-		roadAttributes[0].angle = road.roadAttributes.angle - HALF_PI;
-		ruleAttributes[0].branchDepth = newDepth;
-		ruleAttributes[0].boundsIndex = road.ruleAttributes.boundsIndex;
-		// street branch right
-		delays[1] = context->configuration->streetBranchingDelay;
-		roadAttributes[1].source = source;
-		roadAttributes[1].length = context->configuration->streetLength;
-		roadAttributes[1].angle = road.roadAttributes.angle + HALF_PI;
-		ruleAttributes[1].branchDepth = newDepth;
-		ruleAttributes[1].boundsIndex = road.ruleAttributes.boundsIndex;
-		// street continuation
+
+	unsigned int newDepth = road.ruleAttributes.branchDepth + 1;
+
+	if (newDepth > context->configuration->maxStreetBranchDepth)
+	{
+		delays[0] = -1;
+		delays[1] = -1;
+		delays[2] = -1;
+		return;
+	}
+
+	if (hasMask(road.ruleAttributes.expansionMask, EXPAND_UP))
+	{
 		delays[2] = 0;
 		roadAttributes[2].source = source;
 		roadAttributes[2].length = context->configuration->streetLength;
 		roadAttributes[2].angle = road.roadAttributes.angle;
 		ruleAttributes[2].branchDepth = newDepth;
 		ruleAttributes[2].boundsIndex = road.ruleAttributes.boundsIndex;
+		ruleAttributes[2].expansionMask = road.ruleAttributes.expansionMask;
+	}
+
+	if (hasMask(road.ruleAttributes.expansionMask, EXPAND_RIGHT))
+	{
+		delays[1] = context->configuration->streetBranchingDelay;
+		roadAttributes[1].source = source;
+		roadAttributes[1].length = context->configuration->streetLength;
+		roadAttributes[1].angle = road.roadAttributes.angle + HALF_PI;
+		ruleAttributes[1].branchDepth = newDepth;
+		ruleAttributes[1].boundsIndex = road.ruleAttributes.boundsIndex;
+		ruleAttributes[1].expansionMask = road.ruleAttributes.expansionMask;
+	}
+
+	if (hasMask(road.ruleAttributes.expansionMask, EXPAND_LEFT))
+	{
+		delays[0] = context->configuration->streetBranchingDelay;
+		roadAttributes[0].source = source;
+		roadAttributes[0].length = context->configuration->streetLength;
+		roadAttributes[0].angle = road.roadAttributes.angle - HALF_PI;
+		ruleAttributes[0].branchDepth = newDepth;
+		ruleAttributes[0].boundsIndex = road.ruleAttributes.boundsIndex;
+		ruleAttributes[0].expansionMask = road.ruleAttributes.expansionMask;
+	}
 }
 
 //////////////////////////////////////////////////////////////////////////
 DEVICE_CODE void evaluateGlobalGoals(Highway& road, int source, const vml_vec2& position, int* delays, RoadAttributes* roadAttributes, HighwayRuleAttributes* ruleAttributes, Context* context)
 {
 	unsigned int newDepth = road.ruleAttributes.branchDepth + 1;
+
+	if (newDepth > context->configuration->maxHighwayBranchDepth)
+	{
+		delays[0] = -1;
+		delays[1] = -1;
+		delays[2] = -1;
+		return;
+	}
+
 	bool branch = (road.ruleAttributes.branchingDistance == context->configuration->minHighwayBranchingDistance);
 	// highway continuation
 	delays[2] = 0;

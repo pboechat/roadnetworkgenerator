@@ -8,13 +8,13 @@
 class Timer
 {
 public:
-	Timer() : _start(0), _end(0), _miliseconds(0)
+	Timer() : _start(0), _end(0), _countsPerMiliseconds(0)
 	{
 		LARGE_INTEGER frequency;
 
 		if (QueryPerformanceFrequency(&frequency))
 		{
-			_miliseconds = frequency.QuadPart;
+			_countsPerMiliseconds = (frequency.QuadPart / 1000.0f);
 		}
 
 		else
@@ -33,7 +33,7 @@ public:
 
 		if (QueryPerformanceCounter(&time))
 		{
-			return (double)time.QuadPart / _miliseconds;
+			return (double)time.QuadPart / _countsPerMiliseconds;
 		}
 
 		else
@@ -60,7 +60,7 @@ public:
 private:
 	double _start;
 	double _end;
-	double _miliseconds;
+	double _countsPerMiliseconds;
 
 };
 
