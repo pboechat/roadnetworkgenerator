@@ -23,29 +23,8 @@ DEVICE_CODE void replaceInEdge(Vertex& vertex, int oldInEdgeIndex, int newInEdge
 	// FIXME: checking invariants
 	if (!found)
 	{
-		THROW_EXCEPTION("!found");
-	}
-}
-
-//////////////////////////////////////////////////////////////////////////
-DEVICE_CODE void replaceOutEdge(Vertex& vertex, int oldOutEdgeIndex, int newOutEdgeIndex)
-{
-	bool found = false;
-
-	for (unsigned int i = 0; i < vertex.numOuts; i++)
-	{
-		if (vertex.outs[i] == oldOutEdgeIndex)
-		{
-			vertex.ins[i] = newOutEdgeIndex;
-			found = true;
-			break;
-		}
-	}
-
-	// FIXME: checking invariants
-	if (!found)
-	{
-		THROW_EXCEPTION("!found");
+		//THROW_EXCEPTION("!found");
+		WARN("replaceInEdge: edge not found");
 	}
 }
 
@@ -57,7 +36,9 @@ DEVICE_CODE void replaceAdjacency(Vertex& vertex, int oldAdjacentVertexIndex, in
 	{
 		if (vertex.adjacencies[i] == newAdjacentVertexIndex)
 		{
-			THROW_EXCEPTION("duplicate adjacency");
+			//THROW_EXCEPTION("duplicate adjacency");
+			WARN("replaceAdjacency: duplicate adjacency found");
+			return;
 		}
 	}
 
@@ -76,7 +57,8 @@ DEVICE_CODE void replaceAdjacency(Vertex& vertex, int oldAdjacentVertexIndex, in
 	// FIXME: checking invariants
 	if (!found)
 	{
-		THROW_EXCEPTION("!found");
+		//THROW_EXCEPTION("!found");
+		WARN("replaceAdjacency: adjacency not found");
 	}
 }
 
@@ -99,7 +81,9 @@ HOST_AND_DEVICE_CODE void removeInEdge(Vertex& vertex, int edgeIndex)
 	// FIXME: checking invariants
 	if (!found)
 	{
-		THROW_EXCEPTION("!found");
+		//THROW_EXCEPTION("!found");
+		WARN("removeInEdge: edge not found");
+		return;
 	}
 
 	for (unsigned int i = inEdgeIndex; i < vertex.numIns - 1; i++)
@@ -129,7 +113,9 @@ HOST_AND_DEVICE_CODE void removeOutEdge(Vertex& vertex, int edgeIndex)
 	// FIXME: checking invariants
 	if (!found)
 	{
-		THROW_EXCEPTION("!found");
+		//THROW_EXCEPTION("!found");
+		WARN("removeOutEdge: edge not found");
+		return;
 	}
 
 	for (unsigned int i = outEdgeIndex; i < vertex.numOuts - 1; i++)
@@ -159,7 +145,9 @@ HOST_AND_DEVICE_CODE void removeAdjacency(Vertex& vertex, int adjacentVertexInde
 	// FIXME: checking invariants
 	if (!found)
 	{
-		THROW_EXCEPTION("!found");
+		//THROW_EXCEPTION("!found");
+		WARN("removeAdjacency: edge not found");
+		return;
 	}
 
 	for (unsigned int i = adjacencyIndex; i < vertex.numAdjacencies - 1; i++)

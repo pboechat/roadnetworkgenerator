@@ -33,7 +33,7 @@
 //////////////////////////////////////////////////////////////////////////
 //	WORK QUEUES
 //////////////////////////////////////////////////////////////////////////
-#define MAX_NUM_WORKITEMS 50000
+#define MAX_NUM_WORKITEMS 100000
 #define WORK_ITEM_SIZE 100
 #define WORK_QUEUE_DATA_SIZE (MAX_NUM_WORKITEMS * WORK_ITEM_SIZE)
 
@@ -54,21 +54,26 @@
 // GRAPH
 //////////////////////////////////////////////////////////////////////////
 
-#define MAX_VERTEX_IN_CONNECTIONS 40
-#define MAX_VERTEX_OUT_CONNECTIONS 40
+#define MAX_VERTEX_IN_CONNECTIONS 20
+#define MAX_VERTEX_OUT_CONNECTIONS 20
 #define MAX_VERTEX_ADJACENCIES (MAX_VERTEX_IN_CONNECTIONS + MAX_VERTEX_OUT_CONNECTIONS)
 #define MAX_EDGES_PER_QUADRANT 10000
-#define MAX_NUM_COLLISIONS_PER_QUADRANT 5000
 #define MAX_VERTICES_PER_PRIMITIVE 500
 #define MAX_EDGES_PER_PRIMITIVE (MAX_VERTICES_PER_PRIMITIVE * 2)
 #define MAX_RESULTS_PER_QUERY 10
-#define QUADTREE_STACK_DATA_SIZE 91
+#define QUADTREE_STACK_DATA_SIZE 100
 
 //////////////////////////////////////////////////////////////////////////
 //	GENERAL
 //////////////////////////////////////////////////////////////////////////
 
-#define FONT_FILE_PATH "../../../../data/fonts/arial.glf"
+#define FONT_FILE_PATH							"../../../../data/fonts/arial.glf"
+#define SOLID_VERTEX_SHADER_FILE_PATH			"../../../../shaders/solid.vs.glsl"
+#define SOLID_FRAGMENT_SHADER_FILE_PATH			"../../../../shaders/solid.fs.glsl"
+#define IMAGE_MAP_VERTEX_SHADER_FILE_PATH		"../../../../shaders/imageMap.vs.glsl"
+#define IMAGE_MAP_FRAGMENT_SHADER_FILE_PATH		"../../../../shaders/imageMap.fs.glsl"
+#define FONT_VERTEX_SHADER_FILE_PATH			"../../../../shaders/font.vs.glsl"
+#define FONT_FRAGMENT_SHADER_FILE_PATH			"../../../../shaders/font.fs.glsl"
 
 #ifdef COLLECT_STATISTICS
 //////////////////////////////////////////////////////////////////////////

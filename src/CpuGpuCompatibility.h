@@ -106,5 +106,6 @@ inline T atomicMaxMock(T* variable, T value)
 #define ATOMIC_MAX(__variable, __type, __value) atomicMaxMock((__type*)&__variable, (__type)__value)
 #define THREADFENCE()
 #endif
+#define WARN(x) printf(x)
 	
 #endif

@@ -21,7 +21,7 @@ public:
 
 			if (file == NULL)
 			{
-				throw std::exception("File not found");
+				throw std::exception((std::string("File not found: ") + fileName).c_str());
 			}
 
 			fseek(file, 0, SEEK_END);

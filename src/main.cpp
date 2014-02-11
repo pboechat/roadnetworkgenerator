@@ -55,6 +55,8 @@ void generateAndDisplay(const std::string& configurationFile, SceneRenderer& ren
 	Configuration configuration;
 	loadFromFile(configuration, configurationFile);
 
+	std::cout << "seed: " << configuration.seed << std::endl;
+
 	renderer.readConfigurations(configuration);
 	geometryGenerator.readConfigurations(configuration);
 

@@ -103,9 +103,9 @@ private:
 public:
 	SceneRenderer(Camera& camera, RoadNetworkGeometryGenerator& geometry, RoadNetworkLabelsGenerator& labels) :
 		Renderer(camera),
-		solidShader("../../../../shaders/solid.vs.glsl", "../../../../shaders/solid.fs.glsl"),
-		imageMapShader("../../../../shaders/imageMap.vs.glsl", "../../../../shaders/imageMap.fs.glsl"),
-		fontShader("../../../../shaders/font.vs.glsl", "../../../../shaders/font.fs.glsl"),
+		solidShader(SOLID_VERTEX_SHADER_FILE_PATH, SOLID_FRAGMENT_SHADER_FILE_PATH),
+		imageMapShader(IMAGE_MAP_VERTEX_SHADER_FILE_PATH, IMAGE_MAP_FRAGMENT_SHADER_FILE_PATH),
+		fontShader(FONT_VERTEX_SHADER_FILE_PATH, FONT_FRAGMENT_SHADER_FILE_PATH),
 		geometry(geometry),
 		labels(labels),
 		worldSizedQuad(0),
