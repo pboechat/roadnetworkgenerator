@@ -67,9 +67,10 @@ struct WorkQueue
 	template<typename WorkItemType>
 	__device__ void push(WorkItemType& item)
 	{
+		// FIXME: checking boundaries
 		if (count >= MAX_NUM_WORKITEMS)
 		{
-			THROW_EXCEPTION("WorkQueue: count >= MAX_NUM_WORKITEMS");
+			THROW_EXCEPTION1("max. number of work items overflow (%d)", count);
 		}
 
 		unsigned int mask = __ballot(1);
@@ -82,9 +83,10 @@ struct WorkQueue
 		{
 			atomicAdd((int*)&count, numberOfActiveThreads);
 
-			if (count >= MAX_NUM_WORKITEMS)
+			// FIXME: checking boundaries
+			if (count > MAX_NUM_WORKITEMS)
 			{
-				THROW_EXCEPTION("WorkQueue: count >= MAX_NUM_WORKITEMS");
+				THROW_EXCEPTION1("max. number of work items overflow (%d)", count);
 			}
 
 			firstPushIndex = atomicAdd(&tail, numberOfActiveThreads);
@@ -111,7 +113,7 @@ struct WorkQueue
 
 		if (count >= MAX_NUM_WORKITEMS)
 		{
-			THROW_EXCEPTION("WorkQueue: count >= MAX_NUM_WORKITEMS");
+			THROW_EXCEPTION1("max. number of work items overflow (%d)", count);
 		}
 
 		unsigned int index = tail++ % MAX_NUM_WORKITEMS;
@@ -144,14 +146,16 @@ struct WorkQueue
 	template<typename WorkItemType>
 	HOST_CODE void unsafePop(WorkItemType& item)
 	{
+		// FIXME: checking invariants
 		if (count == 0)
 		{
-			THROW_EXCEPTION("WorkQueue: count == 0");
+			THROW_EXCEPTION("count == 0");
 		}
 		
+		// FIXME: checking invariants
 		if (head == tail)
 		{
-			THROW_EXCEPTION("WorkQueue: head == tail");
+			THROW_EXCEPTION("head == tail");
 		}
 
 		unsigned int index = head++ % MAX_NUM_WORKITEMS;

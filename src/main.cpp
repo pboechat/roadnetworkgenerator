@@ -147,11 +147,15 @@ int main(int argc, char** argv)
 	catch (std::exception& e)
 	{
 		std::cout << std::endl << "Exception: " << std::endl  << std::endl << e.what() << std::endl << std::endl;
+		// DEBUG:
+		system("pause");
 	}
 
 	catch (...)
 	{
 		std::cout << std::endl << "Unknown error" << std::endl << std::endl;
+		// DEBUG:
+		system("pause");
 	}
 
 #ifdef USE_CUDA
@@ -160,9 +164,6 @@ int main(int argc, char** argv)
 		cudaDeviceReset();
 	}
 #endif
-
-	// DEBUG:
-	system("pause");
 
 	return returnValue;
 }

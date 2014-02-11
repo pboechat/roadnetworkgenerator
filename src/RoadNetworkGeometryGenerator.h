@@ -23,14 +23,18 @@ private:
 		vml_vec4* colors;
 		unsigned int* indices;
 		vml_vec4 color;
+		unsigned int maxNumVertices;
+		unsigned int maxNumIndices;
 		unsigned int lastVerticesIndex;
 		unsigned int lastIndicesIndex;
 
-		GeometryCreationTraversal(vml_vec4* vertices, vml_vec4* colors, unsigned int* indices, const vml_vec4& color, unsigned int lastVerticesIndex, unsigned int lastIndicesIndex) : 
+		GeometryCreationTraversal(vml_vec4* vertices, vml_vec4* colors, unsigned int* indices, const vml_vec4& color, unsigned int maxNumVertices, unsigned int maxNumIndices, unsigned int lastVerticesIndex, unsigned int lastIndicesIndex) : 
 			vertices(vertices),
 			colors(colors),
 			indices(indices),
 			color(color),
+			maxNumVertices(maxNumVertices),
+			maxNumIndices(maxNumIndices),
 			lastVerticesIndex(lastVerticesIndex), 
 			lastIndicesIndex(lastIndicesIndex) 
 		{
@@ -47,11 +51,23 @@ private:
 				return true;
 			}
 
+			// FIXME: checking boundaries
+			if (lastVerticesIndex + 1 >= maxNumVertices)
+			{
+				throw std::exception("max. number of vertices in vertex buffer overflow");
+			}
+
 			vertices[lastVerticesIndex] = vml_vec4(source.getPosition().x, source.getPosition().y, 0.0f, 1.0f);
 			vertices[lastVerticesIndex + 1] = vml_vec4(destination.getPosition().x, destination.getPosition().y, 0.0f, 1.0f);
 
 			colors[lastVerticesIndex] = color;
 			colors[lastVerticesIndex + 1] = color;
+
+			// FIXME: checking boundaries
+			if (lastIndicesIndex + 1 >= maxNumIndices)
+			{
+				throw std::exception("max. number of indices in index buffer overflow");
+			}
 
 			indices[lastIndicesIndex] = lastVerticesIndex;
 			indices[lastIndicesIndex + 1] = lastVerticesIndex + 1;
@@ -161,6 +177,12 @@ public:
 				vml_vec2 v0 = graph->vertices[edge.source].getPosition();
 				vml_vec2 v1 = graph->vertices[edge.destination].getPosition();
 
+				// FIXME: checking boundaries
+				if (lastVerticesIndex + 1 >= vertexBufferSize)
+				{
+					throw std::exception("max. number of vertices in vertex buffer overflow");
+				}
+
 				vertices[lastVerticesIndex] = vml_vec4(v0.x, v0.y, 0.0f, 1.0f);
 				vertices[lastVerticesIndex + 1] = vml_vec4(v1.x, v1.y, 0.0f, 1.0f);
 
@@ -168,6 +190,12 @@ public:
 
 				colors[lastVerticesIndex] = color;
 				colors[lastVerticesIndex + 1] = color;
+
+				// FIXME: checking boundaries
+				if (lastIndicesIndex + 1 >= indexBufferSize)
+				{
+					throw std::exception("max. number of indices in index buffer overflow");
+				}
 
 				indices[lastIndicesIndex] = lastVerticesIndex;
 				indices[lastIndicesIndex + 1] = lastVerticesIndex + 1;
@@ -177,7 +205,7 @@ public:
 			}
 		}
 
-		GeometryCreationTraversal traversal(vertices, colors, indices, streetColor, lastVerticesIndex, lastIndicesIndex);
+		GeometryCreationTraversal traversal(vertices, colors, indices, streetColor, vertexBufferSize, indexBufferSize, lastVerticesIndex, lastIndicesIndex);
 		traverse(graph, traversal);
 
 		glBindBuffer(GL_ARRAY_BUFFER, buffers[0]);

@@ -21,6 +21,14 @@
 		#define THROW_EXCEPTION(__message) \
 			printf("%s (@%s, %d)\n", __message, __FILE__, __LINE__); \
 			asm("trap;")
+		#define THROW_EXCEPTION1(__format, __arg1) \
+			printf(__format, __arg1); \
+			printf(" (@%s, %d)\n", __FILE__, __LINE__); \
+			asm("trap;")
+		#define THROW_EXCEPTION2(__format, __arg1, __arg2) \
+			printf(__format, __arg1, __arg2); \
+			printf(" (@%s, %d)\n", __FILE__, __LINE__); \
+			asm("trap;")
 		#define ATOMIC_ADD(__variable, __type, __increment) atomicAdd((__type*)&__variable, (__type)__increment)
 		#define ATOMIC_EXCH(__variable, __type, __value) atomicExch((__type*)&__variable, (__type)__value)
 		#define ATOMIC_MAX(__variable, __type, __value) atomicMax((__type*)&__variable, (__type)__value)
@@ -55,6 +63,22 @@
 			{ \
 				std::stringstream stringStream; \
 				stringStream << __message << " (@" << __FILE__ << ", " << __FUNCTION__ << "(..), line: " << __LINE__ << ")"; \
+				throw std::exception(stringStream.str().c_str()); \
+			}
+		#define THROW_EXCEPTION1(__format, __arg1) \
+			{ \
+				char str[1024]; \
+				sprintf(str, __format, __arg1); \
+				std::stringstream stringStream; \
+				stringStream << str << " (@" << __FILE__ << ", " << __FUNCTION__ << "(..), line: " << __LINE__ << ")"; \
+				throw std::exception(stringStream.str().c_str()); \
+			}
+		#define THROW_EXCEPTION2(__format, __arg1, __arg2) \
+			{ \
+				char str[1024]; \
+				sprintf(str, __format, __arg1, __arg2); \
+				std::stringstream stringStream; \
+				stringStream << str << " (@" << __FILE__ << ", " << __FUNCTION__ << "(..), line: " << __LINE__ << ")"; \
 				throw std::exception(stringStream.str().c_str()); \
 			}
 		#define ATOMIC_ADD(__variable, __type, __increment) atomicAddMock((__type*)&__variable, (__type)__increment)
@@ -99,6 +123,22 @@ inline T atomicMaxMock(T* variable, T value)
 	{ \
 		std::stringstream stringStream; \
 		stringStream << __message << " (@" << __FILE__ << ", " << __FUNCTION__ << "(..), line: " << __LINE__ << ")"; \
+		throw std::exception(stringStream.str().c_str()); \
+	}
+#define THROW_EXCEPTION1(__format, __arg1) \
+	{ \
+		char str[1024]; \
+		sprintf(str, __format, __arg1); \
+		std::stringstream stringStream; \
+		stringStream << str << " (@" << __FILE__ << ", " << __FUNCTION__ << "(..), line: " << __LINE__ << ")"; \
+		throw std::exception(stringStream.str().c_str()); \
+	}
+#define THROW_EXCEPTION2(__format, __arg1, __arg2) \
+	{ \
+		char str[1024]; \
+		sprintf(str, __format, __arg1, __arg2); \
+		std::stringstream stringStream; \
+		stringStream << str << " (@" << __FILE__ << ", " << __FUNCTION__ << "(..), line: " << __LINE__ << ")"; \
 		throw std::exception(stringStream.str().c_str()); \
 	}
 #define ATOMIC_ADD(__variable, __type, __increment) atomicAddMock((__type*)&__variable, (__type)__increment)

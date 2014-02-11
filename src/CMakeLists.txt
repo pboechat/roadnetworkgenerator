@@ -61,7 +61,7 @@ source_group("CUDA Sources" FILES ${CUDA_SOURCES})
 
 if (MSVC)
 	add_definitions(/D "_CRT_SECURE_NO_WARNINGS")
-endif (MSVC)
+endif()
 
 add_definitions(/D "USE_GLM")
 set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS};-DUSE_GLM")
@@ -69,7 +69,12 @@ set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS};-DUSE_GLM")
 if (USE_CUDA)
 	add_definitions(/D "USE_CUDA")
 	set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS};-DUSE_CUDA")
-endif(USE_CUDA)
+endif()
+
+if (COLLECT_STATISTICS)
+	add_definitions(/D "COLLECT_STATISTICS")
+	set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS};-DCOLLECT_STATISTICS")
+endif()
 
 cuda_add_executable(
 	roadnetworkgenerator

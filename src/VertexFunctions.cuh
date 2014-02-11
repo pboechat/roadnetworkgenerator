@@ -23,8 +23,8 @@ DEVICE_CODE void replaceInEdge(Vertex& vertex, int oldInEdgeIndex, int newInEdge
 	// FIXME: checking invariants
 	if (!found)
 	{
-		//THROW_EXCEPTION("!found");
-		WARN("replaceInEdge: edge not found");
+		THROW_EXCEPTION("replaceInEdge: edge not found");
+		//WARN("replaceInEdge: edge not found");
 	}
 }
 
@@ -36,8 +36,8 @@ DEVICE_CODE void replaceAdjacency(Vertex& vertex, int oldAdjacentVertexIndex, in
 	{
 		if (vertex.adjacencies[i] == newAdjacentVertexIndex)
 		{
-			//THROW_EXCEPTION("duplicate adjacency");
-			WARN("replaceAdjacency: duplicate adjacency found");
+			THROW_EXCEPTION("replaceAdjacency: duplicate adjacency found");
+			//WARN("replaceAdjacency: duplicate adjacency found");
 			return;
 		}
 	}
@@ -57,8 +57,8 @@ DEVICE_CODE void replaceAdjacency(Vertex& vertex, int oldAdjacentVertexIndex, in
 	// FIXME: checking invariants
 	if (!found)
 	{
-		//THROW_EXCEPTION("!found");
-		WARN("replaceAdjacency: adjacency not found");
+		THROW_EXCEPTION("replaceAdjacency: adjacency not found");
+		//WARN("replaceAdjacency: adjacency not found");
 	}
 }
 
@@ -81,8 +81,8 @@ HOST_AND_DEVICE_CODE void removeInEdge(Vertex& vertex, int edgeIndex)
 	// FIXME: checking invariants
 	if (!found)
 	{
-		//THROW_EXCEPTION("!found");
-		WARN("removeInEdge: edge not found");
+		THROW_EXCEPTION("removeInEdge: edge not found");
+		//WARN("removeInEdge: edge not found");
 		return;
 	}
 
@@ -113,8 +113,8 @@ HOST_AND_DEVICE_CODE void removeOutEdge(Vertex& vertex, int edgeIndex)
 	// FIXME: checking invariants
 	if (!found)
 	{
-		//THROW_EXCEPTION("!found");
-		WARN("removeOutEdge: edge not found");
+		THROW_EXCEPTION("removeOutEdge: edge not found");
+		//WARN("removeOutEdge: edge not found");
 		return;
 	}
 
@@ -145,8 +145,8 @@ HOST_AND_DEVICE_CODE void removeAdjacency(Vertex& vertex, int adjacentVertexInde
 	// FIXME: checking invariants
 	if (!found)
 	{
-		//THROW_EXCEPTION("!found");
-		WARN("removeAdjacency: edge not found");
+		THROW_EXCEPTION("removeAdjacency: edge not found");
+		//WARN("removeAdjacency: edge not found");
 		return;
 	}
 

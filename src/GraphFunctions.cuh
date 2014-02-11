@@ -72,7 +72,7 @@ GLOBAL_CODE void updateNonPointerFields(Graph* graph, unsigned int numVertices, 
 __device__ __host__ int createVertex(Graph* graph, const vml_vec2& position)
 {
 	int newVertexIndex;
-#ifdef __CUDA_ARCH__ 
+#if defined(__CUDA_ARCH__) && (CUDA_CC >= 30)
 	unsigned int mask = __ballot(1);
 	unsigned int numberOfActiveThreads = __popc(mask);
 	int laneId = __popc(lanemask_lt() & mask);
@@ -84,9 +84,9 @@ __device__ __host__ int createVertex(Graph* graph, const vml_vec2& position)
 		oldValue = atomicAdd((int*)&graph->numVertices, numberOfActiveThreads);
 
 		// FIXME: checking boundaries
-		if (graph->numVertices >= (int)graph->maxVertices)
+		if (graph->numVertices > (int)graph->maxVertices)
 		{
-			THROW_EXCEPTION("max. vertices overflow");
+			THROW_EXCEPTION1("max. vertices overflow (%d)", graph->numVertices);
 		}
 	}
 
@@ -97,9 +97,9 @@ __device__ __host__ int createVertex(Graph* graph, const vml_vec2& position)
 	newVertexIndex = ATOMIC_ADD(graph->numVertices, int, 1);
 
 	// FIXME: checking boundaries
-	if (graph->numVertices >= (int)graph->maxVertices)
+	if (graph->numVertices > (int)graph->maxVertices)
 	{
-		THROW_EXCEPTION("max. vertices overflow");
+		THROW_EXCEPTION1("max. vertices overflow (%d)", graph->numVertices);
 	}
 #endif
 
@@ -117,7 +117,7 @@ int createVertex(Graph* graph, const vml_vec2& position)
 	// FIXME: checking boundaries
 	if (graph->numVertices >= (int)graph->maxVertices)
 	{
-		THROW_EXCEPTION("max. vertices overflow");
+		THROW_EXCEPTION1("max. vertices overflow (%d)", graph->numVertices);
 	}
 
 	int newVertexIndex = ATOMIC_ADD(graph->numVertices, int, 1);
@@ -161,7 +161,7 @@ __device__ int connect(Graph* graph, int sourceVertexIndex, int destinationVerte
 		// FIXME: checking boundaries
 		if (graph->numEdges > (int)graph->maxEdges)
 		{
-			THROW_EXCEPTION("max. edges overflow");
+			THROW_EXCEPTION1("max. edges overflow (%d)", graph->numEdges);
 		}
 	}
 
@@ -185,7 +185,7 @@ __device__ int connect(Graph* graph, int sourceVertexIndex, int destinationVerte
 	// FIXME: checking boundaries
 	if (sourceVertex.numOuts > MAX_VERTEX_OUT_CONNECTIONS)
 	{
-		THROW_EXCEPTION("max. vertex connections (out) overflow");
+		THROW_EXCEPTION1("max. vertex connections (out) overflow (%d)", sourceVertex.numOuts);
 	}
 
 	sourceVertex.outs[lastIndex] = newEdgeIndex;
@@ -195,7 +195,7 @@ __device__ int connect(Graph* graph, int sourceVertexIndex, int destinationVerte
 	// FIXME: checking boundaries
 	if (sourceVertex.numAdjacencies > MAX_VERTEX_ADJACENCIES)
 	{
-		THROW_EXCEPTION("max. vertex adjacencies overflow");
+		THROW_EXCEPTION1("max. vertex adjacencies overflow (%d)", sourceVertex.numAdjacencies);
 	}
 
 	sourceVertex.adjacencies[lastIndex] = destinationVertexIndex;
@@ -205,7 +205,7 @@ __device__ int connect(Graph* graph, int sourceVertexIndex, int destinationVerte
 	// FIXME: checking boundaries
 	if (destinationVertex.numIns > MAX_VERTEX_IN_CONNECTIONS)
 	{
-		THROW_EXCEPTION("max. vertex connections (in) overflow");
+		THROW_EXCEPTION1("max. vertex connections (in) overflow (%d)", destinationVertex.numIns);
 	}
 
 	destinationVertex.ins[lastIndex] = newEdgeIndex;
@@ -215,7 +215,7 @@ __device__ int connect(Graph* graph, int sourceVertexIndex, int destinationVerte
 	// FIXME: checking boundaries
 	if (destinationVertex.numAdjacencies > MAX_VERTEX_ADJACENCIES)
 	{
-		THROW_EXCEPTION("max. vertex adjacencies overflow");
+		THROW_EXCEPTION1("max. vertex adjacencies overflow (%d)", destinationVertex.numAdjacencies);
 	}
 
 	destinationVertex.adjacencies[lastIndex] = sourceVertexIndex;
@@ -249,7 +249,7 @@ DEVICE_CODE int connect(Graph* graph, int sourceVertexIndex, int destinationVert
 	// FIXME: checking boundaries
 	if (graph->numEdges > (int)graph->maxEdges)
 	{
-		THROW_EXCEPTION("max. edges overflow");
+		THROW_EXCEPTION1("max. edges overflow (%d)", graph->numEdges);
 	}
 
 	Edge& newEdge = graph->edges[newEdgeIndex];
@@ -269,7 +269,7 @@ DEVICE_CODE int connect(Graph* graph, int sourceVertexIndex, int destinationVert
 	// FIXME: checking boundaries
 	if (sourceVertex.numOuts > MAX_VERTEX_OUT_CONNECTIONS)
 	{
-		THROW_EXCEPTION("max. vertex connections (out) overflow");
+		THROW_EXCEPTION1("max. vertex connections (out) overflow (%d)", sourceVertex.numOuts);
 	}
 
 	sourceVertex.outs[lastIndex] = newEdgeIndex;
@@ -279,7 +279,7 @@ DEVICE_CODE int connect(Graph* graph, int sourceVertexIndex, int destinationVert
 	// FIXME: checking boundaries
 	if (sourceVertex.numAdjacencies > MAX_VERTEX_ADJACENCIES)
 	{
-		THROW_EXCEPTION("max. vertex adjacencies overflow");
+		THROW_EXCEPTION1("max. vertex adjacencies overflow (%d)", sourceVertex.numAdjacencies);
 	}
 
 	sourceVertex.adjacencies[lastIndex] = destinationVertexIndex;
@@ -289,7 +289,7 @@ DEVICE_CODE int connect(Graph* graph, int sourceVertexIndex, int destinationVert
 	// FIXME: checking boundaries
 	if (destinationVertex.numIns > MAX_VERTEX_IN_CONNECTIONS)
 	{
-		THROW_EXCEPTION("max. vertex connections (in) overflow");
+		THROW_EXCEPTION1("max. vertex connections (in) overflow (%d)", destinationVertex.numIns);
 	}
 
 	destinationVertex.ins[lastIndex] = newEdgeIndex;
@@ -299,7 +299,7 @@ DEVICE_CODE int connect(Graph* graph, int sourceVertexIndex, int destinationVert
 	// FIXME: checking boundaries
 	if (destinationVertex.numAdjacencies > MAX_VERTEX_ADJACENCIES)
 	{
-		THROW_EXCEPTION("max. vertex adjacencies overflow");
+		THROW_EXCEPTION1("max. vertex adjacencies overflow (%d)", destinationVertex.numAdjacencies);
 	}
 
 	destinationVertex.adjacencies[lastIndex] = sourceVertexIndex;
@@ -323,19 +323,14 @@ DEVICE_CODE int splitEdge(Graph* graph, Edge& edge, int splitVertexIndex, bool u
 	int oldDestinationVertexIndex = edge.destination;
 	edge.destination = splitVertexIndex;
 
-/*#ifdef USE_QUADTREE
-	remove(graph->quadtree, edge.index, Line2D(sourceVertex.getPosition(), oldDestinationVertex.getPosition()));
-	insert(graph->quadtree, edge.index, Line2D(sourceVertex.getPosition(), splitVertex.getPosition()));
-#endif*/
-
 	replaceAdjacency(sourceVertex, oldDestinationVertexIndex, splitVertexIndex);
 
 	unsigned int lastIndex = ATOMIC_ADD(splitVertex.numIns, unsigned int, 1);
 
 	// FIXME: checking boundaries
-	if (splitVertex.numIns >= MAX_VERTEX_IN_CONNECTIONS)
+	if (splitVertex.numIns > MAX_VERTEX_IN_CONNECTIONS)
 	{
-		THROW_EXCEPTION("max. vertex connections (in) overflow");
+		THROW_EXCEPTION1("max. vertex connections (in) overflow (%d)", splitVertex.numIns);
 	}
 
 	splitVertex.ins[lastIndex] = edge.index;
@@ -343,9 +338,9 @@ DEVICE_CODE int splitEdge(Graph* graph, Edge& edge, int splitVertexIndex, bool u
 	lastIndex = ATOMIC_ADD(splitVertex.numAdjacencies, unsigned int, 1);
 
 	// FIXME: checking boundaries
-	if (splitVertex.numAdjacencies >= MAX_VERTEX_ADJACENCIES)
+	if (splitVertex.numAdjacencies > MAX_VERTEX_ADJACENCIES)
 	{
-		THROW_EXCEPTION("max. vertex adjacencies overflow");
+		THROW_EXCEPTION1("max. vertex adjacencies overflow (%d)", splitVertex.numAdjacencies);
 	}
 
 	splitVertex.adjacencies[lastIndex] = edge.source;
@@ -353,9 +348,9 @@ DEVICE_CODE int splitEdge(Graph* graph, Edge& edge, int splitVertexIndex, bool u
 	int newEdgeIndex = ATOMIC_ADD(graph->numEdges, int, 1);
 
 	// FIXME: checking boundaries
-	if (graph->numEdges >= (int)graph->maxEdges)
+	if (graph->numEdges > (int)graph->maxEdges)
 	{
-		THROW_EXCEPTION("max. edges overflow");
+		THROW_EXCEPTION1("max. edges overflow (%d)", graph->numEdges);
 	}
 
 	Edge& newEdge = graph->edges[newEdgeIndex];
@@ -376,9 +371,9 @@ DEVICE_CODE int splitEdge(Graph* graph, Edge& edge, int splitVertexIndex, bool u
 	lastIndex = ATOMIC_ADD(splitVertex.numOuts, unsigned int, 1);
 
 	// FIXME: checking boundaries
-	if (splitVertex.numOuts >= MAX_VERTEX_OUT_CONNECTIONS)
+	if (splitVertex.numOuts > MAX_VERTEX_OUT_CONNECTIONS)
 	{
-		THROW_EXCEPTION("max. vertex connections (out) overflow");
+		THROW_EXCEPTION1("max. vertex connections (out) overflow (%d)", splitVertex.numOuts);
 	}
 
 	splitVertex.outs[lastIndex] = newEdgeIndex;
@@ -386,9 +381,9 @@ DEVICE_CODE int splitEdge(Graph* graph, Edge& edge, int splitVertexIndex, bool u
 	lastIndex = ATOMIC_ADD(splitVertex.numAdjacencies, unsigned int, 1);
 
 	// FIXME: checking boundaries
-	if (splitVertex.numAdjacencies >= MAX_VERTEX_ADJACENCIES)
+	if (splitVertex.numAdjacencies > MAX_VERTEX_ADJACENCIES)
 	{
-		THROW_EXCEPTION("max. vertex adjacencies overflow");
+		THROW_EXCEPTION1("max. vertex adjacencies overflow (%d)", splitVertex.numAdjacencies);
 	}
 
 	splitVertex.adjacencies[lastIndex] = oldDestinationVertexIndex;
@@ -402,7 +397,7 @@ DEVICE_CODE int splitEdge(Graph* graph, Edge& edge, int splitVertexIndex, bool u
 }
 
 //////////////////////////////////////////////////////////////////////////
-DEVICE_CODE bool checkIntersection(Graph* graph, Edge& edge1, Edge& edge2, vml_vec2& intersection)
+DEVICE_CODE bool checkIntersection(Graph* graph, const Edge& edge1, const Edge& edge2, vml_vec2& intersection)
 {
 	// avoid intersecting parent or sibling
 	if (edge1.source == edge2.source || 
@@ -435,80 +430,23 @@ DEVICE_CODE bool checkIntersection(Graph* graph, Edge& edge1, Edge& edge2, vml_v
 }
 
 //////////////////////////////////////////////////////////////////////////
-DEVICE_CODE bool checkIntersectionWithBoundaries(Graph* graph, const Line2D& newEdgeLine, Primitive& primitive, unsigned int& start, int sourceIndex, int& edgeIndex, float& closestIntersectionDistance, vml_vec2& closestIntersection, IntersectionType& intersectionType)
+DEVICE_CODE bool checkIntersection(Graph* graph, const Line2D& edgeLine1, const Edge& edge2, vml_vec2& intersection)
 {
-	closestIntersectionDistance = FLT_MAX;
-	intersectionType = NONE;
+	vml_vec2 start2 = graph->vertices[edge2.source].getPosition();
+	vml_vec2 end2 = graph->vertices[edge2.destination].getPosition();
 
-	for (unsigned int i = start; i < primitive.numEdges; i++)
+	Line2D edgeLine2(start2, end2);
+
+	if (edgeLine1.intersects(edgeLine2, intersection))
 	{
-		int edgeIndex1 = primitive.edges[i];
-		Edge& edge = graph->edges[edgeIndex1];
-
-		// avoid intersecting parent or sibling
-		if (edge.destination == sourceIndex || edge.source == sourceIndex)
-		{
-			continue;
-		}
-
-		vml_vec2 start2 = graph->vertices[edge.source].getPosition();
-		vml_vec2 end2 = graph->vertices[edge.destination].getPosition();
-
-		Line2D edgeLine(start2, end2);
-
-		vml_vec2 intersection;
-		if (newEdgeLine.intersects(edgeLine, intersection))
-		{
-			float distance = vml_distance(newEdgeLine.getStart(), intersection);
-
-			if (distance < closestIntersectionDistance)
-			{
-				if (vml_distance(start2, intersection) <= graph->snapRadius)
-				{
-					if (vml_distance(newEdgeLine.getStart(), intersection) > vml_distance(newEdgeLine.getEnd(), intersection))
-					{
-						intersectionType = SOURCE_SOURCE_SNAPPING;
-					}
-					else
-					{
-						intersectionType = DESTINATION_SOURCE_SNAPPING;
-					}
-
-					intersection = start2;
-				}
-
-				else if (vml_distance(end2, intersection) <= graph->snapRadius)
-				{
-					if (vml_distance(newEdgeLine.getStart(), intersection) > vml_distance(newEdgeLine.getEnd(), intersection))
-					{
-						intersectionType = SOURCE_DESTINATION_SNAPPING;
-					}
-					else
-					{
-						intersectionType = DESTINATION_DESTINATION_SNAPPING;
-					}
-
-					intersection = end2;
-				}
-
-				else
-				{
-					intersectionType = EDGE_INTERSECTION;
-				}
-
-				closestIntersectionDistance = distance;
-				closestIntersection = intersection;
-				edgeIndex = edgeIndex1;
-				start = i;
-			}
-		}
+		return true;
+	}
 
 #ifdef COLLECT_STATISTICS
 	ATOMIC_ADD(graph->numCollisionChecks, unsigned int, 1);
 #endif
-	}
 
-	return (intersectionType != NONE);
+	return false;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -531,44 +469,24 @@ DEVICE_CODE bool addStreet(Graph* graph, Primitive* primitives, int sourceIndex,
 	end = start + direction;
 	Line2D newEdgeLine(start, end);
 
-	int boundaryEdgeIndex;
-	float closestIntersectionDistance;
-	vml_vec2 closestIntersection;
-	IntersectionType intersectionType;
 	bool intersected = false;
-	bool tryAgain = false;
-	unsigned int i = 0;
 	Primitive& bounds = primitives[boundsIndex];
-	do
+	
+	for (unsigned int i = 0; i < bounds.numEdges; i++)
 	{
-		if (checkIntersectionWithBoundaries(graph, newEdgeLine, bounds, i, sourceIndex, boundaryEdgeIndex, closestIntersectionDistance, closestIntersection, intersectionType))
+		Edge& boundaryEdge = graph->edges[bounds.edges[i]];
+
+		bool tryAgain;
+		do
 		{
-			Edge& boundaryEdge = graph->edges[boundaryEdgeIndex];
-			if (ATOMIC_EXCH(boundaryEdge.owner, int, THREAD_IDX_X) == -1)
+			tryAgain = false;
+			vml_vec2 intersection;
+			if (checkIntersection(graph, newEdgeLine, boundaryEdge, intersection))
 			{
-				end = closestIntersection;
-
-				if (intersectionType == SOURCE_SOURCE_SNAPPING || intersectionType == SOURCE_DESTINATION_SNAPPING)
+				tryAgain = false;
+				if (ATOMIC_EXCH(boundaryEdge.owner, int, THREAD_IDX_X) == -1)
 				{
-					destinationIndex = boundaryEdge.source;
-					connect(graph, sourceIndex, destinationIndex, false, 0);
-				}
-
-				else if (intersectionType == DESTINATION_SOURCE_SNAPPING)
-				{
-					destinationIndex = boundaryEdge.source;
-					connect(graph, sourceIndex, destinationIndex, false, 0);
-				}
-
-				else if (intersectionType == DESTINATION_DESTINATION_SNAPPING)
-				{
-					destinationIndex = boundaryEdge.destination;
-					connect(graph, sourceIndex, destinationIndex, false, 0);
-				}
-
-				else if (intersectionType == EDGE_INTERSECTION)
-				{
-					destinationIndex = createVertex(graph, end);
+					destinationIndex = createVertex(graph, intersection);
 					int newEdgeIndex = splitEdge(graph, boundaryEdge, destinationIndex);
 					if (connect(graph, sourceIndex, destinationIndex, false, 0) == -1)
 					{
@@ -585,44 +503,43 @@ DEVICE_CODE bool addStreet(Graph* graph, Primitive* primitives, int sourceIndex,
 						newEdge.primitives[j] = primitiveIndex;
 						Primitive& primitive = primitives[primitiveIndex];
 
-						unsigned int lastIndex = ATOMIC_ADD(primitive.numEdges, unsigned int, 1);
+						unsigned int lastEdgeIndex = ATOMIC_ADD(primitive.numEdges, unsigned int, 1);
 
 						// FIXME: checking boundaries
 						if (primitive.numEdges > MAX_EDGES_PER_PRIMITIVE)
 						{
-							THROW_EXCEPTION("max. number of primitive edges overflow");
+							THROW_EXCEPTION1("max. number of primitive edges overflow (%d)", primitive.numEdges);
 						}
 
-						primitive.edges[lastIndex] = newEdgeIndex;
+						primitive.edges[lastEdgeIndex] = newEdgeIndex;
 
-						lastIndex = ATOMIC_ADD(primitive.numVertices, unsigned int, 1);
+						unsigned int lastVertexIndex = ATOMIC_ADD(primitive.numVertices, unsigned int, 1);
 
 						// FIXME: checking boundaries
 						if (primitive.numVertices > MAX_VERTICES_PER_PRIMITIVE)
 						{
-							THROW_EXCEPTION("max. number of primitive vertices overflow");
+							THROW_EXCEPTION1("max. number of primitive vertices overflow (%d)", primitive.numVertices);
 						}
 
-						primitive.vertices[lastIndex] = end;
+						primitive.vertices[lastVertexIndex] = intersection;
 					}
-				}
 
-				else
-				{
-					// FIXME: checking invariants
-					THROW_EXCEPTION("unknown intersection type");
-				}
-
-				intersected = true;
-				tryAgain = false;
-				ATOMIC_EXCH(boundaryEdge.owner, int, -1);
+					intersected = true;
+					tryAgain = false;
+					ATOMIC_EXCH(boundaryEdge.owner, int, -1);
+				} // critical-section if
 			}
-			else
-			{
-				tryAgain = true;
-			} // atomicExch if-else
-		} // check intersection if
-	} while (tryAgain); // critical-section do-while
+
+#ifdef COLLECT_STATISTICS
+			ATOMIC_ADD(graph->numCollisionChecks, unsigned int, 1);
+#endif
+		}  while (tryAgain);
+
+		if (intersected)
+		{
+			break;
+		}
+	} // for loop
 
 	if (intersected)
 	{
@@ -637,36 +554,6 @@ DEVICE_CODE bool addStreet(Graph* graph, Primitive* primitives, int sourceIndex,
 }
 
 #ifdef COLLECT_STATISTICS
-//////////////////////////////////////////////////////////////////////////
-HOST_CODE unsigned int getAllocatedVertices(Graph* graph)
-{
-	return graph->maxVertices;
-}
-
-//////////////////////////////////////////////////////////////////////////
-HOST_CODE unsigned int getVerticesInUse(Graph* graph)
-{
-	return graph->numVertices;
-}
-
-//////////////////////////////////////////////////////////////////////////
-HOST_CODE unsigned int getAllocatedEdges(Graph* graph)
-{
-	return graph->maxEdges;
-}
-
-//////////////////////////////////////////////////////////////////////////
-HOST_CODE unsigned int getEdgesInUse(Graph* graph)
-{
-	return graph->numEdges;
-}
-
-//////////////////////////////////////////////////////////////////////////
-HOST_CODE unsigned int getMaxVertexInConnections(Graph* graph)
-{
-	return MAX_VERTEX_IN_CONNECTIONS;
-}
-
 //////////////////////////////////////////////////////////////////////////
 HOST_CODE unsigned int getMaxVertexInConnectionsInUse(Graph* graph)
 {
@@ -683,12 +570,6 @@ HOST_CODE unsigned int getMaxVertexInConnectionsInUse(Graph* graph)
 	}
 
 	return maxVerticesInConnectionsInUse;
-}
-
-//////////////////////////////////////////////////////////////////////////
-HOST_CODE unsigned int getMaxVertexOutConnections(Graph* graph)
-{
-	return MAX_VERTEX_OUT_CONNECTIONS;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -710,7 +591,7 @@ HOST_CODE unsigned int getMaxVertexOutConnectionsInUse(Graph* graph)
 }
 
 //////////////////////////////////////////////////////////////////////////
-HOST_CODE unsigned int getAverageVertexInConnectionsInUse(Graph* graph)
+HOST_CODE float getAverageVertexInConnectionsInUse(Graph* graph)
 {
 	unsigned int totalVerticesInConnections = 0;
 
@@ -720,52 +601,46 @@ HOST_CODE unsigned int getAverageVertexInConnectionsInUse(Graph* graph)
 		totalVerticesInConnections += vertex.numIns;
 	}
 
-	return totalVerticesInConnections / graph->numVertices;
+	return totalVerticesInConnections / (float)graph->numVertices;
 }
 
 //////////////////////////////////////////////////////////////////////////
-HOST_CODE unsigned int getAverageVertexOutConnectionsInUse(Graph* graph)
+HOST_CODE float getAverageVertexOutConnectionsInUse(Graph* graph)
 {
 	unsigned int totalVerticesOutConnections = 0;
 
 	for (int i = 0; i < graph->numVertices; i++)
 	{
 		Vertex& vertex = graph->vertices[i];
-		totalVerticesOutConnections += vertex.numIns;
+		totalVerticesOutConnections += vertex.numOuts;
 	}
 
-	return totalVerticesOutConnections / graph->numVertices;
+	return totalVerticesOutConnections / (float)graph->numVertices;
 }
 
 //////////////////////////////////////////////////////////////////////////
 HOST_CODE unsigned int getAllocatedMemory(Graph* graph)
 {
-	unsigned int verticesBufferMemory = graph->maxVertices * sizeof(Vertex);
-	unsigned int edgesBufferMemory = graph->maxEdges * sizeof(Vertex);
-	return (verticesBufferMemory + edgesBufferMemory);
+	unsigned int verticesMemory = graph->maxVertices * sizeof(Vertex);
+	unsigned int edgesMemory = graph->maxEdges * sizeof(Vertex);
+	return sizeof(Graph) + (verticesMemory + edgesMemory);
 }
 
 //////////////////////////////////////////////////////////////////////////
 HOST_CODE unsigned int getMemoryInUse(Graph* graph)
 {
-	unsigned int verticesBufferMemoryInUse = 0;
+	unsigned int verticesMemoryInUse = 0;
 
 	for (int i = 0; i < graph->numVertices; i++)
 	{
 		Vertex& vertex = graph->vertices[i];
-		// FIXME:
-		verticesBufferMemoryInUse += vertex.numIns * sizeof(int) + vertex.numOuts * sizeof(int) + sizeof(vml_vec2) + 2 * sizeof(unsigned int) + sizeof(bool);
+		verticesMemoryInUse += vertex.numIns * sizeof(int) + vertex.numOuts * sizeof(int) + sizeof(vml_vec2) + 2 * sizeof(unsigned int) + sizeof(bool);
 	}
 
-	unsigned int edgesBufferMemoryInUse = graph->numEdges * sizeof(Vertex);
-	return (verticesBufferMemoryInUse + edgesBufferMemoryInUse);
+	unsigned int edgesMemoryInUse = graph->numEdges * sizeof(Vertex);
+	return sizeof(Graph) + (verticesMemoryInUse + edgesMemoryInUse);
 }
 
-//////////////////////////////////////////////////////////////////////////
-HOST_CODE unsigned long getNumCollisionChecks(Graph* graph)
-{
-	return graph->numCollisionChecks;
-}
 #endif
 
 #endif

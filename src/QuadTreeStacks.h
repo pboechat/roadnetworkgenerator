@@ -22,9 +22,9 @@ private:
 public:
 	HOST_AND_DEVICE_CODE void push(unsigned int index, unsigned int offset, unsigned int levelWidth)
 	{
-		if (count > QUADTREE_STACK_DATA_SIZE)
+		if (count >= QUADTREE_STACK_DATA_SIZE)
 		{
-			THROW_EXCEPTION("QuadTreeStack: count > QUADTREE_STACK_DATA_SIZE");
+			THROW_EXCEPTION("QuadTreeStack: count >= QUADTREE_STACK_DATA_SIZE");
 		}
 
 		Entry& entry = data[count++];
@@ -75,9 +75,9 @@ private:
 public:
 	HOST_AND_DEVICE_CODE void push(unsigned int index, unsigned int offset, unsigned int levelWidth, unsigned int depth, const Box2D& quadrantBounds)
 	{
-		if (count > QUADTREE_STACK_DATA_SIZE)
+		if (count >= QUADTREE_STACK_DATA_SIZE)
 		{
-			THROW_EXCEPTION("QuadTreeStack: count > QUADTREE_STACK_DATA_SIZE");
+			THROW_EXCEPTION("QuadTreeStack: count >= QUADTREE_STACK_DATA_SIZE");
 		}
 
 		Entry& entry = data[count++];

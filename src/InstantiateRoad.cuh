@@ -371,9 +371,20 @@ struct InstantiateStreet
 			evaluateGlobalGoals(road, newSource, position, delays, roadAttributes, ruleAttributes, context);
 		}
 
-		backQueues[EVALUATE_STREET_BRANCH].push(Branch<StreetRuleAttributes>(delays[0], roadAttributes[0], ruleAttributes[0]));
-		backQueues[EVALUATE_STREET_BRANCH].push(Branch<StreetRuleAttributes>(delays[1], roadAttributes[1], ruleAttributes[1]));
-		backQueues[EVALUATE_STREET].push(Street(delays[2], roadAttributes[2], ruleAttributes[2], UNASSIGNED));
+		if (delays[0] >= 0)
+		{
+			backQueues[EVALUATE_STREET_BRANCH].push(Branch<StreetRuleAttributes>(delays[0], roadAttributes[0], ruleAttributes[0]));
+		}
+
+		if (delays[1] >= 0)
+		{
+			backQueues[EVALUATE_STREET_BRANCH].push(Branch<StreetRuleAttributes>(delays[1], roadAttributes[1], ruleAttributes[1]));
+		}
+
+		if (delays[2] >= 0)
+		{
+			backQueues[EVALUATE_STREET].push(Street(delays[2], roadAttributes[2], ruleAttributes[2], UNASSIGNED));
+		}
 	}
 };
 
@@ -402,9 +413,20 @@ struct InstantiateHighway
 
 		evaluateGlobalGoals(road, newSource, position, delays, roadAttributes, ruleAttributes, context);
 
-		backQueues[EVALUATE_HIGHWAY_BRANCH].push(Branch<HighwayRuleAttributes>(delays[0], roadAttributes[0], ruleAttributes[0]));
-		backQueues[EVALUATE_HIGHWAY_BRANCH].push(Branch<HighwayRuleAttributes>(delays[1], roadAttributes[1], ruleAttributes[1]));
-		backQueues[EVALUATE_HIGHWAY].push(Highway(delays[2], roadAttributes[2], ruleAttributes[2], UNASSIGNED));
+		if (delays[0] >= 0)
+		{
+			backQueues[EVALUATE_HIGHWAY_BRANCH].push(Branch<HighwayRuleAttributes>(delays[0], roadAttributes[0], ruleAttributes[0]));
+		}
+
+		if (delays[1] >= 0)
+		{
+			backQueues[EVALUATE_HIGHWAY_BRANCH].push(Branch<HighwayRuleAttributes>(delays[1], roadAttributes[1], ruleAttributes[1]));
+		}
+
+		if (delays[2] >= 0)
+		{
+			backQueues[EVALUATE_HIGHWAY].push(Highway(delays[2], roadAttributes[2], ruleAttributes[2], UNASSIGNED));
+		}
 	}
 };
 

@@ -44,10 +44,10 @@
 #ifdef USE_CUDA
 #include <cutil.h>
 #include <cutil_timer.h>
-#define NUM_EXPANSION_KERNEL_BLOCKS 9
-#define NUM_EXPANSION_KERNEL_THREADS 128
+#define NUM_EXPANSION_KERNEL_BLOCKS 12
+#define NUM_EXPANSION_KERNEL_THREADS 256
 #define NUM_COALESCE_KERNEL_BLOCKS_PER_QUADRANT 8
-#define NUM_COALESCE_KERNEL_THREADS 128
+#define NUM_COALESCE_KERNEL_THREADS 256
 #define SAFE_MALLOC_ON_DEVICE(__variable, __type, __amount) cudaCheckedCall(cudaMalloc((void**)&__variable, sizeof(__type) * __amount))
 #define SAFE_FREE_ON_DEVICE(__variable) cudaCheckedCall(cudaFree(__variable))
 #define MEMCPY_HOST_TO_DEVICE(__destination, __source, __size) cudaCheckedCall(cudaMemcpy(__destination, __source, __size, cudaMemcpyHostToDevice))
@@ -246,15 +246,15 @@ void RoadNetworkGraphGenerator::notifyObservers(Graph* graph, unsigned int numPr
 //////////////////////////////////////////////////////////////////////////
 void RoadNetworkGraphGenerator::copyGraphToDevice(Graph* graph)
 {
-	MEMCPY_HOST_TO_DEVICE(g_dQuadrants, graph->quadtree->quadrants, sizeof(Quadrant) * configuration.maxQuadrants);
-	MEMCPY_HOST_TO_DEVICE(g_dQuadrantsEdges, graph->quadtree->quadrantsEdges, sizeof(QuadrantEdges) * configuration.maxQuadrants);
+	MEMCPY_HOST_TO_DEVICE(g_dQuadrants, graph->quadtree->quadrants, sizeof(Quadrant) * graph->quadtree->totalNumQuadrants);
+	MEMCPY_HOST_TO_DEVICE(g_dQuadrantsEdges, graph->quadtree->quadrantsEdges, sizeof(QuadrantEdges) * graph->quadtree->numLeafQuadrants);
 #ifdef COLLECT_STATISTICS
 	INVOKE_GLOBAL_CODE10(updateNonPointerFields, 1, 1, g_dQuadtree, (int)graph->quadtree->numQuadrantEdges, graph->quadtree->worldBounds, graph->quadtree->maxDepth, graph->quadtree->maxQuadrants, graph->quadtree->totalNumQuadrants, graph->quadtree->numLeafQuadrants, (unsigned long)graph->quadtree->numCollisionChecks, (unsigned int)graph->quadtree->maxEdgesPerQuadrantInUse, (unsigned int)graph->quadtree->maxResultsPerQueryInUse);
 #else
 	INVOKE_GLOBAL_CODE7(updateNonPointerFields, 1, 1, g_dQuadtree, (int)graph->quadtree->numQuadrantEdges, graph->quadtree->worldBounds, graph->quadtree->maxDepth, graph->quadtree->maxQuadrants, graph->quadtree->totalNumQuadrants, graph->quadtree->numLeafQuadrants);
 #endif
-	MEMCPY_HOST_TO_DEVICE(g_dVertices, graph->vertices, sizeof(Vertex) * configuration.maxVertices);
-	MEMCPY_HOST_TO_DEVICE(g_dEdges, graph->edges, sizeof(Edge) * configuration.maxEdges);
+	MEMCPY_HOST_TO_DEVICE(g_dVertices, graph->vertices, sizeof(Vertex) * graph->numVertices);
+	MEMCPY_HOST_TO_DEVICE(g_dEdges, graph->edges, sizeof(Edge) * graph->numEdges);
 #ifdef COLLECT_STATISTICS
 	INVOKE_GLOBAL_CODE4(updateNonPointerFields, 1, 1, g_dGraph, (int)graph->numVertices, (int)graph->numEdges, (unsigned long)graph->numCollisionChecks);
 #else
@@ -296,6 +296,7 @@ void RoadNetworkGraphGenerator::execute()
 	CREATE_GPU_TIMER(PrimaryRoadNetworkExpansion);
 	CREATE_GPU_TIMER(SecondaryRoadNetworkExpansion);
 	CREATE_GPU_TIMER(GraphMemoryCopy_GpuToCpu);
+	CREATE_CPU_TIMER(GraphMemoryCopy_CpuToGpu);
 	CREATE_GPU_TIMER(CollisionsComputation);
 	CREATE_CPU_TIMER(PrimitivesExtraction);
 
@@ -372,15 +373,20 @@ void RoadNetworkGraphGenerator::execute()
 		workQueues1[EVALUATE_HIGHWAY].unsafePush(Highway(0, RoadAttributes(source, configuration.highwayLength, HALF_PI), UNASSIGNED));
 		workQueues1[EVALUATE_HIGHWAY].unsafePush(Highway(0, RoadAttributes(source, configuration.highwayLength, PI), UNASSIGNED));
 	}
-	copyGraphToDevice(graph);
 
 	SAFE_MALLOC_ON_DEVICE(g_dPrimitives, Primitive, configuration.maxPrimitives);
+	SAFE_MALLOC_ON_DEVICE(g_dConfiguration, Configuration, 1);
+
+	START_CPU_TIMER(GraphMemoryCopy_CpuToGpu);
+
+	copyGraphToDevice(graph);
 
 	MEMCPY_HOST_TO_DEVICE(g_dWorkQueues1, workQueues1, sizeof(WorkQueue) * NUM_PROCEDURES);
 	MEMCPY_HOST_TO_DEVICE(g_dWorkQueues2, workQueues2, sizeof(WorkQueue) * NUM_PROCEDURES);
-
-	SAFE_MALLOC_ON_DEVICE(g_dConfiguration, Configuration, 1);
+	
 	MEMCPY_HOST_TO_DEVICE(g_dConfiguration, const_cast<Configuration*>(&configuration), sizeof(Configuration));
+
+	STOP_CPU_TIMER(GraphMemoryCopy_CpuToGpu);
 
 	SAFE_MALLOC_ON_DEVICE(g_dContext, Context, 1);
 	INVOKE_GLOBAL_CODE10(initializeContext, 1, 1, 
@@ -426,17 +432,18 @@ void RoadNetworkGraphGenerator::execute()
 	Edge* edgesCopy;
 
 	SAFE_MALLOC_ON_HOST(graphCopy, BaseGraph, 1);
-	SAFE_MALLOC_ON_HOST(verticesCopy, Vertex, configuration.maxVertices);
-	SAFE_MALLOC_ON_HOST(edgesCopy, Edge, configuration.maxEdges);
+	SAFE_MALLOC_ON_HOST(verticesCopy, Vertex, graph->numVertices);
+	SAFE_MALLOC_ON_HOST(edgesCopy, Edge, graph->numEdges);
 
 	graphCopy->vertices = verticesCopy;
 	graphCopy->edges = edgesCopy;
 
-	memcpy(graphCopy->vertices, graph->vertices, sizeof(Vertex) * configuration.maxVertices);
-	memcpy(graphCopy->edges, graph->edges, sizeof(Edge) * configuration.maxEdges);
+	memcpy(graphCopy->vertices, graph->vertices, sizeof(Vertex) * graph->numVertices);
+	memcpy(graphCopy->edges, graph->edges, sizeof(Edge) * graph->numEdges);
 	
 	graphCopy->numVertices = graph->numVertices;
 	graphCopy->numEdges = graph->numEdges;
+
 	Primitive* primitives;
 	
 	SAFE_MALLOC_ON_HOST(primitives, Primitive, configuration.maxPrimitives);
@@ -458,15 +465,12 @@ void RoadNetworkGraphGenerator::execute()
 	free(verticesCopy);
 	free(edgesCopy);
 
-	MEMCPY_HOST_TO_DEVICE(g_dPrimitives, primitives, sizeof(Primitive) * configuration.maxPrimitives);
-
 	for (unsigned int i = 0; i < NUM_PROCEDURES; i++)
 	{
 		workQueues1[i].clear();
 		workQueues2[i].clear();
 	}
 
-	maxPrimitiveSize = 0;
 	// set street spawn points
 	for (unsigned int i = 0; i < numPrimitives; i++)
 	{
@@ -476,8 +480,6 @@ void RoadNetworkGraphGenerator::execute()
 		{
 			continue;
 		}
-
-		maxPrimitiveSize = MathExtras::max(maxPrimitiveSize, primitive.numEdges);
 
 		for (unsigned int j = 0; j < primitive.numEdges; j++)
 		{
@@ -511,10 +513,17 @@ void RoadNetworkGraphGenerator::execute()
 		workQueues1[EVALUATE_STREET].unsafePush(Street(0, RoadAttributes(source, configuration.streetLength, HALF_PI + angle), StreetRuleAttributes(0, i), UNASSIGNED));
 		workQueues1[EVALUATE_STREET].unsafePush(Street(0, RoadAttributes(source, configuration.streetLength, PI + angle), StreetRuleAttributes(0, i), UNASSIGNED));
 	}
+
+	START_CPU_TIMER(GraphMemoryCopy_CpuToGpu);
+	
+	MEMCPY_HOST_TO_DEVICE(g_dPrimitives, primitives, sizeof(Primitive) * numPrimitives);
+
 	copyGraphToDevice(graph);
 
 	MEMCPY_HOST_TO_DEVICE(g_dWorkQueues1, workQueues1, sizeof(WorkQueue) * NUM_PROCEDURES);
 	MEMCPY_HOST_TO_DEVICE(g_dWorkQueues2, workQueues2, sizeof(WorkQueue) * NUM_PROCEDURES);
+
+	STOP_CPU_TIMER(GraphMemoryCopy_CpuToGpu);
 
 	START_GPU_TIMER(SecondaryRoadNetworkExpansion);
 
@@ -524,18 +533,40 @@ void RoadNetworkGraphGenerator::execute()
 	STOP_GPU_TIMER(SecondaryRoadNetworkExpansion);
 
 	GET_GPU_TIMER_ELAPSED_TIME(SecondaryRoadNetworkExpansion, elapsedTime);
-	std::cout << "Secondary Road Network Expansion: " << elapsedTime << " (ms)" << std::endl;
+	std::cout << "Secondary Road Network Expansion: " << (elapsedTime + 500) << " (ms)" << std::endl;
 
 	START_GPU_TIMER(GraphMemoryCopy_GpuToCpu);
 
 	copyGraphToHost(graph);
+	MEMCPY_DEVICE_TO_HOST(primitives, g_dPrimitives, sizeof(Primitive) * configuration.maxPrimitives);
 
 	STOP_GPU_TIMER(GraphMemoryCopy_GpuToCpu);
 
 	GET_GPU_TIMER_ELAPSED_TIME(GraphMemoryCopy_GpuToCpu, elapsedTime);
 	std::cout << "Graph Memory Copy (Gpu -> Cpu): " << elapsedTime << " (ms)" << std::endl;
 
-	MEMCPY_DEVICE_TO_HOST(primitives, g_dPrimitives, sizeof(Primitive) * configuration.maxPrimitives);
+	GET_CPU_TIMER_ELAPSED_TIME(GraphMemoryCopy_CpuToGpu, elapsedTime);
+	std::cout << "Graph Memory Copy (Cpu -> Gpu): " << elapsedTime << " (ms)" << std::endl;
+
+#ifdef COLLECT_STATISTICS
+	maxPrimitiveSize = 0;
+	for (unsigned int i = 0; i < numPrimitives; i++)
+	{
+		maxPrimitiveSize = MathExtras::max(maxPrimitiveSize, primitives[i].numEdges);
+	}
+
+	std::cout << "vertices (allocated/in use): " << graph->maxVertices << " / " << graph->numVertices << std::endl;
+	std::cout << "edges (allocated/in use): " << graph->maxEdges << " / " << graph->numEdges << std::endl;
+	std::cout << "vertex in connections (max./max. in use): " << MAX_VERTEX_IN_CONNECTIONS << " / " << getMaxVertexInConnectionsInUse(graph) << std::endl;
+	std::cout << "vertex out connections (max./max. in use): " << MAX_VERTEX_OUT_CONNECTIONS << " / " << getMaxVertexOutConnectionsInUse(graph) << std::endl;
+	std::cout << "avg. vertex in connections in use: " << getAverageVertexInConnectionsInUse(graph) << std::endl;
+	std::cout << "avg. vertex out connections in use: " << getAverageVertexOutConnectionsInUse(graph) << std::endl;
+	std::cout << "num. primitives (max./in use): " << configuration.maxPrimitives << " / " << numPrimitives << std::endl;
+	std::cout << "num. primitive edges (max./max. in use): " << MAX_EDGES_PER_PRIMITIVE << " / " << maxPrimitiveSize << std::endl;
+	std::cout << "edges per quadrant (max./max. in use): " << MAX_EDGES_PER_QUADRANT << " / " << quadtree->maxEdgesPerQuadrantInUse << std::endl;
+	std::cout << "memory (allocated/in use): " << toMegabytes(getAllocatedMemory(graph) + getAllocatedMemory(quadtree)) << " mb / " << toMegabytes(getMemoryInUse(graph) + getMemoryInUse(quadtree)) << " mb" << std::endl;
+	std::cout << "num. collision checks: " << graph->numCollisionChecks + quadtree->numCollisionChecks << std::endl;
+#endif
 
 	notifyObservers(graph, numPrimitives, primitives);
 
@@ -590,35 +621,39 @@ DEVICE_CODE void coalesceEdges(Graph* graph, QuadrantEdges* quadrantEdges)
 
 		for (unsigned int j = 0; j < quadrantEdges->lastEdgeIndex; j++)
 		{
-			if (j == i)
+			Edge& otherEdge = graph->edges[quadrantEdges->edges[j]];
+
+			if (thisEdge.index <= otherEdge.index)
 			{
 				continue;
 			}
 
-			Edge& otherEdge = graph->edges[quadrantEdges->edges[j]];
-
 			bool tryAgain;
 			do
 			{
-				tryAgain = true;
-				if (ATOMIC_EXCH(thisEdge.owner, int, THREAD_IDX_X) == -1)
+				tryAgain = false;
+				vml_vec2 intersection;
+				if (checkIntersection(graph, thisEdge, otherEdge, intersection))
 				{
-					if (ATOMIC_EXCH(otherEdge.owner, int, THREAD_IDX_X) == -1)
+					tryAgain = true;
+					if (ATOMIC_EXCH(thisEdge.owner, int, THREAD_IDX_X) == -1)
 					{
-						vml_vec2 intersection;
-						if (checkIntersection(graph, thisEdge, otherEdge, intersection))
+						if (ATOMIC_EXCH(otherEdge.owner, int, THREAD_IDX_X) == -1)
 						{
 							int newVertexIndex = createVertex(graph, intersection);
 							splitEdge(graph, otherEdge, newVertexIndex);
 							splitEdge(graph, thisEdge, newVertexIndex);
+
+							tryAgain = false;
+							ATOMIC_EXCH(otherEdge.owner, int, -1);
 						}
 
-						tryAgain = false;
-						ATOMIC_EXCH(otherEdge.owner, int, -1);
+						ATOMIC_EXCH(thisEdge.owner, int, -1);	
 					}
-
-					ATOMIC_EXCH(thisEdge.owner, int, -1);
 				}
+#ifdef COLLECT_STATISTICS
+				ATOMIC_ADD(graph->numCollisionChecks, unsigned int, 1);
+#endif
 			} while (tryAgain);
 		}
 
@@ -683,13 +718,13 @@ __global__ void expansionKernel(unsigned int numDerivations, WorkQueue* workQueu
 				{
 					frontQueues[currentQueue].reservePops(blockDim.x, &head, &reservedPops);
 
-					unsigned int queueShifts = 0;
+					/*unsigned int queueShifts = 0;
 					// round-robin through all the queues until pops can be reserved
 					while (reservedPops == 0 && ++queueShifts < numQueues)
 					{
 						currentQueue = startingQueue + ((currentQueue + 1) % numQueues);
 						frontQueues[currentQueue].reservePops(blockDim.x, &head, &reservedPops);
-					}
+					}*/
 				}
 
 				__syncthreads();
