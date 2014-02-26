@@ -4,6 +4,7 @@
 #pragma once
 
 #include <Constants.h>
+#include <Configuration.h>
 #include <RoadNetworkGraphGenerationObserver.h>
 #include <GraphTraversal.h>
 #include <VectorMath.h>
@@ -12,8 +13,20 @@
 #include <GL3/gl3w.h>
 
 #include <vector>
+#include <algorithm>
 #include <sstream>
 #include <string>
+
+#define clearStringStream(__stringStream) \
+	__stringStream.str(std::string()); \
+	__stringStream.clear()
+
+#define drawLabels(__collection) \
+	for (unsigned int i = 0; i < __collection.size(); i++) \
+	{ \
+		Label& label = __collection[i]; \
+		font.draw(label.value, label.position.x, label.position.y, 0.0f, labelFontSize, &label.color[0], setter); \
+	}
 
 class RoadNetworkLabelsGenerator : public RoadNetworkGraphGenerationObserver
 {
@@ -30,38 +43,66 @@ private:
 
 	struct LabelGenerationTraversal : public GraphTraversal
 	{
-		LabelGenerationTraversal(std::vector<Label>& labels) : labels(labels) {}
+		LabelGenerationTraversal(const std::vector<vml_vec2>& spawnPoints, std::vector<Label>& spawnPointLabels, std::vector<Label>& graphLabels) : 
+			spawnPoints(spawnPoints),
+			spawnPointLabels(spawnPointLabels), 
+			graphLabels(graphLabels) 
+		{
+		}
 		~LabelGenerationTraversal() {}
 
 		virtual bool operator () (const Vertex& source, const Vertex& destination, const Edge& edge)
 		{
-			std::stringstream label;
-			/*label << source.index;
-			labels.push_back(Label(label.str(), source.getPosition(), VERTEX_LABEL_COLOR));
-			label.str(std::string());
-			label.clear();
-			label << destination.index;
-			labels.push_back(Label(label.str(), destination.getPosition(), VERTEX_LABEL_COLOR));
-			label.str(std::string());
-			label.clear();*/
-			label << edge.index;
+			std::stringstream labelValue;
+
+			std::vector<vml_vec2>::const_iterator it = std::find(spawnPoints.begin(), spawnPoints.end(), source.getPosition());
+			if (it != spawnPoints.end())
+			{
+				unsigned int index = std::distance(spawnPoints.begin(), it);
+				labelValue << index;
+				spawnPointLabels.push_back(Label(labelValue.str(), source.getPosition(), SPAWN_POINT_LABEL_COLOR));
+				clearStringStream(labelValue);
+			}
+
+			labelValue << source.index;
+			graphLabels.push_back(Label(labelValue.str(), source.getPosition(), VERTEX_LABEL_COLOR));
+			clearStringStream(labelValue);
+
+			labelValue << destination.index;
+			graphLabels.push_back(Label(labelValue.str(), destination.getPosition(), VERTEX_LABEL_COLOR));
+			clearStringStream(labelValue);
+
+			labelValue << edge.index;
 			vml_vec2 edgePosition = vml_mix(source.getPosition(), destination.getPosition(), 0.5f);
-			labels.push_back(Label(label.str(), edgePosition, EDGE_LABEL_COLOR));
+			graphLabels.push_back(Label(labelValue.str(), edgePosition, EDGE_LABEL_COLOR));
+
 			return true;
 		}
 
 	private:
-		std::vector<Label>& labels;
+		const std::vector<vml_vec2>& spawnPoints;
+		std::vector<Label>& spawnPointLabels;
+		std::vector<Label>& graphLabels;
 
 	};
 
-	std::vector<Label> labels;
+	std::vector<Label> spawnPointLabels;
+	std::vector<Label> graphLabels;
+	std::vector<vml_vec2> spawnPoints;
 	GLFont font;
 	unsigned int textureId;
 	bool built;
+	float labelFontSize;
+	bool drawSpawnPointLabels;
+	bool drawGraphLabels;
 
 public:
-	RoadNetworkLabelsGenerator() : built(false), textureId(0)
+	RoadNetworkLabelsGenerator() : 
+		textureId(0),
+		built(false), 
+		labelFontSize(2.0f),
+		drawSpawnPointLabels(false),
+		drawGraphLabels(false)
 	{
 	}
 	
@@ -74,6 +115,15 @@ public:
 		}
 	}
 
+	void readConfigurations(const Configuration& configuration)
+	{
+		drawSpawnPointLabels = configuration.drawSpawnPointLabels;
+		drawGraphLabels = configuration.drawGraphLabels;
+		labelFontSize = configuration.labelFontSize;
+		spawnPoints.clear();
+		spawnPoints.insert(spawnPoints.end(), configuration.spawnPoints, (configuration.spawnPoints + configuration.numSpawnPoints));
+	}
+
 	virtual void update(Graph* graph, unsigned int numPrimitives, Primitive* primitives)
 	{
 		if (!built)
@@ -83,10 +133,11 @@ public:
 		}
 		else 
 		{
-			labels.clear();
+			spawnPointLabels.clear();
+			graphLabels.clear();
 		}
 		
-		traverse(graph, LabelGenerationTraversal(labels));
+		traverse(graph, LabelGenerationTraversal(spawnPoints, spawnPointLabels, graphLabels));
 		built = true;
 	}
 
@@ -97,10 +148,14 @@ public:
 			return;
 		}
 
-		for (unsigned int i = 0; i < labels.size(); i++)
+		if (drawSpawnPointLabels)
 		{
-			Label& label = labels[i];
-			font.draw(label.value, label.position.x, label.position.y, 0.0f, 2.0f, &label.color[0], setter);
+			drawLabels(spawnPointLabels);
+		}
+
+		if (drawGraphLabels)
+		{
+			drawLabels(graphLabels);
 		}
 	}
 

@@ -176,8 +176,7 @@ void loadFromFile(Configuration& configuration, const std::string& filePath)
 	configuration.streetLength = getPropertyAsUnsignedInt(properties, "street_length");
 	configuration.maxStreetBranchDepth = getPropertyAsUnsignedInt(properties, "max_street_branch_depth");
 	configuration.maxHighwayBranchDepth = getPropertyAsUnsignedInt(properties, "max_highway_branch_depth");
-	configuration.minHighwayBranchingDistance = getPropertyAsUnsignedInt(properties, "min_highway_branching_distance");
-	configuration.streetBranchingDelay = getPropertyAsUnsignedInt(properties, "street_branching_delay");
+	configuration.highwayBranchingDistance = getPropertyAsUnsignedInt(properties, "highway_branching_distance");
 	configuration.maxHighwayDerivation = getPropertyAsUnsignedInt(properties, "max_highway_derivation");
 	configuration.maxStreetDerivation = getPropertyAsUnsignedInt(properties, "max_street_derivation");
 	configuration.maxHighwayGoalDeviation = getPropertyAsUnsignedInt(properties, "max_highway_goal_deviation");
@@ -195,7 +194,10 @@ void loadFromFile(Configuration& configuration, const std::string& filePath)
 	configuration.isolatedVertexColor = getPropertyAsVec4(properties, "isolated_vertex_color");
 	configuration.streetColor = getPropertyAsVec4(properties, "street_color");
 	configuration.quadtreeColor = getPropertyAsVec4(properties, "quadtree_color");
-	configuration.drawLabels = getPropertyAsBool(properties, "draw_labels");
+	configuration.drawSpawnPointLabels = getPropertyAsBool(properties, "draw_spawn_point_labels");
+	configuration.drawGraphLabels = getPropertyAsBool(properties, "draw_graph_labels");
+	configuration.labelFontSize = getPropertyAsFloat(properties, "label_font_size");
+	configuration.pointSize = getPropertyAsFloat(properties, "point_size");
 	configuration.maxPrimitives = getPropertyAsUnsignedInt(properties, "max_primitives");
 	configuration.minBlockArea = getPropertyAsFloat(properties, "min_block_area");
 	configuration.vertexBufferSize = getPropertyAsUnsignedInt(properties, "vertex_buffer_size");

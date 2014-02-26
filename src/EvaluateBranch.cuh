@@ -11,7 +11,7 @@
 #include <WorkQueue.cuh>
 
 //////////////////////////////////////////////////////////////////////////
-struct EvaluateStreetBranch
+/*struct EvaluateStreetBranch
 {
 	//////////////////////////////////////////////////////////////////////////
 	static DEVICE_CODE void execute(StreetBranch& branch, Context* context, WorkQueue* backQueues)
@@ -35,7 +35,7 @@ struct EvaluateStreetBranch
 			backQueues[EVALUATE_STREET].push(Street(0, branch.roadAttributes, branch.ruleAttributes, UNASSIGNED));
 		}
 	}
-};
+};*/
 
 //////////////////////////////////////////////////////////////////////////
 struct EvaluateHighwayBranch

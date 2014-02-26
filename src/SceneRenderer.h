@@ -65,7 +65,6 @@ private:
 	ImageMapRenderData populationDensityMapData;
 	ImageMapRenderData waterBodiesMapData;
 	ImageMapRenderData blockadesMapData;
-	bool drawLabels;
 
 	void setUpImageMapRenderData(const ImageMap& imageMap, ImageMapRenderData& imageMapData, const vml_vec4& color1, const vml_vec4& color2)
 	{
@@ -108,12 +107,10 @@ public:
 		fontShader(FONT_VERTEX_SHADER_FILE_PATH, FONT_FRAGMENT_SHADER_FILE_PATH),
 		geometry(geometry),
 		labels(labels),
-		worldSizedQuad(0),
-		drawLabels(false)
+		worldSizedQuad(0)
 	{
 		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 		glEnable(GL_PROGRAM_POINT_SIZE);
-		glPointSize(3.0f);
 		glEnable(GL_CULL_FACE);
 		glCullFace(GL_BACK);
 	}
@@ -130,7 +127,7 @@ public:
 
 	void readConfigurations(const Configuration& configuration)
 	{
-		drawLabels = configuration.drawLabels;
+		glPointSize(configuration.pointSize);
 	}
 
 	void setUpImageMaps(const Box2D& worldBounds, const ImageMap& populationDensityMap, const ImageMap& waterBodiesMap, const ImageMap& blockadesMap)
@@ -211,19 +208,16 @@ public:
 		geometry.draw();
 		solidShader.unbind();
 
-		if (drawLabels)
-		{
-			glDepthMask(GL_FALSE);
-			glEnable(GL_BLEND);
-			glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+		glDepthMask(GL_FALSE);
+		glEnable(GL_BLEND);
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-			fontShader.bind();
-			labels.draw(FontShaderSetter(fontShader, view, projection));
-			fontShader.unbind();
+		fontShader.bind();
+		labels.draw(FontShaderSetter(fontShader, view, projection));
+		fontShader.unbind();
 
-			glDisable(GL_BLEND);
-			glDepthMask(GL_TRUE);
-		}
+		glDisable(GL_BLEND);
+		glDepthMask(GL_TRUE);
 	}
 
 	void togglePopulationDensityMap()

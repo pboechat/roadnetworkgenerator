@@ -28,7 +28,7 @@ struct Branch
 
 };
 
-typedef Branch<StreetRuleAttributes> StreetBranch;
+//typedef Branch<StreetRuleAttributes> StreetBranch;
 typedef Branch<HighwayRuleAttributes> HighwayBranch;
 
 #endif

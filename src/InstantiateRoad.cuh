@@ -58,7 +58,7 @@ DEVICE_CODE void evaluateGlobalGoals(Street& road, int source, const vml_vec2& p
 
 	if (hasMask(road.ruleAttributes.expansionMask, EXPAND_RIGHT))
 	{
-		delays[1] = context->configuration->streetBranchingDelay;
+		delays[1] = 0;
 		roadAttributes[1].source = source;
 		roadAttributes[1].length = context->configuration->streetLength;
 		roadAttributes[1].angle = road.roadAttributes.angle + HALF_PI;
@@ -69,7 +69,7 @@ DEVICE_CODE void evaluateGlobalGoals(Street& road, int source, const vml_vec2& p
 
 	if (hasMask(road.ruleAttributes.expansionMask, EXPAND_LEFT))
 	{
-		delays[0] = context->configuration->streetBranchingDelay;
+		delays[0] = 0;
 		roadAttributes[0].source = source;
 		roadAttributes[0].length = context->configuration->streetLength;
 		roadAttributes[0].angle = road.roadAttributes.angle - HALF_PI;
@@ -92,7 +92,7 @@ DEVICE_CODE void evaluateGlobalGoals(Highway& road, int source, const vml_vec2& 
 		return;
 	}
 
-	bool branch = (road.ruleAttributes.branchingDistance == context->configuration->minHighwayBranchingDistance);
+	bool branch = (road.ruleAttributes.branchingDistance == context->configuration->highwayBranchingDistance);
 	// highway continuation
 	delays[2] = 0;
 	roadAttributes[2].source = source;
@@ -373,12 +373,12 @@ struct InstantiateStreet
 
 		if (delays[0] >= 0)
 		{
-			backQueues[EVALUATE_STREET_BRANCH].push(Branch<StreetRuleAttributes>(delays[0], roadAttributes[0], ruleAttributes[0]));
+			backQueues[EVALUATE_STREET].push(Street(delays[0], roadAttributes[0], ruleAttributes[0], UNASSIGNED));
 		}
 
 		if (delays[1] >= 0)
 		{
-			backQueues[EVALUATE_STREET_BRANCH].push(Branch<StreetRuleAttributes>(delays[1], roadAttributes[1], ruleAttributes[1]));
+			backQueues[EVALUATE_STREET].push(Street(delays[1], roadAttributes[1], ruleAttributes[1], UNASSIGNED));
 		}
 
 		if (delays[2] >= 0)

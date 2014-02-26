@@ -26,8 +26,7 @@ struct Configuration
 	unsigned int streetLength;
 	unsigned int maxStreetBranchDepth;
 	unsigned int maxHighwayBranchDepth;
-	unsigned int minHighwayBranchingDistance;
-	unsigned int streetBranchingDelay;
+	unsigned int highwayBranchingDistance;
 	unsigned int maxHighwayDerivation;
 	unsigned int maxStreetDerivation;
 	unsigned int maxHighwayGoalDeviation; // degrees
@@ -51,7 +50,10 @@ struct Configuration
 	vml_vec4 isolatedVertexColor;
 	vml_vec4 streetColor;
 	vml_vec4 quadtreeColor;
-	bool drawLabels;
+	bool drawSpawnPointLabels;
+	bool drawGraphLabels;
+	float labelFontSize;
+	float pointSize;
 	unsigned int numSpawnPoints;
 	vml_vec2 spawnPoints[MAX_SPAWN_POINTS];
 	unsigned int maxPrimitives;

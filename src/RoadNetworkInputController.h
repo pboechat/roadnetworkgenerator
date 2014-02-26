@@ -12,6 +12,7 @@
 #include <RoadNetworkLabelsGenerator.h>
 
 #include <string>
+#include <iostream>
 
 class RoadNetworkInputController : public InputController
 {

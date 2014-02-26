@@ -479,12 +479,11 @@ DEVICE_CODE bool addStreet(Graph* graph, Primitive* primitives, int sourceIndex,
 		bool tryAgain;
 		do
 		{
-			tryAgain = false;
-			vml_vec2 intersection;
-			if (checkIntersection(graph, newEdgeLine, boundaryEdge, intersection))
+			tryAgain = true;
+			if (ATOMIC_EXCH(boundaryEdge.owner, int, THREAD_IDX_X) == -1)
 			{
-				tryAgain = false;
-				if (ATOMIC_EXCH(boundaryEdge.owner, int, THREAD_IDX_X) == -1)
+				vml_vec2 intersection;
+				if (checkIntersection(graph, newEdgeLine, boundaryEdge, intersection))
 				{
 					destinationIndex = createVertex(graph, intersection);
 					int newEdgeIndex = splitEdge(graph, boundaryEdge, destinationIndex);
@@ -497,7 +496,7 @@ DEVICE_CODE bool addStreet(Graph* graph, Primitive* primitives, int sourceIndex,
 					// update bounds edges and vertices
 					Edge& newEdge = graph->edges[newEdgeIndex];
 					newEdge.numPrimitives = boundaryEdge.numPrimitives;
-					for (unsigned j = 0; j < boundaryEdge.numPrimitives; j++)
+					for (unsigned int j = 0; j < boundaryEdge.numPrimitives; j++)
 					{
 						unsigned int primitiveIndex = boundaryEdge.primitives[j];
 						newEdge.primitives[j] = primitiveIndex;
@@ -525,10 +524,11 @@ DEVICE_CODE bool addStreet(Graph* graph, Primitive* primitives, int sourceIndex,
 					}
 
 					intersected = true;
-					tryAgain = false;
-					ATOMIC_EXCH(boundaryEdge.owner, int, -1);
-				} // critical-section if
-			}
+				}
+				
+				tryAgain = false;
+				ATOMIC_EXCH(boundaryEdge.owner, int, -1);
+			} // critical-section if
 
 #ifdef COLLECT_STATISTICS
 			ATOMIC_ADD(graph->numCollisionChecks, unsigned int, 1);

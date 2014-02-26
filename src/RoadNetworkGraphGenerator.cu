@@ -486,9 +486,9 @@ void RoadNetworkGraphGenerator::execute()
 			Edge& edge = graph->edges[primitive.edges[j]];
 
 			// FIXME: checking invariants
-			if (edge.numPrimitives > 2)
+			if (edge.numPrimitives >= 2)
 			{
-				THROW_EXCEPTION("edge.numPrimitives > 2");
+				THROW_EXCEPTION("edge.numPrimitives >= 2");
 			}
 
 			edge.primitives[edge.numPrimitives++] = i;
@@ -528,7 +528,7 @@ void RoadNetworkGraphGenerator::execute()
 	START_GPU_TIMER(SecondaryRoadNetworkExpansion);
 
 	// expand secondary road network
-	expand(configuration.maxStreetDerivation, 3, 3);
+	expand(configuration.maxStreetDerivation, 3, 2);
 
 	STOP_GPU_TIMER(SecondaryRoadNetworkExpansion);
 
@@ -619,14 +619,10 @@ DEVICE_CODE void coalesceEdges(Graph* graph, QuadrantEdges* quadrantEdges)
 	{
 		Edge& thisEdge = graph->edges[quadrantEdges->edges[i]];
 
-		for (unsigned int j = 0; j < quadrantEdges->lastEdgeIndex; j++)
+		int j = i - 1;
+		while (j >= 0)
 		{
 			Edge& otherEdge = graph->edges[quadrantEdges->edges[j]];
-
-			if (thisEdge.index <= otherEdge.index)
-			{
-				continue;
-			}
 
 			bool tryAgain;
 			do
@@ -655,6 +651,8 @@ DEVICE_CODE void coalesceEdges(Graph* graph, QuadrantEdges* quadrantEdges)
 				ATOMIC_ADD(graph->numCollisionChecks, unsigned int, 1);
 #endif
 			} while (tryAgain);
+
+			j--;
 		}
 
 		i += BLOCK_DIM_X;
@@ -664,15 +662,11 @@ DEVICE_CODE void coalesceEdges(Graph* graph, QuadrantEdges* quadrantEdges)
 #ifdef USE_CUDA
 //////////////////////////////////////////////////////////////////////////
 __device__ volatile int g_dCounterLevel1;
-//////////////////////////////////////////////////////////////////////////
-__device__ volatile int g_dCounterLevel2;
-//////////////////////////////////////////////////////////////////////////
-__device__ volatile int g_dCounterLevel3;
 
 //////////////////////////////////////////////////////////////////////////
 __global__ void initializeCounters()
 {
-	g_dCounterLevel1 = g_dCounterLevel2 = g_dCounterLevel3 = 0;
+	g_dCounterLevel1 = 0;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -683,15 +677,14 @@ __global__ void expansionKernel(unsigned int numDerivations, WorkQueue* workQueu
 	__shared__ unsigned int reservedPops;
 	__shared__ unsigned int head;
 	__shared__ volatile unsigned int derivation;
-	__shared__ volatile bool start;
-	__shared__ volatile unsigned int run;
+	__shared__ volatile unsigned char state;
 	__shared__ unsigned int currentQueue;
 
 	if (threadIdx.x == 0)
 	{
 		frontQueues = workQueues1;
 		backQueues = workQueues2;
-		start = true;
+		state = 0;
 		currentQueue = startingQueue + (blockIdx.x % numQueues);
 	}
 
@@ -699,32 +692,22 @@ __global__ void expansionKernel(unsigned int numDerivations, WorkQueue* workQueu
 
 	while (derivation < numDerivations)
 	{
-		if (start)
+		if (state == 0)
 		{
 			if (threadIdx.x == 0)
 			{
 				atomicAdd((int*)&g_dCounterLevel1, 1);
-				atomicAdd((int*)&g_dCounterLevel2, 1);
-				atomicAdd((int*)&g_dCounterLevel3, 1);
-				run = 1;
+				state = 1;
 			}
 
 			__syncthreads();
 
-			while (run > 0)
+			while (state == 1)
 			{
 				// block optimization
 				if (threadIdx.x == 0)
 				{
 					frontQueues[currentQueue].reservePops(blockDim.x, &head, &reservedPops);
-
-					/*unsigned int queueShifts = 0;
-					// round-robin through all the queues until pops can be reserved
-					while (reservedPops == 0 && ++queueShifts < numQueues)
-					{
-						currentQueue = startingQueue + ((currentQueue + 1) % numQueues);
-						frontQueues[currentQueue].reservePops(blockDim.x, &head, &reservedPops);
-					}*/
 				}
 
 				__syncthreads();
@@ -754,13 +737,6 @@ __global__ void expansionKernel(unsigned int numDerivations, WorkQueue* workQueu
 							InstantiateHighway::execute(highway, context, backQueues);
 						}
 						break;
-					case EVALUATE_STREET_BRANCH:
-						{
-							StreetBranch streetBranch;
-							frontQueues[EVALUATE_STREET_BRANCH].popReserved(head + threadIdx.x, streetBranch);
-							EvaluateStreetBranch::execute(streetBranch, context, backQueues);
-						}
-						break;
 					case EVALUATE_STREET:
 						{
 							Street street;
@@ -780,32 +756,9 @@ __global__ void expansionKernel(unsigned int numDerivations, WorkQueue* workQueu
 					}
 				}
 
-				if (threadIdx.x == 0)
+				if (threadIdx.x == 0 && reservedPops == 0)
 				{
-					if (reservedPops == 0 && run == 1)
-					{
-						atomicSub((int*)&g_dCounterLevel2, 1), run = 2;
-					}
-					else if (reservedPops == 0 && run == 2 && g_dCounterLevel2 == 0)
-					{
-						atomicSub((int*)&g_dCounterLevel3, 1), run = 3;
-					}
-					else if (reservedPops == 0 && run == 3 && g_dCounterLevel3 == 0)
-					{
-						run = 0;
-					}
-					else if (reservedPops != 0 && run != 1)
-					{
-						if (run == 2)
-						{
-							atomicAdd((int*)&g_dCounterLevel2, 1), run = 1;
-						}
-
-						if (run == 3)
-						{
-							atomicAdd((int*)&g_dCounterLevel2, 1), atomicAdd((int*)&g_dCounterLevel3, 1), run = 1;
-						}
-					}
+					state = 2;
 				}
 
 				__syncthreads();
@@ -814,22 +767,19 @@ __global__ void expansionKernel(unsigned int numDerivations, WorkQueue* workQueu
 
 		if (threadIdx.x == 0)
 		{
-			if (start)
+			if (state == 2)
 			{
 				atomicSub((int*)&g_dCounterLevel1, 1);
+				state = 3;
 			}
 
-			if (g_dCounterLevel1 == 0)
+			if (state == 3 && g_dCounterLevel1 == 0)
 			{
 				derivation++;
 				WorkQueue* tmp = frontQueues;
 				frontQueues = backQueues;
 				backQueues = tmp;
-				start = true;
-			}
-			else
-			{
-				start = false;
+				state = 0;
 			}
 		}
 
@@ -876,12 +826,12 @@ void expansionKernel(unsigned int numDerivations, WorkQueue* workQueues1, WorkQu
 	unsigned int derivations = 0;
 	WorkQueue* frontQueues = workQueues1;
 	WorkQueue* backQueues = workQueues2;
-	unsigned int currentQueue;
 
 	while (derivations < numDerivations)
 	{
-		for (unsigned int i = 0, currentQueue = startingQueue; i < numQueues; i++, currentQueue = (startingQueue + (currentQueue + 1) % numQueues))
+		for (unsigned int i = 0, j = 0; i < numQueues; i++, j = ((j + 1) % numQueues))
 		{
+			unsigned int currentQueue = startingQueue + j;
 			switch (currentQueue)
 			{
 			case EVALUATE_HIGHWAY_BRANCH:
@@ -911,16 +861,6 @@ void expansionKernel(unsigned int numDerivations, WorkQueue* workQueues1, WorkQu
 					{
 						frontQueues[INSTANTIATE_HIGHWAY].unsafePop(highway);
 						InstantiateHighway::execute(highway, context, backQueues);
-					}
-				}
-				break;
-			case EVALUATE_STREET_BRANCH:
-				{
-					StreetBranch streetBranch;
-					while (frontQueues[EVALUATE_STREET_BRANCH].count > 0)
-					{
-						frontQueues[EVALUATE_STREET_BRANCH].unsafePop(streetBranch);
-						EvaluateStreetBranch::execute(streetBranch, context, backQueues);
 					}
 				}
 				break;

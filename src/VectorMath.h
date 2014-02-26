@@ -70,6 +70,7 @@ typedef glm::quat vml_quat;
 #define vml_scale glm::scale
 #define vml_angle_axis glm::angleAxis
 #define vml_perspective glm::perspective
+#define vml_inverse glm::inverse
 #define vml_look_at glm::lookAt
 #define vml_mix glm::mix
 

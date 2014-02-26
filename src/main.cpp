@@ -52,13 +52,17 @@ void printUsage()
 //////////////////////////////////////////////////////////////////////////
 void generateAndDisplay(const std::string& configurationFile, SceneRenderer& renderer, RoadNetworkGeometryGenerator& geometryGenerator, RoadNetworkLabelsGenerator& labelsGenerator, Camera& camera)
 {
+	static bool firstTime = true;
+
 	Configuration configuration;
 	loadFromFile(configuration, configurationFile);
 
 	std::cout << "seed: " << configuration.seed << std::endl;
 
 	renderer.readConfigurations(configuration);
+
 	geometryGenerator.readConfigurations(configuration);
+	labelsGenerator.readConfigurations(configuration);
 
 	unsigned char* populationDensityMapData = 0, *waterBodiesMapData = 0, *blockadesMapData = 0, *naturalPatternMapData = 0, *radialPatternMapData = 0, *rasterPatternMapData = 0;
 	ImageMap populationDensityMap, waterBodiesMap, blockadesMap, naturalPatternMap, radialPatternMap, rasterPatternMap;
@@ -77,7 +81,11 @@ void generateAndDisplay(const std::string& configurationFile, SceneRenderer& ren
 	Box2D worldBounds(0.0f, 0.0f, (float)configuration.worldWidth, (float)configuration.worldHeight);
 	renderer.setUpImageMaps(worldBounds, populationDensityMap, waterBodiesMap, blockadesMap);
 
-	camera.centerOnTarget(worldBounds);
+	if (firstTime)
+	{
+		camera.centerOnTarget(worldBounds);
+		firstTime = false;
+	}
 
 	SAFE_FREE_ON_HOST(populationDensityMapData);
 	SAFE_FREE_ON_HOST(waterBodiesMapData);

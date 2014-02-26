@@ -17,6 +17,7 @@
 // COLORS
 //////////////////////////////////////////////////////////////////////////
 
+#define SPAWN_POINT_LABEL_COLOR vml_vec4(1.0f, 1.0f, 0.0f, 1.0f)
 #define VERTEX_LABEL_COLOR vml_vec4(0.0f, 1.0f, 0.0f, 1.0f)
 #define EDGE_LABEL_COLOR vml_vec4(0.0f, 0.0f, 1.0f, 1.0f)
 #define WHITE_COLOR vml_vec4(1.0f, 1.0f, 1.0f, 1.0f)
@@ -28,7 +29,7 @@
 // PROCEDURES
 //////////////////////////////////////////////////////////////////////////
 
-#define NUM_PROCEDURES 6
+#define NUM_PROCEDURES 5
 
 //////////////////////////////////////////////////////////////////////////
 //	WORK QUEUES
@@ -57,7 +58,7 @@
 #define MAX_VERTEX_IN_CONNECTIONS 2
 #define MAX_VERTEX_OUT_CONNECTIONS 4
 #define MAX_VERTEX_ADJACENCIES (MAX_VERTEX_IN_CONNECTIONS + MAX_VERTEX_OUT_CONNECTIONS)
-#define MAX_EDGES_PER_QUADRANT 1000
+#define MAX_EDGES_PER_QUADRANT 1500
 #define MAX_VERTICES_PER_PRIMITIVE 750
 #define MAX_EDGES_PER_PRIMITIVE (MAX_VERTICES_PER_PRIMITIVE * 2)
 #define MAX_RESULTS_PER_QUERY 10
