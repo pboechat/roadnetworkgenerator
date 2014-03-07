@@ -35,7 +35,7 @@
 //	WORK QUEUES
 //////////////////////////////////////////////////////////////////////////
 #define MAX_NUM_WORKITEMS 300000
-#define WORK_ITEM_SIZE 80
+#define WORK_ITEM_SIZE 100
 #define WORK_QUEUE_DATA_SIZE (MAX_NUM_WORKITEMS * WORK_ITEM_SIZE)
 
 //////////////////////////////////////////////////////////////////////////
@@ -59,7 +59,7 @@
 #define MAX_VERTEX_OUT_CONNECTIONS 4
 #define MAX_VERTEX_ADJACENCIES (MAX_VERTEX_IN_CONNECTIONS + MAX_VERTEX_OUT_CONNECTIONS)
 #define MAX_EDGES_PER_QUADRANT 1500
-#define MAX_VERTICES_PER_PRIMITIVE 750
+#define MAX_VERTICES_PER_PRIMITIVE 1000
 #define MAX_EDGES_PER_PRIMITIVE (MAX_VERTICES_PER_PRIMITIVE * 2)
 #define MAX_RESULTS_PER_QUERY 10
 #define QUADTREE_STACK_DATA_SIZE 200

@@ -508,10 +508,10 @@ void RoadNetworkGraphGenerator::execute()
 		angle = vml_angle(obb.axis[1], vml_vec2(0.0f, 1.0f));
 
 		int source = createVertex(graph, centroid);
-		workQueues1[EVALUATE_STREET].unsafePush(Street(0, RoadAttributes(source, configuration.streetLength, angle), StreetRuleAttributes(0, i), UNASSIGNED));
-		workQueues1[EVALUATE_STREET].unsafePush(Street(0, RoadAttributes(source, configuration.streetLength, -HALF_PI + angle), StreetRuleAttributes(0, i), UNASSIGNED));
-		workQueues1[EVALUATE_STREET].unsafePush(Street(0, RoadAttributes(source, configuration.streetLength, HALF_PI + angle), StreetRuleAttributes(0, i), UNASSIGNED));
-		workQueues1[EVALUATE_STREET].unsafePush(Street(0, RoadAttributes(source, configuration.streetLength, PI + angle), StreetRuleAttributes(0, i), UNASSIGNED));
+		workQueues1[EVALUATE_STREET].unsafePush(Street(0, RoadAttributes(source, configuration.streetLength, angle), StreetRuleAttributes(0, i, 2), UNASSIGNED));
+		workQueues1[EVALUATE_STREET].unsafePush(Street(0, RoadAttributes(source, configuration.streetLength, -HALF_PI + angle), StreetRuleAttributes(0, i, 2), UNASSIGNED));
+		workQueues1[EVALUATE_STREET].unsafePush(Street(0, RoadAttributes(source, configuration.streetLength, HALF_PI + angle), StreetRuleAttributes(0, i, 2), UNASSIGNED));
+		workQueues1[EVALUATE_STREET].unsafePush(Street(0, RoadAttributes(source, configuration.streetLength, PI + angle), StreetRuleAttributes(0, i, 2), UNASSIGNED));
 	}
 
 	START_CPU_TIMER(GraphMemoryCopy_CpuToGpu);
@@ -684,6 +684,7 @@ __global__ void expansionKernel(unsigned int numDerivations, WorkQueue* workQueu
 	{
 		frontQueues = workQueues1;
 		backQueues = workQueues2;
+		derivation = 0;
 		state = 0;
 		currentQueue = startingQueue + (blockIdx.x % numQueues);
 	}

@@ -5,25 +5,26 @@
 
 #include <CpuGpuCompatibility.h>
 
-#define EXPAND_UP		1
-#define EXPAND_RIGHT	2
-#define EXPAND_LEFT		4
+#define RIGHT_CHILD 1
+#define LEFT_CHILD 2
+#define UP_CHILD 3
+#define DOWN_CHILD 4
 
 struct StreetRuleAttributes
 {
 	unsigned int branchDepth;
 	unsigned int boundsIndex;
-	unsigned char expansionMask;
+	char childCode;
 
-	HOST_AND_DEVICE_CODE StreetRuleAttributes() : branchDepth(0), boundsIndex(0), expansionMask(EXPAND_UP | EXPAND_RIGHT) {}
-	HOST_AND_DEVICE_CODE StreetRuleAttributes(unsigned int branchDepth, unsigned int boundsIndex) : branchDepth(branchDepth), boundsIndex(boundsIndex), expansionMask(EXPAND_UP | EXPAND_RIGHT) {}
+	HOST_AND_DEVICE_CODE StreetRuleAttributes() : branchDepth(0), boundsIndex(0), childCode(0) {}
+	HOST_AND_DEVICE_CODE StreetRuleAttributes(unsigned int branchDepth, unsigned int boundsIndex, char childCode) : branchDepth(branchDepth), boundsIndex(boundsIndex), childCode(childCode) {}
 	HOST_AND_DEVICE_CODE ~StreetRuleAttributes() {}
 
 	HOST_AND_DEVICE_CODE StreetRuleAttributes& operator = (const StreetRuleAttributes& other)
 	{
 		branchDepth = other.branchDepth;
 		boundsIndex = other.boundsIndex;
-		expansionMask = other.expansionMask;
+		childCode = other.childCode;
 		return *this;
 	}
 

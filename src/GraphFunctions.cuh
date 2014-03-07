@@ -455,15 +455,74 @@ DEVICE_CODE void addHighway(Graph* graph, int sourceIndex, const vml_vec2& direc
 	vml_vec2 start = graph->vertices[sourceIndex].getPosition();
 	end = start + direction;
 	destinationIndex = createVertex(graph, end);
-	if (connect(graph, sourceIndex, destinationIndex, 1) == -1)
+	if (connect(graph, sourceIndex, destinationIndex, true, 1) == -1)
 	{
 		// FIXME: checking invariants
 		THROW_EXCEPTION("connect(..) == -1");
 	}
 }
 
+
 //////////////////////////////////////////////////////////////////////////
-DEVICE_CODE bool addStreet(Graph* graph, Primitive* primitives, int sourceIndex, const vml_vec2& direction, int boundsIndex, int& destinationIndex, vml_vec2& end)
+DEVICE_CODE bool findStreetConnection(Graph* graph, int sourceIndex, char childCode, int& destinationIndex)
+{
+	if (childCode == UP_CHILD)
+	{
+		// source is spawn point
+		if (graph->vertices[sourceIndex].numIns != 1)
+		{
+			return false;
+		}
+
+		Edge& parent = graph->edges[graph->vertices[sourceIndex].ins[0]];
+
+		// source is up child
+		if (parent.attr2 == 2)
+		{
+			return false;
+		}
+
+		Vertex& parentSource = graph->vertices[parent.source];
+
+		bool foundUncle = false;
+		int uncleDestinationIndex;
+		for (unsigned int i = 0; i < parentSource.numOuts; i++)
+		{
+			Edge& edge = graph->edges[parentSource.outs[i]];
+
+			if (edge.attr2 == 2)
+			{
+				uncleDestinationIndex = edge.destination;
+				foundUncle = true;
+				break;
+			}
+		}
+
+		// FIXME: checking invariants
+		if (!foundUncle)
+		{
+			THROW_EXCEPTION("!foundUncle");
+		}
+
+		Vertex& uncleDestination = graph->vertices[uncleDestinationIndex];
+
+		for (unsigned int i = 0; i < uncleDestination.numOuts; i++)
+		{
+			Edge& edge = graph->edges[uncleDestination.outs[i]];
+
+			if (edge.attr2 == 1)
+			{
+				destinationIndex = edge.destination;
+				return true;
+			}
+		}
+	}
+
+	return false;
+}
+
+//////////////////////////////////////////////////////////////////////////
+DEVICE_CODE bool addStreet(Graph* graph, Primitive* primitives, int sourceIndex, const vml_vec2& direction, unsigned int boundsIndex, char childCode, int& destinationIndex, vml_vec2& end)
 {
 	vml_vec2 start = graph->vertices[sourceIndex].getPosition();
 	end = start + direction;
@@ -487,7 +546,7 @@ DEVICE_CODE bool addStreet(Graph* graph, Primitive* primitives, int sourceIndex,
 				{
 					destinationIndex = createVertex(graph, intersection);
 					int newEdgeIndex = splitEdge(graph, boundaryEdge, destinationIndex);
-					if (connect(graph, sourceIndex, destinationIndex, false, 0) == -1)
+					if (connect(graph, sourceIndex, destinationIndex, false, 0, childCode) == -1)
 					{
 						// FIXME: checking invariants
 						THROW_EXCEPTION("unexpected situation");
@@ -541,16 +600,22 @@ DEVICE_CODE bool addStreet(Graph* graph, Primitive* primitives, int sourceIndex,
 		}
 	} // for loop
 
-	if (intersected)
+	if (!intersected)
 	{
-		return true;
-	}
-	else
-	{
-		destinationIndex = createVertex(graph, end);
-		connect(graph, sourceIndex, destinationIndex, false, 0);
+		if (!findStreetConnection(graph, sourceIndex, childCode, destinationIndex))
+		{
+			destinationIndex = createVertex(graph, end);
+		}
+
+		if (connect(graph, sourceIndex, destinationIndex, false, 0, childCode) == -1)
+		{
+			THROW_EXCEPTION("unexpected situation");
+		}
+
 		return false;
 	}
+
+	return true;
 }
 
 #ifdef COLLECT_STATISTICS

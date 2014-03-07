@@ -34,7 +34,6 @@ DEVICE_CODE void applyRasterPatternRule(const vml_vec2& position, unsigned int g
 //////////////////////////////////////////////////////////////////////////
 DEVICE_CODE void evaluateGlobalGoals(Street& road, int source, const vml_vec2& position, int* delays, RoadAttributes* roadAttributes, StreetRuleAttributes* ruleAttributes, Context* context)
 {
-
 	unsigned int newDepth = road.ruleAttributes.branchDepth + 1;
 
 	if (newDepth > context->configuration->maxStreetBranchDepth)
@@ -45,38 +44,26 @@ DEVICE_CODE void evaluateGlobalGoals(Street& road, int source, const vml_vec2& p
 		return;
 	}
 
-	if (hasMask(road.ruleAttributes.expansionMask, EXPAND_UP))
-	{
-		delays[2] = 0;
-		roadAttributes[2].source = source;
-		roadAttributes[2].length = context->configuration->streetLength;
-		roadAttributes[2].angle = road.roadAttributes.angle;
-		ruleAttributes[2].branchDepth = newDepth;
-		ruleAttributes[2].boundsIndex = road.ruleAttributes.boundsIndex;
-		ruleAttributes[2].expansionMask = road.ruleAttributes.expansionMask;
-	}
+	// left child
+	delays[0] = 0;
+	roadAttributes[0].source = source;
+	roadAttributes[0].length = context->configuration->streetLength;
+	roadAttributes[0].angle = road.roadAttributes.angle - HALF_PI;
+	ruleAttributes[0].branchDepth = newDepth;
+	ruleAttributes[0].boundsIndex = road.ruleAttributes.boundsIndex;
+	ruleAttributes[0].childCode = LEFT_CHILD;
 
-	if (hasMask(road.ruleAttributes.expansionMask, EXPAND_RIGHT))
-	{
-		delays[1] = 0;
-		roadAttributes[1].source = source;
-		roadAttributes[1].length = context->configuration->streetLength;
-		roadAttributes[1].angle = road.roadAttributes.angle + HALF_PI;
-		ruleAttributes[1].branchDepth = newDepth;
-		ruleAttributes[1].boundsIndex = road.ruleAttributes.boundsIndex;
-		ruleAttributes[1].expansionMask = road.ruleAttributes.expansionMask;
-	}
+	// right child
+	delays[1] = -1;
 
-	if (hasMask(road.ruleAttributes.expansionMask, EXPAND_LEFT))
-	{
-		delays[0] = 0;
-		roadAttributes[0].source = source;
-		roadAttributes[0].length = context->configuration->streetLength;
-		roadAttributes[0].angle = road.roadAttributes.angle - HALF_PI;
-		ruleAttributes[0].branchDepth = newDepth;
-		ruleAttributes[0].boundsIndex = road.ruleAttributes.boundsIndex;
-		ruleAttributes[0].expansionMask = road.ruleAttributes.expansionMask;
-	}
+	// up child
+	delays[2] = 0;
+	roadAttributes[2].source = source;
+	roadAttributes[2].length = context->configuration->streetLength;
+	roadAttributes[2].angle = road.roadAttributes.angle;
+	ruleAttributes[2].branchDepth = newDepth;
+	ruleAttributes[2].boundsIndex = road.ruleAttributes.boundsIndex;
+	ruleAttributes[2].childCode = UP_CHILD;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -353,7 +340,7 @@ struct InstantiateStreet
 		vml_vec2 direction = vml_rotate2D(vml_vec2(0.0f, road.roadAttributes.length), road.roadAttributes.angle);
 		int newSource;
 		vml_vec2 position;
-		bool interrupted = addStreet(context->graph, context->primitives, road.roadAttributes.source, direction, road.ruleAttributes.boundsIndex, newSource, position);
+		bool interrupted = addStreet(context->graph, context->primitives, road.roadAttributes.source, direction, road.ruleAttributes.boundsIndex, road.ruleAttributes.childCode, newSource, position);
 
 		int delays[3];
 		RoadAttributes roadAttributes[3];
