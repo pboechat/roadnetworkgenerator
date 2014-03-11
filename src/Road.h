@@ -12,19 +12,18 @@
 template <typename RuleAttributesType>
 struct Road
 {
-	int delay;
 	RoadAttributes roadAttributes;
 	RuleAttributesType ruleAttributes;
 	RoadState state;
 
 	HOST_AND_DEVICE_CODE Road() {}
-	HOST_AND_DEVICE_CODE Road(int delay, const RoadAttributes& roadAttributes, RoadState state) : delay(delay), roadAttributes(roadAttributes), state(state) {}
-	HOST_AND_DEVICE_CODE Road(int delay, const RoadAttributes& roadAttributes, const RuleAttributesType& ruleAttributes, RoadState state) : delay(delay), roadAttributes(roadAttributes), ruleAttributes(ruleAttributes), state(state) {}
+	HOST_AND_DEVICE_CODE Road(RoadState state) : state(state) {}
+	HOST_AND_DEVICE_CODE Road(const RoadAttributes& roadAttributes, RoadState state) : roadAttributes(roadAttributes), state(state) {}
+	HOST_AND_DEVICE_CODE Road(const RoadAttributes& roadAttributes, const RuleAttributesType& ruleAttributes, RoadState state) : roadAttributes(roadAttributes), ruleAttributes(ruleAttributes), state(state) {}
 	HOST_AND_DEVICE_CODE ~Road() {}
 
 	HOST_AND_DEVICE_CODE Road& operator = (const Road& other)
 	{
-		delay = other.delay;
 		roadAttributes = other.roadAttributes;
 		ruleAttributes = other.ruleAttributes;
 		state = other.state;

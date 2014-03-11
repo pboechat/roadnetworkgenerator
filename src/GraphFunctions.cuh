@@ -455,7 +455,7 @@ DEVICE_CODE void addHighway(Graph* graph, int sourceIndex, const vml_vec2& direc
 	vml_vec2 start = graph->vertices[sourceIndex].getPosition();
 	end = start + direction;
 	destinationIndex = createVertex(graph, end);
-	if (connect(graph, sourceIndex, destinationIndex, 1) == -1)
+	if (connect(graph, sourceIndex, destinationIndex, true, 1) == -1)
 	{
 		// FIXME: checking invariants
 		THROW_EXCEPTION("connect(..) == -1");
@@ -469,12 +469,13 @@ DEVICE_CODE bool addStreet(Graph* graph, Primitive* primitives, int sourceIndex,
 	end = start + direction;
 	Line2D newEdgeLine(start, end);
 
-	bool intersected = false;
 	Primitive& bounds = primitives[boundsIndex];
-	
-	for (unsigned int i = 0; i < bounds.numEdges; i++)
+
+	bool run = true;
+	unsigned int i = 0;
+	while (i < bounds.numEdges && run)
 	{
-		Edge& boundaryEdge = graph->edges[bounds.edges[i]];
+		Edge& boundaryEdge = graph->edges[bounds.edges[i++]];
 
 		bool tryAgain;
 		do
@@ -486,8 +487,8 @@ DEVICE_CODE bool addStreet(Graph* graph, Primitive* primitives, int sourceIndex,
 				if (checkIntersection(graph, newEdgeLine, boundaryEdge, intersection))
 				{
 					destinationIndex = createVertex(graph, intersection);
-					int newEdgeIndex = splitEdge(graph, boundaryEdge, destinationIndex);
-					if (connect(graph, sourceIndex, destinationIndex, false, 0) == -1)
+					int newEdgeIndex = splitEdge(graph, boundaryEdge, destinationIndex, false);
+					if (connect(graph, sourceIndex, destinationIndex, false) == -1)
 					{
 						// FIXME: checking invariants
 						THROW_EXCEPTION("unexpected situation");
@@ -523,7 +524,7 @@ DEVICE_CODE bool addStreet(Graph* graph, Primitive* primitives, int sourceIndex,
 						primitive.vertices[lastVertexIndex] = intersection;
 					}
 
-					intersected = true;
+					run = false;
 				}
 				
 				tryAgain = false;
@@ -534,23 +535,15 @@ DEVICE_CODE bool addStreet(Graph* graph, Primitive* primitives, int sourceIndex,
 			ATOMIC_ADD(graph->numCollisionChecks, unsigned int, 1);
 #endif
 		}  while (tryAgain);
+	} // while
 
-		if (intersected)
-		{
-			break;
-		}
-	} // for loop
-
-	if (intersected)
-	{
-		return true;
-	}
-	else
+	if (run)
 	{
 		destinationIndex = createVertex(graph, end);
-		connect(graph, sourceIndex, destinationIndex, false, 0);
-		return false;
+		connect(graph, sourceIndex, destinationIndex, false);
 	}
+
+	return run;
 }
 
 #ifdef COLLECT_STATISTICS

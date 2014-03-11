@@ -211,6 +211,13 @@ DEVICE_VARIABLE Primitive* g_dPrimitives;
 		SAFE_FREE_ON_DEVICE(g_d##__name2##MapData); \
 	}
 
+#define swap(__a, __b, __type) \
+	{ \
+		__type* tmp = __a; \
+		__a = __b; \
+		__b = tmp; \
+	}
+
 //////////////////////////////////////////////////////////////////////////
 GLOBAL_CODE void initializeContext(Context* context,
 								   Graph* graph,
@@ -368,10 +375,10 @@ void RoadNetworkGraphGenerator::execute()
 	{
 		vml_vec2 spawnPoint = configuration.spawnPoints[i];
 		int source = createVertex(graph, spawnPoint);
-		workQueues1[EVALUATE_HIGHWAY].unsafePush(Highway(0, RoadAttributes(source, configuration.highwayLength, 0), UNASSIGNED));
-		workQueues1[EVALUATE_HIGHWAY].unsafePush(Highway(0, RoadAttributes(source, configuration.highwayLength, -HALF_PI), UNASSIGNED));
-		workQueues1[EVALUATE_HIGHWAY].unsafePush(Highway(0, RoadAttributes(source, configuration.highwayLength, HALF_PI), UNASSIGNED));
-		workQueues1[EVALUATE_HIGHWAY].unsafePush(Highway(0, RoadAttributes(source, configuration.highwayLength, PI), UNASSIGNED));
+		workQueues1[EVALUATE_HIGHWAY].unsafePush(Highway(RoadAttributes(source, configuration.highwayLength, 0), UNASSIGNED));
+		workQueues1[EVALUATE_HIGHWAY].unsafePush(Highway(RoadAttributes(source, configuration.highwayLength, -HALF_PI), UNASSIGNED));
+		workQueues1[EVALUATE_HIGHWAY].unsafePush(Highway(RoadAttributes(source, configuration.highwayLength, HALF_PI), UNASSIGNED));
+		workQueues1[EVALUATE_HIGHWAY].unsafePush(Highway(RoadAttributes(source, configuration.highwayLength, PI), UNASSIGNED));
 	}
 
 	SAFE_MALLOC_ON_DEVICE(g_dPrimitives, Primitive, configuration.maxPrimitives);
@@ -465,53 +472,86 @@ void RoadNetworkGraphGenerator::execute()
 	free(verticesCopy);
 	free(edgesCopy);
 
-	for (unsigned int i = 0; i < NUM_PROCEDURES; i++)
-	{
-		workQueues1[i].clear();
-		workQueues2[i].clear();
-	}
+	memset(workQueues1, 0, sizeof(WorkQueue) * NUM_PROCEDURES);
+	memset(workQueues2, 0, sizeof(WorkQueue) * NUM_PROCEDURES);
 
-	// set street spawn points
 	for (unsigned int i = 0; i < numPrimitives; i++)
 	{
 		Primitive& primitive = primitives[i];
 
-		if (primitive.type != MINIMAL_CYCLE)
+		// remove filaments contained by minimal cycles
+		if (primitive.type == FILAMENT)
 		{
-			continue;
-		}
-
-		for (unsigned int j = 0; j < primitive.numEdges; j++)
-		{
-			Edge& edge = graph->edges[primitive.edges[j]];
-
-			// FIXME: checking invariants
-			if (edge.numPrimitives >= 2)
+			for (unsigned int j = 0; j < numPrimitives; j++)
 			{
-				THROW_EXCEPTION("edge.numPrimitives >= 2");
+				Primitive& otherPrimitive = primitives[j];
+
+				if (otherPrimitive.type != MINIMAL_CYCLE)
+				{
+					continue;
+				}
+
+				for (unsigned int k = 0; k < primitive.numVertices; k++)
+				{
+					if (MathExtras::inside(otherPrimitive.vertices, otherPrimitive.numVertices, primitive.vertices[k]))
+					{
+						primitive.removed = true;
+						break;
+					}
+				}
+
+				if (primitive.removed)
+				{
+					break;
+				}
+			}
+		}
+		// set street spawn points
+		else if (primitive.type == MINIMAL_CYCLE)
+		{
+			for (unsigned int j = 0; j < primitive.numEdges; j++)
+			{
+				Edge& edge = graph->edges[primitive.edges[j]];
+
+				// FIXME: checking invariants
+				if (edge.numPrimitives >= 2)
+				{
+					THROW_EXCEPTION("edge.numPrimitives >= 2");
+				}
+
+				edge.primitives[edge.numPrimitives++] = i;
 			}
 
-			edge.primitives[edge.numPrimitives++] = i;
-		}
+			vml_vec2 centroid;
+			float area;
+			MathExtras::getPolygonInfo(primitive.vertices, primitive.numVertices, area, centroid);
+			if (area < configuration.minBlockArea)
+			{
+				continue;
+			}
 
-		vml_vec2 centroid;
-		float area;
-		MathExtras::getPolygonInfo(primitive.vertices, primitive.numVertices, area, centroid);
-		if (area < configuration.minBlockArea)
+			if (!MathExtras::inside(primitive.vertices, primitive.numVertices, centroid))
+			{
+				continue;
+			}
+
+			float angle;
+			// FIXME: enforce primitive convex hull
+			ConvexHull convexHull(primitive.vertices, primitive.numVertices);
+			OBB2D obb(convexHull.hullPoints, convexHull.numHullPoints);
+			angle = vml_angle(obb.axis[1], vml_vec2(0.0f, 1.0f));
+
+			int source = createVertex(graph, centroid);
+			workQueues1[EVALUATE_STREET].unsafePush(Street(RoadAttributes(source, configuration.streetLength, angle), StreetRuleAttributes(0, i), UNASSIGNED));
+			workQueues1[EVALUATE_STREET].unsafePush(Street(RoadAttributes(source, configuration.streetLength, -HALF_PI + angle), StreetRuleAttributes(0, i), UNASSIGNED));
+			workQueues1[EVALUATE_STREET].unsafePush(Street(RoadAttributes(source, configuration.streetLength, HALF_PI + angle), StreetRuleAttributes(0, i), UNASSIGNED));
+			workQueues1[EVALUATE_STREET].unsafePush(Street(RoadAttributes(source, configuration.streetLength, PI + angle), StreetRuleAttributes(0, i), UNASSIGNED));
+		} 
+		// remove isolated vertices
+		else
 		{
-			continue;
+			primitive.removed = true;
 		}
-
-		float angle;
-		ConvexHull convexHull(primitive.vertices, primitive.numVertices);
-		OBB2D obb(convexHull.hullPoints, convexHull.numHullPoints);
-		angle = vml_angle(obb.axis[1], vml_vec2(0.0f, 1.0f));
-
-		int source = createVertex(graph, centroid);
-		workQueues1[EVALUATE_STREET].unsafePush(Street(0, RoadAttributes(source, configuration.streetLength, angle), StreetRuleAttributes(0, i), UNASSIGNED));
-		workQueues1[EVALUATE_STREET].unsafePush(Street(0, RoadAttributes(source, configuration.streetLength, -HALF_PI + angle), StreetRuleAttributes(0, i), UNASSIGNED));
-		workQueues1[EVALUATE_STREET].unsafePush(Street(0, RoadAttributes(source, configuration.streetLength, HALF_PI + angle), StreetRuleAttributes(0, i), UNASSIGNED));
-		workQueues1[EVALUATE_STREET].unsafePush(Street(0, RoadAttributes(source, configuration.streetLength, PI + angle), StreetRuleAttributes(0, i), UNASSIGNED));
 	}
 
 	START_CPU_TIMER(GraphMemoryCopy_CpuToGpu);
@@ -661,12 +701,12 @@ DEVICE_CODE void coalesceEdges(Graph* graph, QuadrantEdges* quadrantEdges)
 
 #ifdef USE_CUDA
 //////////////////////////////////////////////////////////////////////////
-__device__ volatile int g_dCounterLevel1;
+__device__ volatile unsigned int g_dCounter;
 
 //////////////////////////////////////////////////////////////////////////
 __global__ void initializeCounters()
 {
-	g_dCounterLevel1 = 0;
+	g_dCounter = 0;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -674,16 +714,17 @@ __global__ void expansionKernel(unsigned int numDerivations, WorkQueue* workQueu
 {
 	__shared__ WorkQueue* frontQueues;
 	__shared__ WorkQueue* backQueues;
-	__shared__ unsigned int reservedPops;
-	__shared__ unsigned int head;
-	__shared__ volatile unsigned int derivation;
-	__shared__ volatile unsigned char state;
+	__shared__ unsigned int reserved;
+	__shared__ unsigned int first;
+	__shared__ unsigned int derivation;
 	__shared__ unsigned int currentQueue;
+	__shared__ unsigned int state;
 
 	if (threadIdx.x == 0)
 	{
 		frontQueues = workQueues1;
 		backQueues = workQueues2;
+		derivation = 0;
 		state = 0;
 		currentQueue = startingQueue + (blockIdx.x % numQueues);
 	}
@@ -696,58 +737,58 @@ __global__ void expansionKernel(unsigned int numDerivations, WorkQueue* workQueu
 		{
 			if (threadIdx.x == 0)
 			{
-				atomicAdd((int*)&g_dCounterLevel1, 1);
 				state = 1;
+				atomicAdd((int*)&g_dCounter, 1);
 			}
 
 			__syncthreads();
 
 			while (state == 1)
 			{
-				// block optimization
 				if (threadIdx.x == 0)
 				{
-					frontQueues[currentQueue].reservePops(blockDim.x, &head, &reservedPops);
+					frontQueues[currentQueue].reservePops(blockDim.x, first, reserved);
 				}
 
 				__syncthreads();
 
-				if (threadIdx.x < reservedPops)
+				if (threadIdx.x < reserved)
 				{
+					unsigned int index = first + threadIdx.x;
 					switch (currentQueue)
 					{
 					case EVALUATE_HIGHWAY_BRANCH:
 						{
 							HighwayBranch highwayBranch;
-							frontQueues[EVALUATE_HIGHWAY_BRANCH].popReserved(head + threadIdx.x, highwayBranch);
+							frontQueues[EVALUATE_HIGHWAY_BRANCH].popReserved(index, highwayBranch);
 							EvaluateHighwayBranch::execute(highwayBranch, context, backQueues);
 						}
 						break;
 					case EVALUATE_HIGHWAY:
 						{
 							Highway highway;
-							frontQueues[EVALUATE_HIGHWAY].popReserved(head + threadIdx.x, highway);
+							frontQueues[EVALUATE_HIGHWAY].popReserved(index, highway);
 							EvaluateHighway::execute(highway, context, backQueues);
 						}
 						break;
 					case INSTANTIATE_HIGHWAY:
 						{
 							Highway highway;
-							frontQueues[INSTANTIATE_HIGHWAY].popReserved(head + threadIdx.x, highway);
+							frontQueues[INSTANTIATE_HIGHWAY].popReserved(index, highway);
 							InstantiateHighway::execute(highway, context, backQueues);
 						}
 						break;
 					case EVALUATE_STREET:
 						{
 							Street street;
-							frontQueues[EVALUATE_STREET].popReserved(head + threadIdx.x, street);
+							frontQueues[EVALUATE_STREET].popReserved(index, street);
 							EvaluateStreet::execute(street, context, backQueues);
 						}
 						break;
 					case INSTANTIATE_STREET:
 						{
 							Street street;
-							frontQueues[INSTANTIATE_STREET].popReserved(head + threadIdx.x, street);
+							frontQueues[INSTANTIATE_STREET].popReserved(index, street);
 							InstantiateStreet::execute(street, context, backQueues);
 						}
 						break;
@@ -756,31 +797,21 @@ __global__ void expansionKernel(unsigned int numDerivations, WorkQueue* workQueu
 					}
 				}
 
-				if (threadIdx.x == 0 && reservedPops == 0)
+				if (threadIdx.x == 0 && reserved == 0)
 				{
 					state = 2;
+					atomicSub((int*)&g_dCounter, 1);
 				}
 
 				__syncthreads();
 			}
 		}
 
-		if (threadIdx.x == 0)
+		if (threadIdx.x == 0 && g_dCounter == 0)
 		{
-			if (state == 2)
-			{
-				atomicSub((int*)&g_dCounterLevel1, 1);
-				state = 3;
-			}
-
-			if (state == 3 && g_dCounterLevel1 == 0)
-			{
-				derivation++;
-				WorkQueue* tmp = frontQueues;
-				frontQueues = backQueues;
-				backQueues = tmp;
-				state = 0;
-			}
+			derivation++;
+			swap(frontQueues, backQueues, WorkQueue);
+			state = 0;
 		}
 
 		__syncthreads();
@@ -823,13 +854,12 @@ void RoadNetworkGraphGenerator::coalesce()
 //////////////////////////////////////////////////////////////////////////
 void expansionKernel(unsigned int numDerivations, WorkQueue* workQueues1, WorkQueue* workQueues2, unsigned int startingQueue, unsigned int numQueues, Context* context)
 {
-	unsigned int derivations = 0;
 	WorkQueue* frontQueues = workQueues1;
 	WorkQueue* backQueues = workQueues2;
 
-	while (derivations < numDerivations)
+	for (unsigned int i = 0; i < numDerivations; i++)
 	{
-		for (unsigned int i = 0, j = 0; i < numQueues; i++, j = ((j + 1) % numQueues))
+		for (unsigned int j = 0; j < numQueues; j++)
 		{
 			unsigned int currentQueue = startingQueue + j;
 			switch (currentQueue)
@@ -888,10 +918,7 @@ void expansionKernel(unsigned int numDerivations, WorkQueue* workQueues1, WorkQu
 				THROW_EXCEPTION("invalid queue index");
 			}
 		}
-		WorkQueue* tmp = frontQueues;
-		frontQueues = backQueues;
-		backQueues = tmp;
-		derivations++;
+		swap(frontQueues, backQueues, WorkQueue);
 	}
 }
 

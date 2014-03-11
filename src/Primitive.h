@@ -23,8 +23,9 @@ struct Primitive
 	vml_vec2 vertices[MAX_VERTICES_PER_PRIMITIVE];
 	volatile unsigned int numEdges;
 	volatile unsigned int numVertices;
+	bool removed;
 
-	Primitive() : numEdges(0), numVertices(0) {}
+	Primitive() : numEdges(0), numVertices(0), removed(false) {}
 
 };
 

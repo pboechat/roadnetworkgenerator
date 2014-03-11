@@ -14,7 +14,7 @@
 
 #include <exception>
 
-class RoadNetworkGeometryGenerator : public Geometry, public RoadNetworkGraphGenerationObserver
+class RoadNetworkGeometryGenerator : public RoadNetworkGraphGenerationObserver
 {
 private:
 	struct GeometryCreationTraversal : public GraphTraversal
@@ -26,9 +26,9 @@ private:
 		unsigned int maxNumVertices;
 		unsigned int maxNumIndices;
 		unsigned int lastVerticesIndex;
-		unsigned int lastIndicesIndex;
+		unsigned int lastElementIndex;
 
-		GeometryCreationTraversal(vml_vec4* vertices, vml_vec4* colors, unsigned int* indices, const vml_vec4& color, unsigned int maxNumVertices, unsigned int maxNumIndices, unsigned int lastVerticesIndex, unsigned int lastIndicesIndex) : 
+		GeometryCreationTraversal(vml_vec4* vertices, vml_vec4* colors, unsigned int* indices, const vml_vec4& color, unsigned int maxNumVertices, unsigned int maxNumIndices, unsigned int lastVerticesIndex, unsigned int lastElementIndex) : 
 			vertices(vertices),
 			colors(colors),
 			indices(indices),
@@ -36,7 +36,7 @@ private:
 			maxNumVertices(maxNumVertices),
 			maxNumIndices(maxNumIndices),
 			lastVerticesIndex(lastVerticesIndex), 
-			lastIndicesIndex(lastIndicesIndex) 
+			lastElementIndex(lastElementIndex) 
 		{
 		}
 
@@ -64,16 +64,16 @@ private:
 			colors[lastVerticesIndex + 1] = color;
 
 			// FIXME: checking boundaries
-			if (lastIndicesIndex + 1 >= maxNumIndices)
+			if (lastElementIndex + 1 >= maxNumIndices)
 			{
 				throw std::exception("max. number of indices in index buffer overflow");
 			}
 
-			indices[lastIndicesIndex] = lastVerticesIndex;
-			indices[lastIndicesIndex + 1] = lastVerticesIndex + 1;
+			indices[lastElementIndex] = lastVerticesIndex;
+			indices[lastElementIndex + 1] = lastVerticesIndex + 1;
 
 			lastVerticesIndex += 2;
-			lastIndicesIndex += 2;
+			lastElementIndex += 2;
 
 			return true;
 		}
@@ -82,7 +82,9 @@ private:
 
 	unsigned int buffers[3];
 	unsigned int vao;
-	unsigned int elementsCount;
+	unsigned int firstQuadtreeEdgeIndex;
+	unsigned int firstQuadtreeQuadsIndex;
+	unsigned int lastElementIndex;
 	vml_vec4* vertices;
 	vml_vec4* colors;
 	unsigned int* indices;
@@ -92,6 +94,7 @@ private:
 	vml_vec4 filamentColor;
 	vml_vec4 isolatedVertexColor;
 	vml_vec4 streetColor;
+	vml_vec4 quadtreeColor;
 	bool built;
 
 	void disposeBuffers() 
@@ -122,7 +125,9 @@ public:
 		indices(0), 
 		vertexBufferSize(0),
 		indexBufferSize(0),
-		elementsCount(0)
+		firstQuadtreeEdgeIndex(0),
+		firstQuadtreeQuadsIndex(0),
+		lastElementIndex(0)
 	{
 	}
 
@@ -155,6 +160,7 @@ public:
 		filamentColor = configuration.filamentColor;
 		isolatedVertexColor = configuration.isolatedVertexColor;
 		streetColor = configuration.streetColor;
+		quadtreeColor = configuration.quadtreeColor;
 	}
 
 	virtual void update(Graph* graph, unsigned int numPrimitives, Primitive* primitives)
@@ -165,14 +171,20 @@ public:
 			throw std::exception("!built");
 		}
 
-		unsigned int lastVerticesIndex = 0, lastIndicesIndex = 0;
-		for (unsigned int j = 0; j < numPrimitives; j++)
+		unsigned int lastVerticesIndex = 0;
+		lastElementIndex = 0;
+		for (unsigned int i = 0; i < numPrimitives; i++)
 		{
-			Primitive& primitive = primitives[j];
+			Primitive& primitive = primitives[i];
 
-			for (unsigned int k = 0; k < primitive.numEdges; k++)
+			if (primitive.removed)
 			{
-				Edge& edge = graph->edges[primitive.edges[k]];
+				continue;
+			}
+
+			for (unsigned int j = 0; j < primitive.numEdges; j++)
+			{
+				Edge& edge = graph->edges[primitive.edges[j]];
 
 				vml_vec2 v0 = graph->vertices[edge.source].getPosition();
 				vml_vec2 v1 = graph->vertices[edge.destination].getPosition();
@@ -192,34 +204,135 @@ public:
 				colors[lastVerticesIndex + 1] = color;
 
 				// FIXME: checking boundaries
-				if (lastIndicesIndex + 1 >= indexBufferSize)
+				if (lastElementIndex + 1 >= indexBufferSize)
 				{
 					throw std::exception("max. number of indices in index buffer overflow");
 				}
 
-				indices[lastIndicesIndex] = lastVerticesIndex;
-				indices[lastIndicesIndex + 1] = lastVerticesIndex + 1;
+				indices[lastElementIndex] = lastVerticesIndex;
+				indices[lastElementIndex + 1] = lastVerticesIndex + 1;
 
 				lastVerticesIndex += 2;
-				lastIndicesIndex += 2;
+				lastElementIndex += 2;
 			}
 		}
 
-		GeometryCreationTraversal traversal(vertices, colors, indices, streetColor, vertexBufferSize, indexBufferSize, lastVerticesIndex, lastIndicesIndex);
+		GeometryCreationTraversal traversal(vertices, colors, indices, streetColor, vertexBufferSize, indexBufferSize, lastVerticesIndex, lastElementIndex);
 		traverse(graph, traversal);
 
+		lastVerticesIndex = traversal.lastVerticesIndex;
+		lastElementIndex = traversal.lastElementIndex;
+
+		firstQuadtreeEdgeIndex = lastElementIndex;
+
+		for (unsigned int i = 0; i < graph->quadtree->totalNumQuadrants; i++)
+		{
+			Quadrant& quadrant = graph->quadtree->quadrants[i];
+
+			if (!quadrant.hasEdges)
+			{
+				continue;
+			}
+
+			// FIXME: checking boundaries
+			if (lastVerticesIndex + 4 >= vertexBufferSize)
+			{
+				throw std::exception("max. number of vertices in vertex buffer overflow");
+			}
+
+			vml_vec2 min = quadrant.bounds.getMin();
+			vml_vec2 max = quadrant.bounds.getMax();
+
+			vertices[lastVerticesIndex] =	  vml_vec4(max.x, max.y, 0.1f, 1.0f);
+			vertices[lastVerticesIndex + 1] = vml_vec4(min.x, max.y, 0.1f, 1.0f);
+			vertices[lastVerticesIndex + 2] = vml_vec4(min.x, min.y, 0.1f, 1.0f);
+			vertices[lastVerticesIndex + 3] = vml_vec4(max.x, min.y, 0.1f, 1.0f);
+
+			colors[lastVerticesIndex] =		vml_vec4(0.0f, 1.0f, 0.0f, 1.0f);
+			colors[lastVerticesIndex + 1] = vml_vec4(0.0f, 1.0f, 0.0f, 1.0f);
+			colors[lastVerticesIndex + 2] = vml_vec4(0.0f, 1.0f, 0.0f, 1.0f);
+			colors[lastVerticesIndex + 3] = vml_vec4(0.0f, 1.0f, 0.0f, 1.0f);
+
+			// FIXME: checking boundaries
+			if (lastElementIndex + 8 >= indexBufferSize)
+			{
+				throw std::exception("max. number of indices in index buffer overflow");
+			}
+
+			indices[lastElementIndex] = lastVerticesIndex;
+			indices[lastElementIndex + 1] = lastVerticesIndex + 1;
+			indices[lastElementIndex + 2] = lastVerticesIndex + 1;
+			indices[lastElementIndex + 3] = lastVerticesIndex + 2;
+			indices[lastElementIndex + 4] = lastVerticesIndex + 2;
+			indices[lastElementIndex + 5] = lastVerticesIndex + 3;
+			indices[lastElementIndex + 6] = lastVerticesIndex + 3;
+			indices[lastElementIndex + 7] = lastVerticesIndex;
+
+			lastVerticesIndex += 4;
+			lastElementIndex += 8;
+		}
+
+		firstQuadtreeQuadsIndex = lastElementIndex;
+		for (unsigned int i = 0; i < graph->quadtree->totalNumQuadrants; i++)
+		{
+			Quadrant& quadrant = graph->quadtree->quadrants[i];
+
+			if (quadrant.edges == -1)
+			{
+				continue;
+			}
+
+			QuadrantEdges& quadrantEdges = graph->quadtree->quadrantsEdges[quadrant.edges];
+
+			if (quadrantEdges.lastEdgeIndex == 0)
+			{
+				continue;
+			}
+
+			// FIXME: checking boundaries
+			if (lastVerticesIndex + 4 >= vertexBufferSize)
+			{
+				throw std::exception("max. number of vertices in vertex buffer overflow");
+			}
+
+			vml_vec2 min = quadrant.bounds.getMin();
+			vml_vec2 max = quadrant.bounds.getMax();
+
+			vertices[lastVerticesIndex] =	  vml_vec4(max.x, max.y, 0.1f, 1.0f);
+			vertices[lastVerticesIndex + 1] = vml_vec4(min.x, max.y, 0.1f, 1.0f);
+			vertices[lastVerticesIndex + 2] = vml_vec4(min.x, min.y, 0.1f, 1.0f);
+			vertices[lastVerticesIndex + 3] = vml_vec4(max.x, min.y, 0.1f, 1.0f);
+
+			colors[lastVerticesIndex] =		vml_vec4(0.0f, 1.0f, 0.0f, 0.1f);
+			colors[lastVerticesIndex + 1] = vml_vec4(0.0f, 1.0f, 0.0f, 0.1f);
+			colors[lastVerticesIndex + 2] = vml_vec4(0.0f, 1.0f, 0.0f, 0.1f);
+			colors[lastVerticesIndex + 3] = vml_vec4(0.0f, 1.0f, 0.0f, 0.1f);
+
+			// FIXME: checking boundaries
+			if (lastElementIndex + 4 >= indexBufferSize)
+			{
+				throw std::exception("max. number of indices in index buffer overflow");
+			}
+
+			indices[lastElementIndex] = lastVerticesIndex;
+			indices[lastElementIndex + 1] = lastVerticesIndex + 1;
+			indices[lastElementIndex + 2] = lastVerticesIndex + 2;
+			indices[lastElementIndex + 3] = lastVerticesIndex + 3;
+
+			lastVerticesIndex += 4;
+			lastElementIndex += 4;
+		}
+
 		glBindBuffer(GL_ARRAY_BUFFER, buffers[0]);
-		glBufferData(GL_ARRAY_BUFFER, traversal.lastVerticesIndex * sizeof(vml_vec4), (void*)vertices, GL_STATIC_DRAW);
+		glBufferData(GL_ARRAY_BUFFER, lastVerticesIndex * sizeof(vml_vec4), (void*)vertices, GL_STATIC_DRAW);
 		glBindBuffer(GL_ARRAY_BUFFER, 0);
 
 		glBindBuffer(GL_ARRAY_BUFFER, buffers[1]);
-		glBufferData(GL_ARRAY_BUFFER, traversal.lastVerticesIndex * sizeof(vml_vec4), (void*)colors, GL_STATIC_DRAW);
+		glBufferData(GL_ARRAY_BUFFER, lastVerticesIndex * sizeof(vml_vec4), (void*)colors, GL_STATIC_DRAW);
 		glBindBuffer(GL_ARRAY_BUFFER, 0);
 
-		elementsCount = traversal.lastIndicesIndex;
-
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, buffers[2]);
-		glBufferData(GL_ELEMENT_ARRAY_BUFFER, elementsCount * sizeof(unsigned int), (void*)indices, GL_STATIC_DRAW);
+		glBufferData(GL_ELEMENT_ARRAY_BUFFER, lastElementIndex * sizeof(unsigned int), (void*)indices, GL_STATIC_DRAW);
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 
 		glBindVertexArray(vao);
@@ -238,7 +351,7 @@ public:
 		built = true;
 	}
 
-	virtual void draw()
+	void draw(bool drawQuadtree)
 	{
 		if (!built)
 		{
@@ -246,9 +359,29 @@ public:
 		}
 
 		glBindVertexArray(vao);
+
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, buffers[2]);
-		glDrawElements(GL_LINES, elementsCount, GL_UNSIGNED_INT, 0);
-		glDrawElements(GL_POINTS, elementsCount, GL_UNSIGNED_INT, 0);
+
+		if (drawQuadtree)
+		{
+			glDrawRangeElements(GL_LINES, 0, firstQuadtreeQuadsIndex - 1, firstQuadtreeQuadsIndex, GL_UNSIGNED_INT, 0);
+			glDrawRangeElements(GL_POINTS, 0, firstQuadtreeQuadsIndex - 1, firstQuadtreeQuadsIndex, GL_UNSIGNED_INT, 0);
+
+			glDepthMask(GL_FALSE);
+			glEnable(GL_BLEND);
+			glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+			glDrawRangeElements(GL_QUADS, 0, firstQuadtreeQuadsIndex - 1, lastElementIndex - firstQuadtreeQuadsIndex, GL_UNSIGNED_INT, (char*)(firstQuadtreeQuadsIndex * sizeof(unsigned int)));
+
+			glDisable(GL_BLEND);
+			glDepthMask(GL_TRUE);
+		}
+		else
+		{
+			glDrawRangeElements(GL_LINES, 0, firstQuadtreeEdgeIndex - 1, firstQuadtreeEdgeIndex, GL_UNSIGNED_INT, 0);
+			glDrawRangeElements(GL_POINTS, 0, firstQuadtreeEdgeIndex - 1, firstQuadtreeEdgeIndex, GL_UNSIGNED_INT, 0);
+		}
+
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 		glBindVertexArray(0);
 	}

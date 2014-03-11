@@ -14,37 +14,35 @@ struct WorkQueue
 	unsigned int tail;
 	volatile int count;
 	unsigned char data[WORK_QUEUE_DATA_SIZE];
-#ifdef USE_CUDA
-	volatile bool readFlags[MAX_NUM_WORKITEMS];
-#endif
+	//volatile bool readFlags[WORK_QUEUE_DATA_SIZE];
 
 #ifdef USE_CUDA
 	//////////////////////////////////////////////////////////////////////////
-	__device__ void reservePops(unsigned int size, unsigned int* firstPopIndex, unsigned int* reservedPops)
+	__device__ void reservePops(int reserves, unsigned int& first, unsigned int& reserved)
 	{
 		if (count <= 0)
 		{
-			*reservedPops = 0;
+			reserved = 0;
 			return;
 		}
 
-		int oldCount = atomicSub((int*)&count, (int)size);
+		int oldCount = atomicSub((int*)&count, reserves);
 
 		if (oldCount > 0)
 		{
-			int overflow = MathExtras::min<int>(oldCount - (int)size, 0);
+			int overflow = MathExtras::min<int>(oldCount - reserves, 0);
 			if (overflow < 0)
 			{
 				atomicSub((int*)&count, overflow);
 			}
 
-			*reservedPops = size + overflow;
-			*firstPopIndex = atomicAdd(&head, *reservedPops);
+			reserved = reserves + overflow;
+			first = atomicAdd(&head, reserved);
 		}
 		else
 		{
-			*reservedPops = 0;
-			atomicAdd((int*)&count, size);
+			reserved = 0;
+			atomicAdd((int*)&count, reserves);
 		}
 	}
 
@@ -53,14 +51,9 @@ struct WorkQueue
 	__device__ void popReserved(unsigned int index, WorkItemType& item)
 	{
 		index = (index % MAX_NUM_WORKITEMS);
-
-		while (!readFlags[index]);
-
+		//while (!readFlags[index]);
 		unpack(index, item);
-
-		__threadfence();
-
-		readFlags[index] = false;
+		//readFlags[index] = false;
 	}
 
 	//////////////////////////////////////////////////////////////////////////
@@ -74,35 +67,28 @@ struct WorkQueue
 		}
 
 		unsigned int mask = __ballot(1);
-		unsigned int numberOfActiveThreads = __popc(mask);
-		int laneId = __popc(lanemask_lt() & mask);
-		int leadingThreadId = __ffs(mask) - 1;
+		unsigned int activeThreads = __popc(mask);
+		int lane = __popc(lanemask_lt() & mask);
+		int leadingThread = __ffs(mask) - 1;
 
-		int firstPushIndex;
-		if (laneId == 0)
+		int first;
+		if (lane == 0)
 		{
-			atomicAdd((int*)&count, numberOfActiveThreads);
-
+			atomicAdd((int*)&count, activeThreads);
 			// FIXME: checking boundaries
 			if (count > MAX_NUM_WORKITEMS)
 			{
 				THROW_EXCEPTION1("max. number of work items overflow (%d)", count);
 			}
-
-			firstPushIndex = atomicAdd(&tail, numberOfActiveThreads);
+			first = atomicAdd(&tail, activeThreads);
 		}
+		first = __shfl(first, leadingThread);
 
-		firstPushIndex = __shfl(firstPushIndex, leadingThreadId);
-
-		unsigned int index = ((firstPushIndex + laneId) % MAX_NUM_WORKITEMS);
-
-		while (readFlags[index]);
-
+		unsigned int index = ((first + lane) % MAX_NUM_WORKITEMS);
+		//while (readFlags[index]);
 		pack(index, item);
-
+		//readFlags[index] = true;
 		__threadfence();
-
-		readFlags[index] = true;
 	}
 #else
 	//////////////////////////////////////////////////////////////////////////
@@ -133,13 +119,9 @@ struct WorkQueue
 		}
 
 		unsigned int index = tail++ % MAX_NUM_WORKITEMS;
-
 		pack(index, item);
+		//readFlags[index] = true;
 		count++;
-
-#ifdef USE_CUDA
-		readFlags[index] = true;
-#endif
 	}
 
 	//////////////////////////////////////////////////////////////////////////
@@ -160,17 +142,8 @@ struct WorkQueue
 
 		unsigned int index = head++ % MAX_NUM_WORKITEMS;
 		unpack(index, item);
+		//readFlags[index] = false;
 		count--;
-
-#ifdef USE_CUDA
-		readFlags[index] = false;
-#endif
-	}
-
-	//////////////////////////////////////////////////////////////////////////
-	HOST_CODE void clear()
-	{
-		head = tail = count = 0;
 	}
 
 private:

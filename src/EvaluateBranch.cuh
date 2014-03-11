@@ -59,7 +59,7 @@ struct EvaluateHighwayBranch
 		// p5
 		else if (branch.delay == 0)
 		{
-			backQueues[EVALUATE_HIGHWAY].push(Highway(0, branch.roadAttributes, branch.ruleAttributes, UNASSIGNED));
+			backQueues[EVALUATE_HIGHWAY].push(Highway(branch.roadAttributes, branch.ruleAttributes, UNASSIGNED));
 		}
 	}
 };

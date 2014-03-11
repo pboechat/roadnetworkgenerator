@@ -14,129 +14,137 @@
 #include <PseudoRandomNumbers.cuh>
 #include <GlobalVariables.cuh>
 
+#define NONE 0
+#define LEFT_BRANCH 1
+#define RIGHT_BRANCH 2
+#define ROAD_CONTINUATION 4
+
 #define hasMask(x, y) (x & y) != 0
 #define addMask(x, y) x != y
 
-//////////////////////////////////////////////////////////////////////////
-template<typename RuleAttributesType>
-DEVICE_CODE void evaluateGlobalGoals(Road<RuleAttributesType>& road, int newOrigin, const vml_vec2& position, int* delays, RoadAttributes* roadAttributes, RuleAttributesType* ruleAttributes, Context* context);
 //////////////////////////////////////////////////////////////////////////
 DEVICE_CODE bool findHighestPopulationDensity(const vml_vec2& start, float startingAngle, vml_vec2& goal, unsigned int& distance, Context* context);
 //////////////////////////////////////////////////////////////////////////
 DEVICE_CODE Pattern findUnderlyingPattern(const vml_vec2& position, Context* context);
 //////////////////////////////////////////////////////////////////////////
-DEVICE_CODE void applyNaturalPatternRule(const vml_vec2& position, unsigned int goalDistance, int& delay, RoadAttributes& roadAttributes, HighwayRuleAttributes& ruleAttributes, Context* context);
+DEVICE_CODE bool applyNaturalPatternRule(const vml_vec2& position, unsigned int goalDistance, Highway& highway, Context* context);
 //////////////////////////////////////////////////////////////////////////
-DEVICE_CODE void applyRadialPatternRule(const vml_vec2& position, unsigned int goalDistance, int& delay, RoadAttributes& roadAttributes, HighwayRuleAttributes& ruleAttributes, Context* context);
+DEVICE_CODE bool applyRadialPatternRule(const vml_vec2& position, unsigned int goalDistance, Highway& highway, Context* context);
 //////////////////////////////////////////////////////////////////////////
-DEVICE_CODE void applyRasterPatternRule(const vml_vec2& position, unsigned int goalDistance, int& delay, RoadAttributes& roadAttributes, HighwayRuleAttributes& ruleAttributes, Context* context);
+DEVICE_CODE bool applyRasterPatternRule(const vml_vec2& position, unsigned int goalDistance, Highway& highway, Context* context);
 
 //////////////////////////////////////////////////////////////////////////
-DEVICE_CODE void evaluateGlobalGoals(Street& road, int source, const vml_vec2& position, int* delays, RoadAttributes* roadAttributes, StreetRuleAttributes* ruleAttributes, Context* context)
+DEVICE_CODE unsigned int createNewWorkItems(Street& road, int source, const vml_vec2& position, Street& leftBranch, Street& rightBranch, Street& roadContinuation, Context* context)
 {
-
 	unsigned int newDepth = road.ruleAttributes.branchDepth + 1;
 
 	if (newDepth > context->configuration->maxStreetBranchDepth)
 	{
-		delays[0] = -1;
-		delays[1] = -1;
-		delays[2] = -1;
-		return;
+		return NONE;
 	}
+
+	unsigned int creationMask = NONE;
 
 	if (hasMask(road.ruleAttributes.expansionMask, EXPAND_UP))
 	{
-		delays[2] = 0;
-		roadAttributes[2].source = source;
-		roadAttributes[2].length = context->configuration->streetLength;
-		roadAttributes[2].angle = road.roadAttributes.angle;
-		ruleAttributes[2].branchDepth = newDepth;
-		ruleAttributes[2].boundsIndex = road.ruleAttributes.boundsIndex;
-		ruleAttributes[2].expansionMask = road.ruleAttributes.expansionMask;
+		creationMask |= ROAD_CONTINUATION;
+		roadContinuation.roadAttributes.source = source;
+		roadContinuation.roadAttributes.length = context->configuration->streetLength;
+		roadContinuation.roadAttributes.angle = road.roadAttributes.angle;
+		roadContinuation.ruleAttributes.branchDepth = newDepth;
+		roadContinuation.ruleAttributes.boundsIndex = road.ruleAttributes.boundsIndex;
+		roadContinuation.ruleAttributes.expansionMask = road.ruleAttributes.expansionMask;
 	}
 
 	if (hasMask(road.ruleAttributes.expansionMask, EXPAND_RIGHT))
 	{
-		delays[1] = 0;
-		roadAttributes[1].source = source;
-		roadAttributes[1].length = context->configuration->streetLength;
-		roadAttributes[1].angle = road.roadAttributes.angle + HALF_PI;
-		ruleAttributes[1].branchDepth = newDepth;
-		ruleAttributes[1].boundsIndex = road.ruleAttributes.boundsIndex;
-		ruleAttributes[1].expansionMask = road.ruleAttributes.expansionMask;
+		creationMask |= RIGHT_BRANCH;
+		rightBranch.roadAttributes.source = source;
+		rightBranch.roadAttributes.length = context->configuration->streetLength;
+		rightBranch.roadAttributes.angle = road.roadAttributes.angle + HALF_PI;
+		rightBranch.ruleAttributes.branchDepth = newDepth;
+		rightBranch.ruleAttributes.boundsIndex = road.ruleAttributes.boundsIndex;
+		rightBranch.ruleAttributes.expansionMask = road.ruleAttributes.expansionMask;
 	}
 
 	if (hasMask(road.ruleAttributes.expansionMask, EXPAND_LEFT))
 	{
-		delays[0] = 0;
-		roadAttributes[0].source = source;
-		roadAttributes[0].length = context->configuration->streetLength;
-		roadAttributes[0].angle = road.roadAttributes.angle - HALF_PI;
-		ruleAttributes[0].branchDepth = newDepth;
-		ruleAttributes[0].boundsIndex = road.ruleAttributes.boundsIndex;
-		ruleAttributes[0].expansionMask = road.ruleAttributes.expansionMask;
+		creationMask |= LEFT_BRANCH;
+		leftBranch.roadAttributes.source = source;
+		leftBranch.roadAttributes.length = context->configuration->streetLength;
+		leftBranch.roadAttributes.angle = road.roadAttributes.angle - HALF_PI;
+		leftBranch.ruleAttributes.branchDepth = newDepth;
+		leftBranch.ruleAttributes.boundsIndex = road.ruleAttributes.boundsIndex;
+		leftBranch.ruleAttributes.expansionMask = road.ruleAttributes.expansionMask;
 	}
+
+	return creationMask;
 }
 
 //////////////////////////////////////////////////////////////////////////
-DEVICE_CODE void evaluateGlobalGoals(Highway& road, int source, const vml_vec2& position, int* delays, RoadAttributes* roadAttributes, HighwayRuleAttributes* ruleAttributes, Context* context)
+DEVICE_CODE unsigned int createNewWorkItems(Highway& road, int source, const vml_vec2& position, HighwayBranch& leftBranch, HighwayBranch& rightBranch, Highway& roadContinuation, Context* context)
 {
 	unsigned int newDepth = road.ruleAttributes.branchDepth + 1;
 
 	if (newDepth > context->configuration->maxHighwayBranchDepth)
 	{
-		delays[0] = -1;
-		delays[1] = -1;
-		delays[2] = -1;
-		return;
+		return NONE;
 	}
 
 	bool branch = (road.ruleAttributes.branchingDistance == context->configuration->highwayBranchingDistance);
-	// highway continuation
-	delays[2] = 0;
-	roadAttributes[2].source = source;
-	roadAttributes[2].length = context->configuration->highwayLength;
-	ruleAttributes[2].hasGoal = road.ruleAttributes.hasGoal;
-	ruleAttributes[2].branchDepth = newDepth;
-	ruleAttributes[2].setGoal(road.ruleAttributes.getGoal());
-	ruleAttributes[2].branchingDistance = (branch) ? 0 : road.ruleAttributes.branchingDistance + 1;
 
-	unsigned int goalDistance;
-	if (ruleAttributes[2].hasGoal)
+	// highway continuation
+	unsigned int creationMask = ROAD_CONTINUATION;
+
+	roadContinuation.roadAttributes.source = source;
+	roadContinuation.roadAttributes.length = context->configuration->highwayLength;
+	roadContinuation.ruleAttributes.hasGoal = road.ruleAttributes.hasGoal;
+	roadContinuation.ruleAttributes.branchDepth = newDepth;
+	roadContinuation.ruleAttributes.setGoal(road.ruleAttributes.getGoal());
+	roadContinuation.ruleAttributes.branchingDistance = (branch) ? 0 : road.ruleAttributes.branchingDistance + 1;
+
+	unsigned int goalDistance = 0;
+	if (roadContinuation.ruleAttributes.hasGoal)
 	{
-		goalDistance = (unsigned int)vml_distance(position, road.ruleAttributes.getGoal());
+		goalDistance = (unsigned int)vml_distance(position, roadContinuation.ruleAttributes.getGoal());
 	}
 
-	if (!ruleAttributes[2].hasGoal || goalDistance <= context->configuration->goalDistanceThreshold)
+	if (!roadContinuation.ruleAttributes.hasGoal || goalDistance <= context->configuration->goalDistanceThreshold)
 	{
 		vml_vec2 goal;
 		if (!findHighestPopulationDensity(position, road.roadAttributes.angle, goal, goalDistance, context))
 		{
-			delays[0] = -1;
-			delays[1] = -1;
-			delays[2] = -1;
-			return;
+			return NONE;
 		}
-		ruleAttributes[2].setGoal(goal);
-		ruleAttributes[2].hasGoal = true;
+
+		roadContinuation.ruleAttributes.setGoal(goal);
+		roadContinuation.ruleAttributes.hasGoal = true;
 	}
 
 	Pattern pattern = findUnderlyingPattern(position, context);
 
 	if (pattern == NATURAL_PATTERN)
 	{
-		applyNaturalPatternRule(position, goalDistance, delays[2], roadAttributes[2], ruleAttributes[2], context);
+		if (!applyNaturalPatternRule(position, goalDistance, roadContinuation, context))
+		{
+			return NONE;
+		}
 	}
 
 	else if (pattern == RADIAL_PATTERN)
 	{
-		applyRadialPatternRule(position, goalDistance, delays[2], roadAttributes[2], ruleAttributes[2], context);
+		if (!applyRadialPatternRule(position, goalDistance, roadContinuation, context))
+		{
+			return NONE;
+		}
 	}
 
 	else if (pattern == RASTER_PATTERN)
 	{
-		applyRasterPatternRule(position, goalDistance, delays[2], roadAttributes[2], ruleAttributes[2], context);
+		if (!applyRasterPatternRule(position, goalDistance, roadContinuation, context))
+		{
+			return NONE;
+		}
 	}
 
 	else
@@ -148,25 +156,25 @@ DEVICE_CODE void evaluateGlobalGoals(Highway& road, int source, const vml_vec2& 
 	if (branch) 
 	{
 		// new highway branch left
-		delays[0] = 0;
-		roadAttributes[0].source = source;
-		roadAttributes[0].length = context->configuration->highwayLength;
-		roadAttributes[0].angle = roadAttributes[2].angle - HALF_PI;
-		ruleAttributes[0].branchDepth = 0;
-		ruleAttributes[0].hasGoal = false;
+		creationMask |= LEFT_BRANCH;
+		leftBranch.delay = 0;
+		leftBranch.roadAttributes.source = source;
+		leftBranch.roadAttributes.length = context->configuration->highwayLength;
+		leftBranch.roadAttributes.angle = roadContinuation.roadAttributes.angle - HALF_PI;
+		leftBranch.ruleAttributes.branchDepth = 0;
+		leftBranch.ruleAttributes.hasGoal = false;
+
 		// new highway branch right
-		delays[1] = 0;
-		roadAttributes[1].source = source;
-		roadAttributes[1].length = context->configuration->highwayLength;
-		roadAttributes[1].angle = roadAttributes[2].angle + HALF_PI;
-		ruleAttributes[1].branchDepth = 0;
-		ruleAttributes[1].hasGoal = false;
+		creationMask |= RIGHT_BRANCH;
+		rightBranch.delay = 0;
+		rightBranch.roadAttributes.source = source;
+		rightBranch.roadAttributes.length = context->configuration->highwayLength;
+		rightBranch.roadAttributes.angle = roadContinuation.roadAttributes.angle + HALF_PI;
+		rightBranch.ruleAttributes.branchDepth = 0;
+		rightBranch.ruleAttributes.hasGoal = false;
 	}
-	else
-	{
-		delays[0] = -1;
-		delays[1] = -1;
-	}
+
+	return creationMask;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -266,44 +274,45 @@ DEVICE_CODE bool findHighestPopulationDensity(const vml_vec2& start, float start
 }
 
 //////////////////////////////////////////////////////////////////////////
-DEVICE_CODE void applyHighwayGoalDeviation(const vml_vec2& position, RoadAttributes& roadAttributes, Context* context)
+DEVICE_CODE void applyGoalDeviation(const vml_vec2& position, Highway& highway, Context* context)
 {
 	if (context->configuration->maxHighwayGoalDeviation == 0)
 	{
 		return;
 	}
 
-	roadAttributes.angle += vml_radians((float)(RAND(position.x, position.y) % context->configuration->halfMaxHighwayGoalDeviation) - (int)context->configuration->maxHighwayGoalDeviation);
+	highway.roadAttributes.angle += vml_radians((float)(RAND(position.x, position.y) % context->configuration->halfMaxHighwayGoalDeviation) - (int)context->configuration->maxHighwayGoalDeviation);
 }
 
 //////////////////////////////////////////////////////////////////////////
-DEVICE_CODE void applyNaturalPatternRule(const vml_vec2& position, unsigned int goalDistance, int& delay, RoadAttributes& roadAttributes, HighwayRuleAttributes& ruleAttributes, Context* context)
+DEVICE_CODE bool applyNaturalPatternRule(const vml_vec2& position, unsigned int goalDistance, Highway& highway, Context* context)
 {
-	roadAttributes.length = MathExtras::min(goalDistance, context->configuration->highwayLength);
-	roadAttributes.angle = MathExtras::getAngle(vml_vec2(0.0f, 1.0f), ruleAttributes.getGoal() - position);
-	applyHighwayGoalDeviation(position, roadAttributes, context);
+	highway.roadAttributes.length = MathExtras::min(goalDistance, context->configuration->highwayLength);
+	highway.roadAttributes.angle = MathExtras::getAngle(vml_vec2(0.0f, 1.0f), highway.ruleAttributes.getGoal() - position);
+	applyGoalDeviation(position, highway, context);
+	return true;
 }
 
 //////////////////////////////////////////////////////////////////////////
-DEVICE_CODE void applyRadialPatternRule(const vml_vec2& position, unsigned int goalDistance, int& delay, RoadAttributes& roadAttributes, HighwayRuleAttributes& ruleAttributes, Context* context)
+DEVICE_CODE bool applyRadialPatternRule(const vml_vec2& position, unsigned int goalDistance, Highway& highway, Context* context)
 {
 	// TODO:
+	return false;
 }
 
 //////////////////////////////////////////////////////////////////////////
-DEVICE_CODE void applyRasterPatternRule(const vml_vec2& position, unsigned int goalDistance, int& delay, RoadAttributes& roadAttributes, HighwayRuleAttributes& ruleAttributes, Context* context)
+DEVICE_CODE bool applyRasterPatternRule(const vml_vec2& position, unsigned int goalDistance, Highway& highway, Context* context)
 {
-	float angle = MathExtras::getAngle(vml_vec2(1.0f, 0.0f), ruleAttributes.getGoal() - position);
+	float angle = MathExtras::getAngle(vml_vec2(1.0f, 0.0f), highway.ruleAttributes.getGoal() - position);
 	unsigned int horizontalDistance = (unsigned int)abs((float)goalDistance * cos(angle));
 	unsigned int verticalDistance = (unsigned int)abs((float)goalDistance * sin(angle));
-	bool canMoveHorizontally = horizontalDistance >= context->configuration->minRoadLength;
-	bool canMoveVertically = verticalDistance >= context->configuration->minRoadLength;
+	bool canMoveHorizontally = horizontalDistance >= context->configuration->minHighwayLength;
+	bool canMoveVertically = verticalDistance >= context->configuration->minHighwayLength;
 	bool moveHorizontally;
 
 	if (!canMoveHorizontally && !canMoveVertically)
 	{
-		delay = -1;
-		return;
+		return false;
 	}
 
 	else if (!canMoveHorizontally)
@@ -321,19 +330,21 @@ DEVICE_CODE void applyRasterPatternRule(const vml_vec2& position, unsigned int g
 		moveHorizontally = (RAND(position.x, position.y) % 99) < 50;
 	}
 
-	unsigned int length = (RAND(position.x, position.y) % (context->configuration->highwayLength - context->configuration->minRoadLength)) + context->configuration->minRoadLength;
+	unsigned int length = (RAND(position.x, position.y) % (context->configuration->highwayLength - context->configuration->minHighwayLength)) + context->configuration->minHighwayLength;
 
 	if (moveHorizontally)
 	{
-		roadAttributes.length = MathExtras::min(horizontalDistance, length);
-		roadAttributes.angle = (angle > HALF_PI && angle < PI_AND_HALF) ? HALF_PI : -HALF_PI;
+		highway.roadAttributes.length = MathExtras::min(horizontalDistance, length);
+		highway.roadAttributes.angle = (angle > HALF_PI && angle < PI_AND_HALF) ? HALF_PI : -HALF_PI;
 	}
 
 	else
 	{
-		roadAttributes.length = MathExtras::min(verticalDistance, length);
-		roadAttributes.angle = (angle > PI) ? PI : 0;
+		highway.roadAttributes.length = MathExtras::min(verticalDistance, length);
+		highway.roadAttributes.angle = (angle > PI) ? PI : 0;
 	}
+
+	return true;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -353,37 +364,28 @@ struct InstantiateStreet
 		vml_vec2 direction = vml_rotate2D(vml_vec2(0.0f, road.roadAttributes.length), road.roadAttributes.angle);
 		int newSource;
 		vml_vec2 position;
-		bool interrupted = addStreet(context->graph, context->primitives, road.roadAttributes.source, direction, road.ruleAttributes.boundsIndex, newSource, position);
-
-		int delays[3];
-		RoadAttributes roadAttributes[3];
-		StreetRuleAttributes ruleAttributes[3];
-
-		if (interrupted)
+		if (addStreet(context->graph, context->primitives, road.roadAttributes.source, direction, road.ruleAttributes.boundsIndex, newSource, position))
 		{
-			delays[0] = -1;
-			delays[1] = -1;
-			delays[2] = -1;
-		}
+			Street leftBranch(UNASSIGNED);
+			Street rightBranch(UNASSIGNED);
+			Street roadContinuation(UNASSIGNED);
 
-		else
-		{
-			evaluateGlobalGoals(road, newSource, position, delays, roadAttributes, ruleAttributes, context);
-		}
+			unsigned int creationMask = createNewWorkItems(road, newSource, position, leftBranch, rightBranch, roadContinuation, context);
 
-		if (delays[0] >= 0)
-		{
-			backQueues[EVALUATE_STREET].push(Street(delays[0], roadAttributes[0], ruleAttributes[0], UNASSIGNED));
-		}
+			if ((creationMask & LEFT_BRANCH) != 0)
+			{
+				backQueues[EVALUATE_STREET].push(leftBranch);
+			}
 
-		if (delays[1] >= 0)
-		{
-			backQueues[EVALUATE_STREET].push(Street(delays[1], roadAttributes[1], ruleAttributes[1], UNASSIGNED));
-		}
+			if ((creationMask & RIGHT_BRANCH) != 0)
+			{
+				backQueues[EVALUATE_STREET].push(rightBranch);
+			}
 
-		if (delays[2] >= 0)
-		{
-			backQueues[EVALUATE_STREET].push(Street(delays[2], roadAttributes[2], ruleAttributes[2], UNASSIGNED));
+			if ((creationMask & ROAD_CONTINUATION) != 0)
+			{
+				backQueues[EVALUATE_STREET].push(roadContinuation);
+			}
 		}
 	}
 };
@@ -407,25 +409,25 @@ struct InstantiateHighway
 		vml_vec2 position;
 		addHighway(context->graph, road.roadAttributes.source, direction, newSource, position);
 
-		int delays[3];
-		RoadAttributes roadAttributes[3];
-		HighwayRuleAttributes ruleAttributes[3];
+		HighwayBranch leftBranch;
+		HighwayBranch rightBranch;
+		Highway roadContinuation(UNASSIGNED);
 
-		evaluateGlobalGoals(road, newSource, position, delays, roadAttributes, ruleAttributes, context);
+		unsigned int creationMask = createNewWorkItems(road, newSource, position, leftBranch, rightBranch, roadContinuation, context);
 
-		if (delays[0] >= 0)
+		if ((creationMask & LEFT_BRANCH) != 0)
 		{
-			backQueues[EVALUATE_HIGHWAY_BRANCH].push(Branch<HighwayRuleAttributes>(delays[0], roadAttributes[0], ruleAttributes[0]));
+			backQueues[EVALUATE_HIGHWAY_BRANCH].push(leftBranch);
 		}
 
-		if (delays[1] >= 0)
+		if ((creationMask & RIGHT_BRANCH) != 0)
 		{
-			backQueues[EVALUATE_HIGHWAY_BRANCH].push(Branch<HighwayRuleAttributes>(delays[1], roadAttributes[1], ruleAttributes[1]));
+			backQueues[EVALUATE_HIGHWAY_BRANCH].push(rightBranch);
 		}
 
-		if (delays[2] >= 0)
+		if ((creationMask & ROAD_CONTINUATION) != 0)
 		{
-			backQueues[EVALUATE_HIGHWAY].push(Highway(delays[2], roadAttributes[2], ruleAttributes[2], UNASSIGNED));
+			backQueues[EVALUATE_HIGHWAY].push(roadContinuation);
 		}
 	}
 };

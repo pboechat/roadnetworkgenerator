@@ -23,7 +23,7 @@ namespace MathExtras
 #define PI 3.14159265358979323846f
 #define HALF_PI 1.57079632679489661923f
 #define PI_AND_HALF 4.71238898038468985769f
-#define COLLISION_EPSILON 0.0000001f
+#define COLLISION_EPSILON 0.000001f
 
 inline HOST_AND_DEVICE_CODE bool isZero(float a)
 {
@@ -158,7 +158,7 @@ inline HOST_AND_DEVICE_CODE float getOrientedAngle(const vml_vec2& a, const vml_
 	}
 }
 
-inline HOST_AND_DEVICE_CODE void getPolygonInfo(const vml_vec2* vertices, unsigned int numVertices, float& area, vml_vec2& center)
+inline HOST_CODE void getPolygonInfo(const vml_vec2* vertices, unsigned int numVertices, float& area, vml_vec2& center)
 {
 	float twiceArea = 0, x = 0, y = 0, f = 0;
 	for (unsigned int i = 0, j = numVertices - 1 ; i < numVertices; j = i++) {
@@ -172,6 +172,68 @@ inline HOST_AND_DEVICE_CODE void getPolygonInfo(const vml_vec2* vertices, unsign
 	area = abs(twiceArea * 0.5f);
 	f = twiceArea * 3.0f;
 	center = vml_vec2(x / f, y / f);
+}
+
+/*inline HOST_CODE int getSide(const vml_vec2& a, const vml_vec2& b)
+{
+	vml_vec3 e1(a.x, a.y, 0.0f);
+	vml_vec3 e2(b.x, b.y, 0.0f);
+	vml_vec3 x = vml_cross(e1, e2);
+	if (x.z < 0)
+	{
+		return -1;
+	}
+
+	else if (x.z > 0)
+	{
+		return 1;
+	}
+
+	else
+	{
+		return 0;
+	}
+}*/
+
+inline float getAngle2D(const vml_vec2& v1, const vml_vec2& v2)
+{
+	float dtheta,theta1,theta2;
+	theta1 = atan2(v1.y, v1.x);
+	theta2 = atan2(v2.y, v2.x);
+	dtheta = theta2 - theta1;
+	while (dtheta > PI)
+		dtheta -= TWO_PI;
+	while (dtheta < -PI)
+		dtheta += TWO_PI;
+	return(dtheta);
+}
+
+inline HOST_CODE bool inside(const vml_vec2* vertices, unsigned int numVertices, const vml_vec2& point)
+{
+
+
+	float angle = 0.0f;
+	for (unsigned int i = 0, j = numVertices - 1 ; i < numVertices; j = i++) {
+		const vml_vec2& a = vertices[i]; 
+		const vml_vec2& b = vertices[j];
+
+		if (a == point || b == point)
+		{
+			return false;
+		}
+
+		vml_vec2 v1 = a - point;
+		vml_vec2 v2 = b - point;
+
+		angle += getAngle2D(v1, v2);
+	}
+
+	if (abs(angle) < PI)
+	{
+		return false;
+	}
+
+	return true;
 }
 
 }

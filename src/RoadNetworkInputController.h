@@ -87,6 +87,11 @@ public:
 			renderer.toggleBlockadesMap();
 		}
 
+		if (getKeyDown(VK_F4))
+		{
+			renderer.toggleDrawQuadtree();
+		}
+
 		if (getKeyDown(VK_F5))
 		{
 			callback(configurationFile, renderer, geometryGenerator, labelsGenerator, camera);

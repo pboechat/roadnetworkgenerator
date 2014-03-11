@@ -12,7 +12,7 @@
 #include <QuadTreeStacks.h>
 
 //////////////////////////////////////////////////////////////////////////
-HOST_AND_DEVICE_CODE void removeEdgeReferencesInQuadrant(QuadrantEdges& quadrantEdges, int edgeIndex);
+//HOST_AND_DEVICE_CODE void removeEdgeReferencesInQuadrant(QuadrantEdges& quadrantEdges, int edgeIndex);
 
 //////////////////////////////////////////////////////////////////////////
 HOST_AND_DEVICE_CODE void initializeQuadtreeOnHost(QuadTree* quadtree, Box2D worldBounds, unsigned int depth, unsigned int maxQuadrants, Quadrant* quadrants, QuadrantEdges* quadrantEdges)
@@ -65,6 +65,7 @@ HOST_AND_DEVICE_CODE void initializeQuadtreeOnHost(QuadTree* quadtree, Box2D wor
 
 		quadrant.depth = depth;
 		quadrant.bounds = quadrantBounds;
+		quadrant.hasEdges = false;
 
 		if (depth == quadtree->maxDepth - 1) // leaf
 		{
@@ -149,6 +150,7 @@ GLOBAL_CODE void initializeQuadtreeOnDevice(QuadTree* quadtree, Box2D worldBound
 
 		quadrant.depth = depth;
 		quadrant.bounds = quadrantBounds;
+		quadrant.hasEdges = false;
 
 		if (depth == (quadtree->maxDepth - 1)) // leaf
 		{
@@ -222,6 +224,8 @@ DEVICE_CODE void insert(QuadTree* quadtree, int edgeIndex, const Line2D& edgeLin
 
 		if (quadrant.bounds.isIntersected(edgeLine))
 		{
+			quadrant.hasEdges = true;
+
 			if (quadrant.depth == quadtree->maxDepth - 1)
 			{
 				// FIXME: checking invariants
@@ -266,7 +270,7 @@ DEVICE_CODE void insert(QuadTree* quadtree, int edgeIndex, const Line2D& edgeLin
 }
 
 //////////////////////////////////////////////////////////////////////////
-DEVICE_CODE void remove(QuadTree* quadtree, int edgeIndex, const Line2D& edgeLine)
+/*DEVICE_CODE void remove(QuadTree* quadtree, int edgeIndex, const Line2D& edgeLine)
 {
 	unsigned int index, offset, levelWidth;
 
@@ -311,10 +315,10 @@ DEVICE_CODE void remove(QuadTree* quadtree, int edgeIndex, const Line2D& edgeLin
 		ATOMIC_ADD(quadtree->numCollisionChecks, unsigned int, 1);
 #endif
 	}
-}
+}*/
 
 //////////////////////////////////////////////////////////////////////////
-DEVICE_CODE void removeEdgeReferencesInQuadrant(QuadrantEdges& quadrantEdges, int edgeIndex)
+/*DEVICE_CODE void removeEdgeReferencesInQuadrant(QuadrantEdges& quadrantEdges, int edgeIndex)
 {
 	// FIXME: checking boundaries
 	if (quadrantEdges.lastEdgeIndex == 0)
@@ -347,7 +351,7 @@ DEVICE_CODE void removeEdgeReferencesInQuadrant(QuadrantEdges& quadrantEdges, in
 	}
 
 	quadrantEdges.lastEdgeIndex--;
-}
+}*/
 
 //////////////////////////////////////////////////////////////////////////
 DEVICE_CODE void query(QuadTree* quadtree, const Line2D& edgeLine, QueryResults& queryResults)

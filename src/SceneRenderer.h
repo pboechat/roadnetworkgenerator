@@ -65,6 +65,7 @@ private:
 	ImageMapRenderData populationDensityMapData;
 	ImageMapRenderData waterBodiesMapData;
 	ImageMapRenderData blockadesMapData;
+	bool drawQuadtree;
 
 	void setUpImageMapRenderData(const ImageMap& imageMap, ImageMapRenderData& imageMapData, const vml_vec4& color1, const vml_vec4& color2)
 	{
@@ -107,7 +108,8 @@ public:
 		fontShader(FONT_VERTEX_SHADER_FILE_PATH, FONT_FRAGMENT_SHADER_FILE_PATH),
 		geometry(geometry),
 		labels(labels),
-		worldSizedQuad(0)
+		worldSizedQuad(0),
+		drawQuadtree(false)
 	{
 		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 		glEnable(GL_PROGRAM_POINT_SIZE);
@@ -205,7 +207,7 @@ public:
 
 		solidShader.bind();
 		solidShader.setMat4("uViewProjection", viewProjection);
-		geometry.draw();
+		geometry.draw(drawQuadtree);
 		solidShader.unbind();
 
 		glDepthMask(GL_FALSE);
@@ -233,6 +235,11 @@ public:
 	void toggleBlockadesMap()
 	{
 		blockadesMapData.enabled = !blockadesMapData.enabled;
+	}
+
+	void toggleDrawQuadtree()
+	{
+		drawQuadtree = !drawQuadtree;
 	}
 
 };

@@ -11,10 +11,46 @@
 #include <WorkQueue.cuh>
 #include <GraphFunctions.cuh>
 #include <ImageMapFunctions.cuh>
+#include <GlobalVariables.cuh>
 
 //////////////////////////////////////////////////////////////////////////
 template<typename RuleAttributesType>
-DEVICE_CODE bool evaluateWaterBodies(Road<RuleAttributesType>& road, const vml_vec2& position, Context* context)
+DEVICE_CODE void getHalfMaxObstacleDeviationAngle(Road<RuleAttributesType>& road, int& halfMaxObstacleDeviationAngle, Context* context);
+
+//////////////////////////////////////////////////////////////////////////
+DEVICE_CODE void getHalfMaxObstacleDeviationAngle(Road<HighwayRuleAttributes>& highway, int& halfMaxObstacleDeviationAngle, Context* context)
+{
+	halfMaxObstacleDeviationAngle = context->configuration->halfMaxHighwayObstacleDeviationAngle;
+}
+
+//////////////////////////////////////////////////////////////////////////
+DEVICE_CODE void getHalfMaxObstacleDeviationAngle(Road<StreetRuleAttributes>& street, int& halfMaxObstacleDeviationAngle, Context* context)
+{
+	halfMaxObstacleDeviationAngle = context->configuration->halfMaxStreetObstacleDeviationAngle;
+}
+
+//////////////////////////////////////////////////////////////////////////
+template<typename RuleAttributesType>
+DEVICE_CODE void getMinLength(Road<RuleAttributesType>& road, unsigned int& minLength, Context* context);
+
+//////////////////////////////////////////////////////////////////////////
+DEVICE_CODE void getMinLength(Road<HighwayRuleAttributes>& highway, unsigned int& minLength, Context* context)
+{
+	minLength = context->configuration->minHighwayLength;
+}
+
+//////////////////////////////////////////////////////////////////////////
+DEVICE_CODE void getMinLength(Road<StreetRuleAttributes>& street, unsigned int& minLength, Context* context)
+{
+	minLength = context->configuration->minStreetLength;
+}
+
+//////////////////////////////////////////////////////////////////////////
+template<typename RuleAttributesType>
+DEVICE_CODE bool evaluateWaterBodies(Road<RuleAttributesType>& road, const vml_vec2& position, Context* context);
+
+//////////////////////////////////////////////////////////////////////////
+DEVICE_CODE bool evaluateWaterBodies(Road<HighwayRuleAttributes>& road, const vml_vec2& position, Context* context)
 {
 	// FIXME: checking invariants
 	if (context->waterBodiesMap == 0)
@@ -22,16 +58,21 @@ DEVICE_CODE bool evaluateWaterBodies(Road<RuleAttributesType>& road, const vml_v
 		THROW_EXCEPTION("context->waterBodiesMap == 0");
 	}
 
-	bool found = false;
-	unsigned int angleIncrement = 0;
-	unsigned int length = road.roadAttributes.length;
+	unsigned int minLength;
+	int halfMaxObstacleDeviationAngle;
 
-	while (length >= context->configuration->minRoadLength)
+	getMinLength(road, minLength, context);
+	getHalfMaxObstacleDeviationAngle(road, halfMaxObstacleDeviationAngle, context);
+
+	bool found = false;
+	unsigned int length = road.roadAttributes.length;
+	int angleIncrement = 0;
+
+	while (length >= minLength)
 	{
-		do
+		while (angleIncrement <= halfMaxObstacleDeviationAngle)
 		{
 			vml_vec2 direction = vml_normalize(vml_rotate2D(vml_vec2(0.0f, 1.0f), road.roadAttributes.angle + vml_radians((float)angleIncrement)));
-
 			bool hit;
 			vml_vec2 hitPoint;
 			CAST_RAY(waterBodiesTexture, position, direction, length, 0, hit, hitPoint);
@@ -41,11 +82,29 @@ DEVICE_CODE bool evaluateWaterBodies(Road<RuleAttributesType>& road, const vml_v
 				found = true;
 				goto outside_loops;
 			}
-
-			angleIncrement++;;
+			angleIncrement++;
 		}
-		while (angleIncrement <= context->configuration->maxObstacleDeviationAngle);
+		length--;
+	}
 
+	length = road.roadAttributes.length;
+	angleIncrement = -halfMaxObstacleDeviationAngle;
+	while (length >= minLength)
+	{
+		while (angleIncrement < 0)
+		{
+			vml_vec2 direction = vml_normalize(vml_rotate2D(vml_vec2(0.0f, 1.0f), road.roadAttributes.angle + vml_radians((float)angleIncrement)));
+			bool hit;
+			vml_vec2 hitPoint;
+			CAST_RAY(waterBodiesTexture, position, direction, length, 0, hit, hitPoint);
+			if (!hit)
+			{
+				road.state = SUCCEED;
+				found = true;
+				goto outside_loops;
+			}
+			angleIncrement++;
+		}
 		length--;
 	}
 
@@ -59,12 +118,57 @@ outside_loops:
 
 	road.roadAttributes.length = length;
 	road.roadAttributes.angle += vml_radians((float)angleIncrement);
+
+	return true;
+}
+
+//////////////////////////////////////////////////////////////////////////
+DEVICE_CODE bool evaluateWaterBodies(Road<StreetRuleAttributes>& road, const vml_vec2& position, Context* context)
+{
+	// FIXME: checking invariants
+	if (context->waterBodiesMap == 0)
+	{
+		THROW_EXCEPTION("context->waterBodiesMap == 0");
+	}
+
+	unsigned int minLength;
+	getMinLength(road, minLength, context);
+
+	bool found = false;
+	unsigned int length = road.roadAttributes.length;
+
+	vml_vec2 direction = vml_normalize(vml_rotate2D(vml_vec2(0.0f, 1.0f), road.roadAttributes.angle));
+	while (length >= minLength)
+	{
+		bool hit;
+		vml_vec2 hitPoint;
+		CAST_RAY(waterBodiesTexture, position, direction, length, 0, hit, hitPoint);
+		if (!hit)
+		{
+			road.state = SUCCEED;
+			found = true;
+			break;
+		}
+		length--;
+	}
+
+	if (!found)
+	{
+		road.state = FAILED;
+		return false;
+	}
+
+	road.roadAttributes.length = length;
+
 	return true;
 }
 
 //////////////////////////////////////////////////////////////////////////
 template<typename RuleAttributesType>
-DEVICE_CODE bool evaluateBlockades(Road<RuleAttributesType>& road, const vml_vec2& position, Context* context)
+DEVICE_CODE bool evaluateBlockades(Road<RuleAttributesType>& road, const vml_vec2& position, Context* context);
+
+//////////////////////////////////////////////////////////////////////////
+DEVICE_CODE bool evaluateBlockades(Road<HighwayRuleAttributes>& road, const vml_vec2& position, Context* context)
 {
 	// FIXME: checking invariants
 	if (context->blockadesMap == 0)
@@ -72,13 +176,19 @@ DEVICE_CODE bool evaluateBlockades(Road<RuleAttributesType>& road, const vml_vec
 		THROW_EXCEPTION("context->blockadesMap == 0");
 	}
 
-	bool found = false;
-	unsigned int angleIncrement = 0;
-	unsigned int length = road.roadAttributes.length;
+	unsigned int minLength;
+	int halfMaxObstacleDeviationAngle;
 
-	while (length >= context->configuration->minRoadLength)
+	getMinLength(road, minLength, context);
+	getHalfMaxObstacleDeviationAngle(road, halfMaxObstacleDeviationAngle, context);
+
+	bool found = false;
+	unsigned int length = road.roadAttributes.length;
+	int angleIncrement = 0;
+
+	while (length >= minLength)
 	{
-		do
+		while (angleIncrement <= halfMaxObstacleDeviationAngle)
 		{
 			vml_vec2 direction = vml_normalize(vml_rotate2D(vml_vec2(0.0f, 1.0f), road.roadAttributes.angle + vml_radians((float)angleIncrement)));
 
@@ -91,11 +201,30 @@ DEVICE_CODE bool evaluateBlockades(Road<RuleAttributesType>& road, const vml_vec
 				found = true;
 				goto outside_loops;
 			}
-
-			angleIncrement++;;
+			angleIncrement++;
 		}
-		while (angleIncrement <= context->configuration->maxObstacleDeviationAngle);
+		length--;
+	}
 
+	length = road.roadAttributes.length;
+	angleIncrement = -halfMaxObstacleDeviationAngle;
+	while (length >= minLength)
+	{
+		while (angleIncrement < 0)
+		{
+			vml_vec2 direction = vml_normalize(vml_rotate2D(vml_vec2(0.0f, 1.0f), road.roadAttributes.angle + vml_radians((float)angleIncrement)));
+
+			bool hit;
+			vml_vec2 hitPoint;
+			CAST_RAY(blockadesTexture, position, direction, length, 0, hit, hitPoint);
+			if (!hit)
+			{
+				road.state = SUCCEED;
+				found = true;
+				goto outside_loops;
+			}
+			angleIncrement++;
+		}
 		length--;
 	}
 
@@ -109,6 +238,48 @@ outside_loops:
 
 	road.roadAttributes.length = length;
 	road.roadAttributes.angle += vml_radians((float)angleIncrement);
+
+	return true;
+}
+
+//////////////////////////////////////////////////////////////////////////
+DEVICE_CODE bool evaluateBlockades(Road<StreetRuleAttributes>& road, const vml_vec2& position, Context* context)
+{
+	// FIXME: checking invariants
+	if (context->blockadesMap == 0)
+	{
+		THROW_EXCEPTION("context->blockadesMap == 0");
+	}
+
+	unsigned int minLength;
+	getMinLength(road, minLength, context);
+
+	bool found = false;
+	unsigned int length = road.roadAttributes.length;
+
+	vml_vec2 direction = vml_normalize(vml_rotate2D(vml_vec2(0.0f, 1.0f), road.roadAttributes.angle));
+	while (length >= minLength)
+	{
+		bool hit;
+		vml_vec2 hitPoint;
+		CAST_RAY(blockadesTexture, position, direction, length, 0, hit, hitPoint);
+		if (!hit)
+		{
+			road.state = SUCCEED;
+			found = true;
+			break;
+		}
+		length--;
+	}
+
+	if (!found)
+	{
+		road.state = FAILED;
+		return false;
+	}
+
+	road.roadAttributes.length = length;
+
 	return true;
 }
 
@@ -175,9 +346,9 @@ struct EvaluateStreet
 	static DEVICE_CODE void execute(Street& road, Context* context, WorkQueue* backQueues)
 	{
 		// p1, p3 and p6
-		if (road.delay < 0 || road.state == FAILED)
+		if (road.state == FAILED)
 		{
-			return;
+			THROW_EXCEPTION("road.state == FAILED");
 		}
 
 		// p8
@@ -192,12 +363,7 @@ struct EvaluateStreet
 			}
 		}
 
-		if (road.state == FAILED)
-		{
-			backQueues[EVALUATE_STREET].push(road);
-		}
-
-		else if (road.state == SUCCEED)
+		if (road.state == SUCCEED)
 		{
 			backQueues[INSTANTIATE_STREET].push(road);
 		}
@@ -211,9 +377,9 @@ struct EvaluateHighway
 	static DEVICE_CODE void execute(Highway& road, Context* context, WorkQueue* backQueues)
 	{
 		// p1, p3 and p6
-		if (road.delay < 0 || road.state == FAILED)
+		if (road.state == FAILED)
 		{
-			return;
+			THROW_EXCEPTION("road.state == FAILED");
 		}
 
 		// p8
@@ -228,12 +394,7 @@ struct EvaluateHighway
 			}
 		}
 
-		if (road.state == FAILED)
-		{
-			backQueues[EVALUATE_HIGHWAY_BRANCH].push(road);
-		}
-
-		else if (road.state == SUCCEED)
+		if (road.state == SUCCEED)
 		{
 			backQueues[INSTANTIATE_HIGHWAY].push(road);
 		}

@@ -11,8 +11,9 @@ struct Quadrant
 	unsigned int depth;
 	Box2D bounds;
 	int edges;
+	bool hasEdges;
 
-	HOST_AND_DEVICE_CODE Quadrant() : edges(-1) {}
+	HOST_AND_DEVICE_CODE Quadrant() : edges(-1), hasEdges(false) {}
 	HOST_AND_DEVICE_CODE ~Quadrant() {}
 	
 };

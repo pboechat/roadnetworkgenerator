@@ -30,11 +30,15 @@ struct Configuration
 	unsigned int maxHighwayDerivation;
 	unsigned int maxStreetDerivation;
 	unsigned int maxHighwayGoalDeviation; // degrees
+	int halfMaxHighwayGoalDeviation; // degrees
 	unsigned int minSamplingWeight;
 	unsigned int goalDistanceThreshold;
-	int halfMaxHighwayGoalDeviation; // degrees
-	unsigned int maxObstacleDeviationAngle; // degrees
-	unsigned int minRoadLength;
+	unsigned int maxHighwayObstacleDeviationAngle; // degrees
+	int halfMaxHighwayObstacleDeviationAngle; // degrees
+	unsigned int maxStreetObstacleDeviationAngle; // degrees
+	int halfMaxStreetObstacleDeviationAngle; // degrees
+	unsigned int minHighwayLength;
+	unsigned int minStreetLength;
 	unsigned int samplingArc; // degrees
 	int halfSamplingArc; // degrees
 	unsigned int quadtreeDepth;
