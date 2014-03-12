@@ -167,6 +167,10 @@ void loadFromFile(Configuration& configuration, const std::string& filePath)
 #endif
 	configuration.worldWidth = getPropertyAsUnsignedInt(properties, "world_width");
 	configuration.worldHeight = getPropertyAsUnsignedInt(properties, "world_height");
+	configuration.numExpansionKernelBlocks = getPropertyAsUnsignedInt(properties, "num_expansion_kernel_blocks");
+	configuration.numExpansionKernelThreads = getPropertyAsUnsignedInt(properties, "num_expansion_kernel_threads");
+	configuration.numCollisionDetectionKernelBlocksPerQuadrant = getPropertyAsUnsignedInt(properties, "num_collision_detection_kernel_blocks_per_quadrant");
+	configuration.numCollisionDetectionKernelThreads = getPropertyAsUnsignedInt(properties, "num_collision_detection_kernel_threads");
 	configuration.maxVertices = getPropertyAsUnsignedInt(properties, "max_vertices");
 	configuration.maxEdges = getPropertyAsUnsignedInt(properties, "max_edges");
 	configuration.maxQuadrants = getPropertyAsUnsignedInt(properties, "max_quadrants");
@@ -200,6 +204,7 @@ void loadFromFile(Configuration& configuration, const std::string& filePath)
 	configuration.quadtreeColor = getPropertyAsVec4(properties, "quadtree_color");
 	configuration.drawSpawnPointLabels = getPropertyAsBool(properties, "draw_spawn_point_labels");
 	configuration.drawGraphLabels = getPropertyAsBool(properties, "draw_graph_labels");
+	configuration.drawQuadtree = getPropertyAsBool(properties, "draw_quadtree");
 	configuration.labelFontSize = getPropertyAsFloat(properties, "label_font_size");
 	configuration.pointSize = getPropertyAsFloat(properties, "point_size");
 	configuration.maxPrimitives = getPropertyAsUnsignedInt(properties, "max_primitives");

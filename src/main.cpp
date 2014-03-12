@@ -1,6 +1,7 @@
 // memory leak detection
 //#include <vld.h>
 
+#include <GlobalVariables.h>
 #include <RoadNetworkInputController.h>
 #include <SceneRenderer.h>
 #include <RoadNetworkGraphGenerator.h>
@@ -14,6 +15,7 @@
 #include <Box2D.h>
 #include <VectorMath.h>
 #include <ImageUtils.h>
+#include <Log.h>
 
 #ifdef USE_CUDA
 #include <cuda_runtime_api.h>
@@ -43,10 +45,17 @@
 		free(__variable); \
 	}
 
+#define IS_TRUE(__x) strcmp(__x, "true") == 0
+
 //////////////////////////////////////////////////////////////////////////
-void printUsage()
+void printBasicUsage()
 {
-	std::cerr << "Command line options: <width> <height> <configuration file>";
+	Log::logger("default") << "Basic command line options: <width> <height> <configuration file>";
+}
+
+void printAdvancedUsage()
+{
+	Log::logger("default") << "Adv. command line options: <width> <height> <configuration file> <dump statistics> <dump first frame> <dump folder>";
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -99,29 +108,52 @@ void generateAndDisplay(const std::string& configurationFile, SceneRenderer& ren
 int main(int argc, char** argv)
 {
 	int returnValue = -1;
-
 #ifdef USE_CUDA
 	bool cudaInitialized = false;
 #endif
+	unsigned int screenWidth;
+	unsigned int screenHeight;
+	std::string configurationFile;
+
+	Log::addLogger("default", new ConsoleLogger());
+
+	if (argc < 4)
+	{
+		printBasicUsage();
+		goto exit;
+	}
+
+	screenWidth = (unsigned int)atoi(argv[1]);
+	screenHeight = (unsigned int)atoi(argv[2]);
+	configurationFile = argv[3];
+
+	if (configurationFile.empty())
+	{
+		printBasicUsage();
+		goto exit;
+	}
+
+	if (argc > 4 && (g_dumpStatistics = IS_TRUE(argv[4])))
+	{
+		if (argc < 6)
+		{
+			printAdvancedUsage();
+			goto exit;
+		}
+
+		g_dumpFirstFrame = IS_TRUE(argv[5]);
+		g_dumpFolder = argv[6];
+
+		Log::addLogger("statistics", new CSVLogger(g_dumpFolder + "/statistics.csv"));
+		Log::addLogger("error", new FileLogger("error.log"));
+	}
+	else
+	{
+		Log::addLogger("error", new ConsoleLogger());
+	}
 
 	try
 	{
-		if (argc < 4)
-		{
-			printUsage();
-			exit(EXIT_FAILURE);
-		}
-
-		unsigned int screenWidth = (unsigned int)atoi(argv[1]);
-		unsigned int screenHeight = (unsigned int)atoi(argv[2]);
-		std::string configurationFile = argv[3];
-
-		if (configurationFile.empty())
-		{
-			printUsage();
-			exit(EXIT_FAILURE);
-		}
-
 #ifdef USE_CUDA
 		Application application("Road Network Generator (GPU)", screenWidth, screenHeight);
 #else
@@ -149,22 +181,32 @@ int main(int argc, char** argv)
 		application.setRenderer(renderer);
 		application.setInputController(inputController);
 		generateAndDisplay(configurationFile, renderer, geometry, labels, camera);
-		returnValue = application.run();
+
+		if (!g_dumpStatistics || g_dumpFirstFrame)
+		{
+			returnValue = application.run(g_dumpFirstFrame);
+		}
 	}
 
 	catch (std::exception& e)
 	{
-		std::cout << std::endl << "Exception: " << std::endl  << std::endl << e.what() << std::endl << std::endl;
-		// DEBUG:
-		system("pause");
+		Log::logger("error") << Logger::endl << "Exception: " << Logger::endl  << Logger::endl << e.what() << Logger::endl << Logger::endl;
+		if (!g_dumpStatistics)
+		{
+			system("pause");
+		}
 	}
 
 	catch (...)
 	{
-		std::cout << std::endl << "Unknown error" << std::endl << std::endl;
-		// DEBUG:
-		system("pause");
+		Log::logger("error") << Logger::endl << "Unknown error" << Logger::endl << Logger::endl;
+		if (!g_dumpStatistics)
+		{
+			system("pause");
+		}
 	}
+
+exit:
 
 #ifdef USE_CUDA
 	if (cudaInitialized)
@@ -172,6 +214,8 @@ int main(int argc, char** argv)
 		cudaDeviceReset();
 	}
 #endif
+
+	Log::dispose();
 
 	return returnValue;
 }

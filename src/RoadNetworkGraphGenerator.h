@@ -9,6 +9,7 @@
 #include <Configuration.h>
 #include <ImageMap.h>
 #include <RoadNetworkGraphGenerationObserver.h>
+#include <MathExtras.h>
 
 #include <vector>
 
@@ -90,6 +91,11 @@ private:
 	void expand(unsigned int numDerivations, unsigned int startingQueue, unsigned int numQueues);
 	void coalesce();
 	void notifyObservers(Graph* graph, unsigned int numPrimitives, Primitive* primitives);
+
+	inline unsigned int getNumberOfCollisionDetectionKernelBlocks()
+	{
+		return MathExtras::pow(4u, configuration.quadtreeDepth) * configuration.numCollisionDetectionKernelBlocksPerQuadrant;
+	}
 
 };
 

@@ -10,7 +10,6 @@
 #include <Primitive.h>
 #include <BaseGraph.h>
 #include <Graph.h>
-#include <MathExtras.h>
 #include <Box2D.h>
 #include <MinimalCycleBasis.h>
 #include <ConvexHull.h>
@@ -20,12 +19,11 @@
 #include <WorkQueue.cuh>
 #include <Timer.h>
 #include <GlobalVariables.cuh>
+#include <GlobalVariables.h>
+#include <Log.h>
 
 #include <exception>
 #include <memory>
-
-// DEBUG:
-#include <iostream>
 
 #define SAFE_MALLOC_ON_HOST(__variable, __type, __amount) \
 	__variable = 0; \
@@ -44,10 +42,6 @@
 #ifdef USE_CUDA
 #include <cutil.h>
 #include <cutil_timer.h>
-#define NUM_EXPANSION_KERNEL_BLOCKS 12
-#define NUM_EXPANSION_KERNEL_THREADS 256
-#define NUM_COALESCE_KERNEL_BLOCKS_PER_QUADRANT 8
-#define NUM_COALESCE_KERNEL_THREADS 256
 #define SAFE_MALLOC_ON_DEVICE(__variable, __type, __amount) cudaCheckedCall(cudaMalloc((void**)&__variable, sizeof(__type) * __amount))
 #define SAFE_FREE_ON_DEVICE(__variable) cudaCheckedCall(cudaFree(__variable))
 #define MEMCPY_HOST_TO_DEVICE(__destination, __source, __size) cudaCheckedCall(cudaMemcpy(__destination, __source, __size, cudaMemcpyHostToDevice))
@@ -415,9 +409,9 @@ void RoadNetworkGraphGenerator::execute()
 
 	STOP_GPU_TIMER(PrimaryRoadNetworkExpansion);
 
-	float elapsedTime;
-	GET_GPU_TIMER_ELAPSED_TIME(PrimaryRoadNetworkExpansion, elapsedTime);
-	std::cout << "Primary Road Network Expansion: " << elapsedTime << " (ms)" << std::endl;
+	float elapsedTime1;
+	GET_GPU_TIMER_ELAPSED_TIME(PrimaryRoadNetworkExpansion, elapsedTime1);
+	Log::logger("default") << "Primary Road Network Expansion: " << elapsedTime1 << " (ms)" << Logger::endl;
 
 	START_GPU_TIMER(CollisionsComputation);
 
@@ -425,8 +419,9 @@ void RoadNetworkGraphGenerator::execute()
 
 	STOP_GPU_TIMER(CollisionsComputation);
 
-	GET_GPU_TIMER_ELAPSED_TIME(CollisionsComputation, elapsedTime);
-	std::cout << "Collisions Computation: " << elapsedTime << " (ms)" << std::endl;
+	float elapsedTime2;
+	GET_GPU_TIMER_ELAPSED_TIME(CollisionsComputation, elapsedTime2);
+	Log::logger("default") << "Collisions Computation: " << elapsedTime2 << " (ms)" << Logger::endl;
 
 	START_GPU_TIMER(GraphMemoryCopy_GpuToCpu);
 
@@ -465,8 +460,9 @@ void RoadNetworkGraphGenerator::execute()
 
 	STOP_CPU_TIMER(PrimitivesExtraction);
 
-	GET_CPU_TIMER_ELAPSED_TIME(PrimitivesExtraction, elapsedTime);
-	std::cout << "Primitives Extraction: " << elapsedTime << " (ms)" << std::endl;
+	float elapsedTime3;
+	GET_CPU_TIMER_ELAPSED_TIME(PrimitivesExtraction, elapsedTime3);
+	Log::logger("default") << "Primitives Extraction: " << elapsedTime3 << " (ms)" << Logger::endl;
 
 	free(graphCopy);
 	free(verticesCopy);
@@ -572,8 +568,9 @@ void RoadNetworkGraphGenerator::execute()
 
 	STOP_GPU_TIMER(SecondaryRoadNetworkExpansion);
 
-	GET_GPU_TIMER_ELAPSED_TIME(SecondaryRoadNetworkExpansion, elapsedTime);
-	std::cout << "Secondary Road Network Expansion: " << (elapsedTime + 500) << " (ms)" << std::endl;
+	float elapsedTime4;
+	GET_GPU_TIMER_ELAPSED_TIME(SecondaryRoadNetworkExpansion, elapsedTime4);
+	Log::logger("default") << "Secondary Road Network Expansion: " << elapsedTime4 << " (ms)" << Logger::endl;
 
 	START_GPU_TIMER(GraphMemoryCopy_GpuToCpu);
 
@@ -582,11 +579,13 @@ void RoadNetworkGraphGenerator::execute()
 
 	STOP_GPU_TIMER(GraphMemoryCopy_GpuToCpu);
 
-	GET_GPU_TIMER_ELAPSED_TIME(GraphMemoryCopy_GpuToCpu, elapsedTime);
-	std::cout << "Graph Memory Copy (Gpu -> Cpu): " << elapsedTime << " (ms)" << std::endl;
+	float elapsedTime5;
+	GET_GPU_TIMER_ELAPSED_TIME(GraphMemoryCopy_GpuToCpu, elapsedTime5);
+	Log::logger("default") << "Graph Memory Copy (Gpu -> Cpu): " << elapsedTime5 << " (ms)" << Logger::endl;
 
-	GET_CPU_TIMER_ELAPSED_TIME(GraphMemoryCopy_CpuToGpu, elapsedTime);
-	std::cout << "Graph Memory Copy (Cpu -> Gpu): " << elapsedTime << " (ms)" << std::endl;
+	float elapsedTime6;
+	GET_CPU_TIMER_ELAPSED_TIME(GraphMemoryCopy_CpuToGpu, elapsedTime6);
+	Log::logger("default") << "Graph Memory Copy (Cpu -> Gpu): " << elapsedTime6 << " (ms)" << Logger::endl;
 
 #ifdef COLLECT_STATISTICS
 	maxPrimitiveSize = 0;
@@ -595,17 +594,96 @@ void RoadNetworkGraphGenerator::execute()
 		maxPrimitiveSize = MathExtras::max(maxPrimitiveSize, primitives[i].numEdges);
 	}
 
-	std::cout << "vertices (allocated/in use): " << graph->maxVertices << " / " << graph->numVertices << std::endl;
-	std::cout << "edges (allocated/in use): " << graph->maxEdges << " / " << graph->numEdges << std::endl;
-	std::cout << "vertex in connections (max./max. in use): " << MAX_VERTEX_IN_CONNECTIONS << " / " << getMaxVertexInConnectionsInUse(graph) << std::endl;
-	std::cout << "vertex out connections (max./max. in use): " << MAX_VERTEX_OUT_CONNECTIONS << " / " << getMaxVertexOutConnectionsInUse(graph) << std::endl;
-	std::cout << "avg. vertex in connections in use: " << getAverageVertexInConnectionsInUse(graph) << std::endl;
-	std::cout << "avg. vertex out connections in use: " << getAverageVertexOutConnectionsInUse(graph) << std::endl;
-	std::cout << "num. primitives (max./in use): " << configuration.maxPrimitives << " / " << numPrimitives << std::endl;
-	std::cout << "num. primitive edges (max./max. in use): " << MAX_EDGES_PER_PRIMITIVE << " / " << maxPrimitiveSize << std::endl;
-	std::cout << "edges per quadrant (max./max. in use): " << MAX_EDGES_PER_QUADRANT << " / " << quadtree->maxEdgesPerQuadrantInUse << std::endl;
-	std::cout << "memory (allocated/in use): " << toMegabytes(getAllocatedMemory(graph) + getAllocatedMemory(quadtree)) << " mb / " << toMegabytes(getMemoryInUse(graph) + getMemoryInUse(quadtree)) << " mb" << std::endl;
-	std::cout << "num. collision checks: " << graph->numCollisionChecks + quadtree->numCollisionChecks << std::endl;
+	unsigned long numCollisionChecks = graph->numCollisionChecks + quadtree->numCollisionChecks;
+	unsigned int memoryInUse = getMemoryInUse(graph) + getMemoryInUse(quadtree);
+
+	Log::logger("default") << "vertices (allocated/in use): " << graph->maxVertices << " / " << graph->numVertices << Logger::endl;
+	Log::logger("default") << "edges (allocated/in use): " << graph->maxEdges << " / " << graph->numEdges << Logger::endl;
+	Log::logger("default") << "vertex in connections (max./max. in use): " << MAX_VERTEX_IN_CONNECTIONS << " / " << getMaxVertexInConnectionsInUse(graph) << Logger::endl;
+	Log::logger("default") << "vertex out connections (max./max. in use): " << MAX_VERTEX_OUT_CONNECTIONS << " / " << getMaxVertexOutConnectionsInUse(graph) << Logger::endl;
+	Log::logger("default") << "avg. vertex in connections in use: " << getAverageVertexInConnectionsInUse(graph) << Logger::endl;
+	Log::logger("default") << "avg. vertex out connections in use: " << getAverageVertexOutConnectionsInUse(graph) << Logger::endl;
+	Log::logger("default") << "num. primitives (max./in use): " << configuration.maxPrimitives << " / " << numPrimitives << Logger::endl;
+	Log::logger("default") << "num. primitive edges (max./max. in use): " << MAX_EDGES_PER_PRIMITIVE << " / " << maxPrimitiveSize << Logger::endl;
+	Log::logger("default") << "edges per quadrant (max./max. in use): " << MAX_EDGES_PER_QUADRANT << " / " << quadtree->maxEdgesPerQuadrantInUse << Logger::endl;
+	Log::logger("default") << "memory (allocated/in use): " << toMegabytes(getAllocatedMemory(graph) + getAllocatedMemory(quadtree)) << " mb / " << toMegabytes(memoryInUse) << " mb" << Logger::endl;
+	Log::logger("default") << "num. collision checks: " << numCollisionChecks << Logger::endl;
+
+	if (g_dumpStatistics)
+	{
+		if (Log::logger("statistics").firstUse())
+		{
+			// header
+			Log::logger("statistics") << "timestamp" 
+				<< "config_name" 
+				<< "expansion_kernel_blocks" 
+				<< "expansion_kernel_threads" 
+				<< "collision_detection_kernel_blocks" 
+				<< "collision_detection_kernel_threads" 
+				<< "primary_roadnetwork_expansion" 
+				<< "collision_detection" 
+				<< "primitives_extraction" 
+				<< "secondary_roadnetwork_expansion" 
+				<< "memory_copy_gpu_cpu" 
+				<< "memory_copy_cpu_gpu" 
+				<< "num_vertices" 
+				<< "num_edges" 
+				<< "num_collisions" 
+				<< "memory_in_use" 
+				<< Logger::endl;
+		}
+		Log::logger("statistics") << Timer::getTimestamp() 
+			<< configuration.name 
+			<< configuration.numExpansionKernelBlocks 
+			<< configuration.numExpansionKernelThreads 
+			<< getNumberOfCollisionDetectionKernelBlocks() 
+			<< configuration.numCollisionDetectionKernelThreads 
+			<< elapsedTime1 
+			<< elapsedTime2 
+			<< elapsedTime3 
+			<< elapsedTime4 
+			<< elapsedTime5 
+			<< elapsedTime6 
+			<< graph->numVertices 
+			<< graph->numEdges 
+			<< numCollisionChecks 
+			<< memoryInUse 
+			<< Logger::endl;
+	}
+#else
+	if (g_dumpStatistics)
+	{
+		if (Log::logger("statistics").firstUse())
+		{
+			// header
+			Log::logger("statistics") << "timestamp" 
+				<< "config_name" 
+				<< "expansion_kernel_blocks" 
+				<< "expansion_kernel_threads" 
+				<< "collision_detection_kernel_blocks" 
+				<< "collision_detection_kernel_threads" 
+				<< "primary_roadnetwork_expansion" 
+				<< "collision_detection" 
+				<< "primitives_extraction" 
+				<< "secondary_roadnetwork_expansion" 
+				<< "memory_copy_gpu_cpu" 
+				<< "memory_copy_cpu_gpu" 
+				<< Logger::endl;
+		}
+		Log::logger("statistics") << Timer::getTimestamp() 
+			<< configuration.name 
+			<< configuration.numExpansionKernelBlocks 
+			<< configuration.numExpansionKernelThreads 
+			<< getNumberOfCollisionDetectionKernelBlocks() 
+			<< configuration.numCollisionDetectionKernelThreads 
+			<< elapsedTime1 
+			<< elapsedTime2 
+			<< elapsedTime3 
+			<< elapsedTime4 
+			<< elapsedTime5 
+			<< elapsedTime6 
+			<< Logger::endl;
+	}
 #endif
 
 	notifyObservers(graph, numPrimitives, primitives);
@@ -823,7 +901,7 @@ void RoadNetworkGraphGenerator::expand(unsigned int numDerivations, unsigned int
 {
 	initializeCounters<<<1, 1>>>();
 	cudaCheckError();
-	expansionKernel<<<NUM_EXPANSION_KERNEL_BLOCKS, NUM_EXPANSION_KERNEL_THREADS>>>(numDerivations, g_dWorkQueues1, g_dWorkQueues2, startingQueue, numQueues, g_dContext);
+	expansionKernel<<<configuration.numExpansionKernelBlocks, configuration.numExpansionKernelThreads>>>(numDerivations, g_dWorkQueues1, g_dWorkQueues2, startingQueue, numQueues, g_dContext);
 	cudaCheckError();
 }
 
@@ -845,8 +923,7 @@ __global__ void coalescenceKernel(Graph* graph)
 //////////////////////////////////////////////////////////////////////////
 void RoadNetworkGraphGenerator::coalesce()
 {
-	unsigned int numBlocks = MathExtras::pow(4u, configuration.quadtreeDepth) * NUM_COALESCE_KERNEL_BLOCKS_PER_QUADRANT;
-	coalescenceKernel<<<numBlocks, NUM_COALESCE_KERNEL_THREADS>>>(g_dGraph);
+	coalescenceKernel<<<getNumberOfCollisionDetectionKernelBlocks(), configuration.numCollisionDetectionKernelThreads>>>(g_dGraph);
 	cudaCheckError();
 }
 

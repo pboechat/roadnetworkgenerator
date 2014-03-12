@@ -12,6 +12,10 @@
 #include <ImageMap.h>
 #include <Quad.h>
 #include <VectorMath.h>
+#include <Application.h>
+#include <GlobalVariables.h>
+#include <ImageUtils.h>
+#include <Timer.h>
 
 #include <glFont.h>
 #include <GL3/gl3w.h>
@@ -66,6 +70,8 @@ private:
 	ImageMapRenderData waterBodiesMapData;
 	ImageMapRenderData blockadesMapData;
 	bool drawQuadtree;
+	bool dumpedFirstFrame;
+	std::string configurationName;
 
 	void setUpImageMapRenderData(const ImageMap& imageMap, ImageMapRenderData& imageMapData, const vml_vec4& color1, const vml_vec4& color2)
 	{
@@ -109,7 +115,8 @@ public:
 		geometry(geometry),
 		labels(labels),
 		worldSizedQuad(0),
-		drawQuadtree(false)
+		drawQuadtree(false),
+		dumpedFirstFrame(false)
 	{
 		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 		glEnable(GL_PROGRAM_POINT_SIZE);
@@ -130,6 +137,8 @@ public:
 	void readConfigurations(const Configuration& configuration)
 	{
 		glPointSize(configuration.pointSize);
+		drawQuadtree = configuration.drawQuadtree;
+		configurationName = configuration.name;
 	}
 
 	void setUpImageMaps(const Box2D& worldBounds, const ImageMap& populationDensityMap, const ImageMap& waterBodiesMap, const ImageMap& blockadesMap)
@@ -220,6 +229,16 @@ public:
 
 		glDisable(GL_BLEND);
 		glDepthMask(GL_TRUE);
+
+		if (g_dumpFirstFrame || !dumpedFirstFrame)
+		{
+			unsigned int screenWidth = camera.getScreenWidth();
+			unsigned int screenHeight = camera.getScreenHeight();
+			unsigned char* pixels = new unsigned char[screenWidth * screenHeight * 3];
+			glReadPixels(0, 0, screenWidth, screenHeight, GL_RGB, GL_UNSIGNED_BYTE, pixels);
+			ImageUtils::saveImage(g_dumpFolder + "/" + configurationName + "_" + Timer::getTimestamp("_") + ".png", screenWidth, screenHeight, 24, pixels);
+			dumpedFirstFrame = true;
+		}
 	}
 
 	void togglePopulationDensityMap()

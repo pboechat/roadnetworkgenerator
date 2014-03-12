@@ -4,6 +4,7 @@
 #pragma once
 
 #include <FreeImage.h>
+#include <string>
 
 #include <exception>
 
@@ -11,10 +12,10 @@ class ImageUtils
 {
 public:
 	//////////////////////////////////////////////////////////////////////////
-	static void loadImage(const char* filePath, int width, int height, unsigned char* data)
+	static void loadImage(const std::string& filePath, int width, int height, unsigned char* data)
 	{
-		FREE_IMAGE_FORMAT format = FreeImage_GetFileType(filePath, 0);
-		FIBITMAP* bitmap = FreeImage_Load(format, filePath);
+		FREE_IMAGE_FORMAT format = FreeImage_GetFileType(filePath.c_str(), 0);
+		FIBITMAP* bitmap = FreeImage_Load(format, filePath.c_str());
 		FIBITMAP* image = FreeImage_ConvertTo32Bits(bitmap);
 		int imageWidth = FreeImage_GetWidth(image);
 		int imageHeight = FreeImage_GetHeight(image);
@@ -39,6 +40,27 @@ public:
 		}
 
 		FreeImage_Unload(image);
+	}
+
+	//////////////////////////////////////////////////////////////////////////
+	static void saveImage(const std::string& filePath, int width, int height, int bitsPerPixel, unsigned char* data)
+	{
+		FIBITMAP* bitmap = FreeImage_Allocate(width, height, bitsPerPixel);
+
+		int bytesPerPixel = bitsPerPixel >> 3;
+		RGBQUAD color;
+		for (int y = 0, i = 0; y < height; y++) 
+		{
+			for (int x = 0; x < width; x++, i += bytesPerPixel) 
+			{
+				color.rgbRed = data[i];
+				color.rgbGreen = data[i + 1];
+				color.rgbBlue = data[i + 2];
+				FreeImage_SetPixelColor(bitmap, x, y, &color);
+			}
+		}
+
+		FreeImage_Save(FIF_PNG, bitmap , filePath.c_str(), 0);
 	}
 
 };

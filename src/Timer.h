@@ -4,6 +4,8 @@
 #pragma once
 
 #include <Windows.h>
+#include <time.h>
+#include <string>
 
 class Timer
 {
@@ -25,6 +27,14 @@ public:
 
 	~Timer()
 	{
+	}
+
+	static std::string getTimestamp(const std::string& separator = ":") 
+	{
+		time_t t = time(0);
+		char buffer[9] = {0};
+		strftime(buffer, 9, (std::string("%H") + separator + "%M" + separator + "%S").c_str(), localtime(&t));
+		return std::string(buffer);
 	}
 
 	inline double getTime()

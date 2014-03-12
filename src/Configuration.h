@@ -17,6 +17,10 @@ struct Configuration
 #endif
 	unsigned int worldWidth;
 	unsigned int worldHeight;
+	unsigned int numExpansionKernelBlocks;
+	unsigned int numExpansionKernelThreads;
+	unsigned int numCollisionDetectionKernelBlocksPerQuadrant;
+	unsigned int numCollisionDetectionKernelThreads;
 	unsigned int maxVertices;
 	unsigned int maxEdges;
 	unsigned int maxQuadrants;
@@ -56,6 +60,7 @@ struct Configuration
 	vml_vec4 quadtreeColor;
 	bool drawSpawnPointLabels;
 	bool drawGraphLabels;
+	bool drawQuadtree;
 	float labelFontSize;
 	float pointSize;
 	unsigned int numSpawnPoints;

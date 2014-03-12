@@ -103,7 +103,7 @@ public:
 	}
 
 	////////////////////////////////////////////////////////////////////////////////////////////////////
-	int run()
+	int run(bool runFirstFrame = false)
 	{
 		try
 		{
@@ -141,8 +141,6 @@ public:
 
 			else
 			{
-				//appTime.end();
-				//deltaTime = appTime.getElapsedTime();
 				deltaTime = 0.1;
 				safePointerCall(inputController, swapBuffers());
 				safePointerCall(inputController, update(deltaTime));
@@ -153,7 +151,11 @@ public:
 				{
 					safePointerCall(renderer, render(deltaTime));
 					SwapBuffers(deviceContextHandle);
-					//appTime.start();
+
+					if (runFirstFrame)
+					{
+						DestroyWindow(windowHandle);
+					}
 				}
 
 				catch (std::exception& e)
