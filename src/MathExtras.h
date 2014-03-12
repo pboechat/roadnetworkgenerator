@@ -23,7 +23,7 @@ namespace MathExtras
 #define PI 3.14159265358979323846f
 #define HALF_PI 1.57079632679489661923f
 #define PI_AND_HALF 4.71238898038468985769f
-#define COLLISION_EPSILON 0.000001f
+#define COLLISION_EPSILON 0.0001f
 
 inline HOST_AND_DEVICE_CODE bool isZero(float a)
 {
@@ -76,6 +76,18 @@ template<typename T>
 inline HOST_AND_DEVICE_CODE T min(T a, T b)
 {
 	return (a < b) ? a : b;
+}
+
+template<typename T>
+inline HOST_AND_DEVICE_CODE T powerOf2(T i)
+{
+	i--;
+	i |= i >> 1;
+	i |= i >> 2;
+	i |= i >> 4;
+	i |= i >> 8;
+	i |= i >> 16;
+	return ++i;
 }
 
 template<typename T>

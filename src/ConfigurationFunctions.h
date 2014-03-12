@@ -169,11 +169,8 @@ void loadFromFile(Configuration& configuration, const std::string& filePath)
 	configuration.worldHeight = getPropertyAsUnsignedInt(properties, "world_height");
 	configuration.numExpansionKernelBlocks = getPropertyAsUnsignedInt(properties, "num_expansion_kernel_blocks");
 	configuration.numExpansionKernelThreads = getPropertyAsUnsignedInt(properties, "num_expansion_kernel_threads");
-	configuration.numCollisionDetectionKernelBlocksPerQuadrant = getPropertyAsUnsignedInt(properties, "num_collision_detection_kernel_blocks_per_quadrant");
-	configuration.numCollisionDetectionKernelThreads = getPropertyAsUnsignedInt(properties, "num_collision_detection_kernel_threads");
 	configuration.maxVertices = getPropertyAsUnsignedInt(properties, "max_vertices");
 	configuration.maxEdges = getPropertyAsUnsignedInt(properties, "max_edges");
-	configuration.maxQuadrants = getPropertyAsUnsignedInt(properties, "max_quadrants");
 	configuration.highwayLength = getPropertyAsUnsignedInt(properties, "highway_length");
 	configuration.minSamplingRayLength = getPropertyAsUnsignedInt(properties, "max_sampling_ray_length");
 	configuration.maxSamplingRayLength = getPropertyAsUnsignedInt(properties, "max_sampling_ray_length");
@@ -196,6 +193,19 @@ void loadFromFile(Configuration& configuration, const std::string& filePath)
 	configuration.samplingArc = getPropertyAsUnsignedInt(properties, "sampling_arc");
 	configuration.halfSamplingArc = (configuration.samplingArc + 1) / 2;
 	configuration.quadtreeDepth = getPropertyAsUnsignedInt(properties, "quadtree_depth");
+	configuration.totalNumQuadrants = 0;
+	for (unsigned int i = 0; i < configuration.quadtreeDepth; i++)
+	{
+		unsigned int numQuadrantsDepth = MathExtras::pow(4u, i);
+
+		if (i == configuration.quadtreeDepth - 1)
+		{
+			configuration.numLeafQuadrants = numQuadrantsDepth;
+		}
+
+		configuration.totalNumQuadrants += numQuadrantsDepth;
+	}
+	configuration.numCollisionDetectionKernelThreadsPerBlock = MathExtras::powerOf2(MAX_EDGES_PER_QUADRANT);
 	configuration.snapRadius = getPropertyAsFloat(properties, "snap_radius");
 	configuration.cycleColor = getPropertyAsVec4(properties, "cycle_color");
 	configuration.filamentColor = getPropertyAsVec4(properties, "filament_color");

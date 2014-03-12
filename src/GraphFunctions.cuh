@@ -72,27 +72,27 @@ GLOBAL_CODE void updateNonPointerFields(Graph* graph, unsigned int numVertices, 
 __device__ __host__ int createVertex(Graph* graph, const vml_vec2& position)
 {
 	int newVertexIndex;
-#if defined(__CUDA_ARCH__) && (CUDA_CC >= 30)
+#ifdef __CUDA_ARCH__
 	unsigned int mask = __ballot(1);
-	unsigned int numberOfActiveThreads = __popc(mask);
-	int laneId = __popc(lanemask_lt() & mask);
-	int leadingThreadId = __ffs(mask) - 1;
+	unsigned int activeThreads = __popc(mask);
+	int lane = __popc(lanemask_lt() & mask);
+	int leadingThread = __ffs(mask) - 1;
 
 	int oldValue;
-	if (laneId == 0)
+	if (lane == 0)
 	{
-		oldValue = atomicAdd((int*)&graph->numVertices, numberOfActiveThreads);
+		oldValue = atomicAdd((int*)&graph->numVertices, activeThreads);
 
 		// FIXME: checking boundaries
-		if (graph->numVertices > (int)graph->maxVertices)
+		if (graph->numVertices >= (int)graph->maxVertices)
 		{
 			THROW_EXCEPTION1("max. vertices overflow (%d)", graph->numVertices);
 		}
 	}
 
-	oldValue = __shfl(oldValue, leadingThreadId);
+	oldValue = __shfl(oldValue, leadingThread);
 
-	newVertexIndex = oldValue + laneId;
+	newVertexIndex = oldValue + lane;
 #else
 	newVertexIndex = ATOMIC_ADD(graph->numVertices, int, 1);
 
@@ -131,7 +131,7 @@ int createVertex(Graph* graph, const vml_vec2& position)
 }
 #endif
 
-#if defined(USE_CUDA) && (CUDA_CC >= 30)
+#ifdef USE_CUDA
 //////////////////////////////////////////////////////////////////////////
 __device__ int connect(Graph* graph, int sourceVertexIndex, int destinationVertexIndex, bool updateQuadtree = true, char attr1 = 0, char attr2 = 0, char attr3 = 0, char attr4 = 0)
 {
@@ -149,25 +149,25 @@ __device__ int connect(Graph* graph, int sourceVertexIndex, int destinationVerte
 	Vertex& destinationVertex = graph->vertices[destinationVertexIndex];
 
 	unsigned int mask = __ballot(1);
-	unsigned int numberOfActiveThreads = __popc(mask);
-	int laneId = __popc(lanemask_lt() & mask);
-	int leadingThreadId = __ffs(mask) - 1;
+	unsigned int activeThreads = __popc(mask);
+	int lane = __popc(lanemask_lt() & mask);
+	int leadingThread = __ffs(mask) - 1;
 
 	int oldValue;
-	if (laneId == 0)
+	if (lane == 0)
 	{
-		oldValue = atomicAdd((int*)&graph->numEdges, numberOfActiveThreads);
+		oldValue = atomicAdd((int*)&graph->numEdges, activeThreads);
 
 		// FIXME: checking boundaries
-		if (graph->numEdges > (int)graph->maxEdges)
+		if (graph->numEdges >= (int)graph->maxEdges)
 		{
 			THROW_EXCEPTION1("max. edges overflow (%d)", graph->numEdges);
 		}
 	}
 
-	oldValue = __shfl(oldValue, leadingThreadId);
+	oldValue = __shfl(oldValue, leadingThread);
 
-	unsigned int newEdgeIndex = oldValue + laneId;
+	unsigned int newEdgeIndex = oldValue + lane;
 
 	Edge& newEdge = graph->edges[newEdgeIndex];
 
@@ -460,6 +460,7 @@ DEVICE_CODE void addHighway(Graph* graph, int sourceIndex, const vml_vec2& direc
 		// FIXME: checking invariants
 		THROW_EXCEPTION("connect(..) == -1");
 	}
+	//THREADFENCE();
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -542,6 +543,8 @@ DEVICE_CODE bool addStreet(Graph* graph, Primitive* primitives, int sourceIndex,
 		destinationIndex = createVertex(graph, end);
 		connect(graph, sourceIndex, destinationIndex, false);
 	}
+
+	//THREADFENCE();
 
 	return run;
 }

@@ -41,13 +41,15 @@ struct Line2D
 		float uNumerator = vml_dot_perp(q1 - p1, r);
 		float denominator = vml_dot_perp(r, s);
 
-		if (uNumerator == 0 && denominator == 0) {
+		if (uNumerator == 0 && denominator == 0) 
+		{
 			// collinear, so do they overlap?
 			return ((q1.x - p1.x < 0) != (q1.x - p2.x < 0) != (q2.x - p1.x < 0) != (q2.x - p2.x < 0)) || 
 				   ((q1.y - p1.y < 0) != (q1.y - p2.y < 0) != (q2.y - p1.y < 0) != (q2.y - p2.y < 0));
 		}
 
-		if (denominator == 0) {
+		if (denominator == 0) 
+		{
 			// lines are parallel
 			return false;
 		}

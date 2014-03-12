@@ -22,6 +22,9 @@ Release\roadnetworkgenerator.exe 1024 768 ../../../../scenarios/botafogo_bay_pr_
 Release\roadnetworkgenerator.exe 1024 768 ../../../../scenarios/botafogo_bay_pr_7_gpu.config true true ../../../../scenarios/dump
 Release\roadnetworkgenerator.exe 1024 768 ../../../../scenarios/botafogo_bay_pr_8_gpu.config true true ../../../../scenarios/dump
 Release\roadnetworkgenerator.exe 1024 768 ../../../../scenarios/botafogo_bay_pr_9_gpu.config true true ../../../../scenarios/dump
+Release\roadnetworkgenerator.exe 1024 768 ../../../../scenarios/botafogo_bay_pr_10_gpu.config true true ../../../../scenarios/dump
+Release\roadnetworkgenerator.exe 1024 768 ../../../../scenarios/botafogo_bay_pr_11_gpu.config true true ../../../../scenarios/dump
+Release\roadnetworkgenerator.exe 1024 768 ../../../../scenarios/botafogo_bay_pr_12_gpu.config true true ../../../../scenarios/dump
 Release\roadnetworkgenerator.exe 1024 768 ../../../../scenarios/rio_de_janeiro_city_ld_1_gpu.config true true ../../../../scenarios/dump
 Release\roadnetworkgenerator.exe 1024 768 ../../../../scenarios/rio_de_janeiro_city_ld_2_gpu.config true true ../../../../scenarios/dump
 Release\roadnetworkgenerator.exe 1024 768 ../../../../scenarios/rio_de_janeiro_city_ld_3_gpu.config true true ../../../../scenarios/dump
@@ -42,3 +45,6 @@ Release\roadnetworkgenerator.exe 1024 768 ../../../../scenarios/rio_de_janeiro_c
 Release\roadnetworkgenerator.exe 1024 768 ../../../../scenarios/rio_de_janeiro_city_pr_7_gpu.config true true ../../../../scenarios/dump
 Release\roadnetworkgenerator.exe 1024 768 ../../../../scenarios/rio_de_janeiro_city_pr_8_gpu.config true true ../../../../scenarios/dump
 Release\roadnetworkgenerator.exe 1024 768 ../../../../scenarios/rio_de_janeiro_city_pr_9_gpu.config true true ../../../../scenarios/dump
+Release\roadnetworkgenerator.exe 1024 768 ../../../../scenarios/rio_de_janeiro_city_pr_10_gpu.config true true ../../../../scenarios/dump
+Release\roadnetworkgenerator.exe 1024 768 ../../../../scenarios/rio_de_janeiro_city_pr_11_gpu.config true true ../../../../scenarios/dump
+Release\roadnetworkgenerator.exe 1024 768 ../../../../scenarios/rio_de_janeiro_city_pr_12_gpu.config true true ../../../../scenarios/dump

@@ -12,7 +12,6 @@ struct QuadTree
 {
 	Box2D worldBounds;
 	unsigned int maxDepth;
-	unsigned int maxQuadrants;
 	Quadrant* quadrants;
 	QuadrantEdges* quadrantsEdges;
 	unsigned int totalNumQuadrants;

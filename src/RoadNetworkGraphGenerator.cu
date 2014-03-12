@@ -17,6 +17,8 @@
 #include <VectorMath.h>
 #include <Context.cuh>
 #include <WorkQueue.cuh>
+#include <ExpansionKernel.cuh>
+#include <CollisionDetectionKernel.cuh>
 #include <Timer.h>
 #include <GlobalVariables.cuh>
 #include <GlobalVariables.h>
@@ -205,13 +207,6 @@ DEVICE_VARIABLE Primitive* g_dPrimitives;
 		SAFE_FREE_ON_DEVICE(g_d##__name2##MapData); \
 	}
 
-#define swap(__a, __b, __type) \
-	{ \
-		__type* tmp = __a; \
-		__a = __b; \
-		__b = tmp; \
-	}
-
 //////////////////////////////////////////////////////////////////////////
 GLOBAL_CODE void initializeContext(Context* context,
 								   Graph* graph,
@@ -250,9 +245,9 @@ void RoadNetworkGraphGenerator::copyGraphToDevice(Graph* graph)
 	MEMCPY_HOST_TO_DEVICE(g_dQuadrants, graph->quadtree->quadrants, sizeof(Quadrant) * graph->quadtree->totalNumQuadrants);
 	MEMCPY_HOST_TO_DEVICE(g_dQuadrantsEdges, graph->quadtree->quadrantsEdges, sizeof(QuadrantEdges) * graph->quadtree->numLeafQuadrants);
 #ifdef COLLECT_STATISTICS
-	INVOKE_GLOBAL_CODE10(updateNonPointerFields, 1, 1, g_dQuadtree, (int)graph->quadtree->numQuadrantEdges, graph->quadtree->worldBounds, graph->quadtree->maxDepth, graph->quadtree->maxQuadrants, graph->quadtree->totalNumQuadrants, graph->quadtree->numLeafQuadrants, (unsigned long)graph->quadtree->numCollisionChecks, (unsigned int)graph->quadtree->maxEdgesPerQuadrantInUse, (unsigned int)graph->quadtree->maxResultsPerQueryInUse);
+	INVOKE_GLOBAL_CODE9(updateNonPointerFields, 1, 1, g_dQuadtree, (int)graph->quadtree->numQuadrantEdges, graph->quadtree->worldBounds, graph->quadtree->maxDepth, graph->quadtree->totalNumQuadrants, graph->quadtree->numLeafQuadrants, (unsigned long)graph->quadtree->numCollisionChecks, (unsigned int)graph->quadtree->maxEdgesPerQuadrantInUse, (unsigned int)graph->quadtree->maxResultsPerQueryInUse);
 #else
-	INVOKE_GLOBAL_CODE7(updateNonPointerFields, 1, 1, g_dQuadtree, (int)graph->quadtree->numQuadrantEdges, graph->quadtree->worldBounds, graph->quadtree->maxDepth, graph->quadtree->maxQuadrants, graph->quadtree->totalNumQuadrants, graph->quadtree->numLeafQuadrants);
+	INVOKE_GLOBAL_CODE6(updateNonPointerFields, 1, 1, g_dQuadtree, (int)graph->quadtree->numQuadrantEdges, graph->quadtree->worldBounds, graph->quadtree->maxDepth, graph->quadtree->totalNumQuadrants, graph->quadtree->numLeafQuadrants);
 #endif
 	MEMCPY_HOST_TO_DEVICE(g_dVertices, graph->vertices, sizeof(Vertex) * graph->numVertices);
 	MEMCPY_HOST_TO_DEVICE(g_dEdges, graph->edges, sizeof(Edge) * graph->numEdges);
@@ -266,8 +261,8 @@ void RoadNetworkGraphGenerator::copyGraphToDevice(Graph* graph)
 //////////////////////////////////////////////////////////////////////////
 void RoadNetworkGraphGenerator::copyGraphToHost(Graph* graph)
 {
-	MEMCPY_DEVICE_TO_HOST(graph->quadtree->quadrants, g_dQuadrants, sizeof(Quadrant) * configuration.maxQuadrants);
-	MEMCPY_DEVICE_TO_HOST(graph->quadtree->quadrantsEdges, g_dQuadrantsEdges, sizeof(QuadrantEdges) * configuration.maxQuadrants);
+	MEMCPY_DEVICE_TO_HOST(graph->quadtree->quadrants, g_dQuadrants, sizeof(Quadrant) * configuration.totalNumQuadrants);
+	MEMCPY_DEVICE_TO_HOST(graph->quadtree->quadrantsEdges, g_dQuadrantsEdges, sizeof(QuadrantEdges) * configuration.numLeafQuadrants);
 
 	Quadrant* quadrants = graph->quadtree->quadrants;
 	QuadrantEdges* quadrantsEdges = graph->quadtree->quadrantsEdges;
@@ -313,23 +308,23 @@ void RoadNetworkGraphGenerator::execute()
 	QuadrantEdges* quadrantsEdges;
 
 	SAFE_MALLOC_ON_HOST(quadtree, QuadTree, 1);
-	SAFE_MALLOC_ON_HOST(quadrants, Quadrant, configuration.maxQuadrants);
-	SAFE_MALLOC_ON_HOST(quadrantsEdges, QuadrantEdges, configuration.maxQuadrants);
+	SAFE_MALLOC_ON_HOST(quadrants, Quadrant, configuration.totalNumQuadrants);
+	SAFE_MALLOC_ON_HOST(quadrantsEdges, QuadrantEdges, configuration.numLeafQuadrants);
 
-	memset(quadrants, 0, sizeof(Quadrant) * configuration.maxQuadrants);
-	memset(quadrantsEdges, 0, sizeof(QuadrantEdges) * configuration.maxQuadrants);
+	memset(quadrants, 0, sizeof(Quadrant) * configuration.totalNumQuadrants);
+	memset(quadrantsEdges, 0, sizeof(QuadrantEdges) * configuration.numLeafQuadrants);
 
 	SAFE_MALLOC_ON_DEVICE(g_dQuadtree, QuadTree, 1);
-	SAFE_MALLOC_ON_DEVICE(g_dQuadrants, Quadrant, configuration.maxQuadrants);
-	SAFE_MALLOC_ON_DEVICE(g_dQuadrantsEdges, QuadrantEdges, configuration.maxQuadrants);
+	SAFE_MALLOC_ON_DEVICE(g_dQuadrants, Quadrant, configuration.totalNumQuadrants);
+	SAFE_MALLOC_ON_DEVICE(g_dQuadrantsEdges, QuadrantEdges, configuration.numLeafQuadrants);
 
-	MEMSET_ON_DEVICE(g_dQuadrants, 0, sizeof(Quadrant) * configuration.maxQuadrants);
-	MEMSET_ON_DEVICE(g_dQuadrantsEdges, 0, sizeof(QuadrantEdges) * configuration.maxQuadrants);
+	MEMSET_ON_DEVICE(g_dQuadrants, 0, sizeof(Quadrant) * configuration.totalNumQuadrants);
+	MEMSET_ON_DEVICE(g_dQuadrantsEdges, 0, sizeof(QuadrantEdges) * configuration.numLeafQuadrants);
 
 	Box2D worldBounds(0.0f, 0.0f, (float)configuration.worldWidth, (float)configuration.worldHeight);
 
-	initializeQuadtreeOnHost(quadtree, worldBounds, configuration.quadtreeDepth, configuration.maxQuadrants, quadrants, quadrantsEdges);
-	INVOKE_GLOBAL_CODE6(initializeQuadtreeOnDevice, 1, 1, g_dQuadtree, worldBounds, configuration.quadtreeDepth, configuration.maxQuadrants, g_dQuadrants, g_dQuadrantsEdges);
+	initializeQuadtreeOnHost(quadtree, worldBounds, configuration.quadtreeDepth, configuration.totalNumQuadrants, configuration.numLeafQuadrants, quadrants, quadrantsEdges);
+	INVOKE_GLOBAL_CODE7(initializeQuadtreeOnDevice, 1, 1, g_dQuadtree, worldBounds, configuration.quadtreeDepth, configuration.totalNumQuadrants, configuration.numLeafQuadrants, g_dQuadrants, g_dQuadrantsEdges);
 
 	Graph* graph;
 	Vertex* vertices;
@@ -415,7 +410,7 @@ void RoadNetworkGraphGenerator::execute()
 
 	START_GPU_TIMER(CollisionsComputation);
 
-	coalesce();
+	computeCollisions();
 
 	STOP_GPU_TIMER(CollisionsComputation);
 
@@ -636,8 +631,8 @@ void RoadNetworkGraphGenerator::execute()
 			<< configuration.name 
 			<< configuration.numExpansionKernelBlocks 
 			<< configuration.numExpansionKernelThreads 
-			<< getNumberOfCollisionDetectionKernelBlocks() 
-			<< configuration.numCollisionDetectionKernelThreads 
+			<< configuration.numLeafQuadrants 
+			<< configuration.numCollisionDetectionKernelThreadsPerBlock
 			<< elapsedTime1 
 			<< elapsedTime2 
 			<< elapsedTime3 
@@ -674,8 +669,8 @@ void RoadNetworkGraphGenerator::execute()
 			<< configuration.name 
 			<< configuration.numExpansionKernelBlocks 
 			<< configuration.numExpansionKernelThreads 
-			<< getNumberOfCollisionDetectionKernelBlocks() 
-			<< configuration.numCollisionDetectionKernelThreads 
+			<< configuration.numLeafQuadrants 
+			<< configuration.numCollisionDetectionKernelThreadsPerBlock
 			<< elapsedTime1 
 			<< elapsedTime2 
 			<< elapsedTime3 
@@ -729,276 +724,24 @@ void RoadNetworkGraphGenerator::execute()
 	DESTROY_CPU_TIMER(PrimitivesExtraction);
 }
 
-//////////////////////////////////////////////////////////////////////////
-DEVICE_CODE void coalesceEdges(Graph* graph, QuadrantEdges* quadrantEdges)
-{
-	unsigned int i = THREAD_IDX_X;
-	while (i < quadrantEdges->lastEdgeIndex)
-	{
-		Edge& thisEdge = graph->edges[quadrantEdges->edges[i]];
-
-		int j = i - 1;
-		while (j >= 0)
-		{
-			Edge& otherEdge = graph->edges[quadrantEdges->edges[j]];
-
-			bool tryAgain;
-			do
-			{
-				tryAgain = false;
-				vml_vec2 intersection;
-				if (checkIntersection(graph, thisEdge, otherEdge, intersection))
-				{
-					tryAgain = true;
-					if (ATOMIC_EXCH(thisEdge.owner, int, THREAD_IDX_X) == -1)
-					{
-						if (ATOMIC_EXCH(otherEdge.owner, int, THREAD_IDX_X) == -1)
-						{
-							int newVertexIndex = createVertex(graph, intersection);
-							splitEdge(graph, otherEdge, newVertexIndex);
-							splitEdge(graph, thisEdge, newVertexIndex);
-
-							tryAgain = false;
-							ATOMIC_EXCH(otherEdge.owner, int, -1);
-						}
-
-						ATOMIC_EXCH(thisEdge.owner, int, -1);	
-					}
-				}
-#ifdef COLLECT_STATISTICS
-				ATOMIC_ADD(graph->numCollisionChecks, unsigned int, 1);
-#endif
-			} while (tryAgain);
-
-			j--;
-		}
-
-		i += BLOCK_DIM_X;
-	}
-}
-
 #ifdef USE_CUDA
-//////////////////////////////////////////////////////////////////////////
-__device__ volatile unsigned int g_dCounter;
-
-//////////////////////////////////////////////////////////////////////////
-__global__ void initializeCounters()
-{
-	g_dCounter = 0;
-}
-
-//////////////////////////////////////////////////////////////////////////
-__global__ void expansionKernel(unsigned int numDerivations, WorkQueue* workQueues1, WorkQueue* workQueues2, unsigned int startingQueue, unsigned int numQueues, Context* context)
-{
-	__shared__ WorkQueue* frontQueues;
-	__shared__ WorkQueue* backQueues;
-	__shared__ unsigned int reserved;
-	__shared__ unsigned int first;
-	__shared__ unsigned int derivation;
-	__shared__ unsigned int currentQueue;
-	__shared__ unsigned int state;
-
-	if (threadIdx.x == 0)
-	{
-		frontQueues = workQueues1;
-		backQueues = workQueues2;
-		derivation = 0;
-		state = 0;
-		currentQueue = startingQueue + (blockIdx.x % numQueues);
-	}
-
-	__syncthreads();
-
-	while (derivation < numDerivations)
-	{
-		if (state == 0)
-		{
-			if (threadIdx.x == 0)
-			{
-				state = 1;
-				atomicAdd((int*)&g_dCounter, 1);
-			}
-
-			__syncthreads();
-
-			while (state == 1)
-			{
-				if (threadIdx.x == 0)
-				{
-					frontQueues[currentQueue].reservePops(blockDim.x, first, reserved);
-				}
-
-				__syncthreads();
-
-				if (threadIdx.x < reserved)
-				{
-					unsigned int index = first + threadIdx.x;
-					switch (currentQueue)
-					{
-					case EVALUATE_HIGHWAY_BRANCH:
-						{
-							HighwayBranch highwayBranch;
-							frontQueues[EVALUATE_HIGHWAY_BRANCH].popReserved(index, highwayBranch);
-							EvaluateHighwayBranch::execute(highwayBranch, context, backQueues);
-						}
-						break;
-					case EVALUATE_HIGHWAY:
-						{
-							Highway highway;
-							frontQueues[EVALUATE_HIGHWAY].popReserved(index, highway);
-							EvaluateHighway::execute(highway, context, backQueues);
-						}
-						break;
-					case INSTANTIATE_HIGHWAY:
-						{
-							Highway highway;
-							frontQueues[INSTANTIATE_HIGHWAY].popReserved(index, highway);
-							InstantiateHighway::execute(highway, context, backQueues);
-						}
-						break;
-					case EVALUATE_STREET:
-						{
-							Street street;
-							frontQueues[EVALUATE_STREET].popReserved(index, street);
-							EvaluateStreet::execute(street, context, backQueues);
-						}
-						break;
-					case INSTANTIATE_STREET:
-						{
-							Street street;
-							frontQueues[INSTANTIATE_STREET].popReserved(index, street);
-							InstantiateStreet::execute(street, context, backQueues);
-						}
-						break;
-					default:
-						THROW_EXCEPTION("invalid queue index");
-					}
-				}
-
-				if (threadIdx.x == 0 && reserved == 0)
-				{
-					state = 2;
-					atomicSub((int*)&g_dCounter, 1);
-				}
-
-				__syncthreads();
-			}
-		}
-
-		if (threadIdx.x == 0 && g_dCounter == 0)
-		{
-			derivation++;
-			swap(frontQueues, backQueues, WorkQueue);
-			state = 0;
-		}
-
-		__syncthreads();
-	}
-}
-
 //////////////////////////////////////////////////////////////////////////
 void RoadNetworkGraphGenerator::expand(unsigned int numDerivations, unsigned int startingQueue, unsigned int numQueues)
 {
-	initializeCounters<<<1, 1>>>();
+	initializeExpansionKernel<<<1, 1>>>();
 	cudaCheckError();
 	expansionKernel<<<configuration.numExpansionKernelBlocks, configuration.numExpansionKernelThreads>>>(numDerivations, g_dWorkQueues1, g_dWorkQueues2, startingQueue, numQueues, g_dContext);
 	cudaCheckError();
 }
 
 //////////////////////////////////////////////////////////////////////////
-__global__ void coalescenceKernel(Graph* graph)
+void RoadNetworkGraphGenerator::computeCollisions()
 {
-	__shared__ QuadrantEdges* quadrantEdges;
-
-	if (threadIdx.x == 0)
-	{
-		quadrantEdges = &graph->quadtree->quadrantsEdges[blockIdx.x % graph->quadtree->numLeafQuadrants];
-	}
-
-	__syncthreads();
-
-	coalesceEdges(graph, quadrantEdges);
-}
-
-//////////////////////////////////////////////////////////////////////////
-void RoadNetworkGraphGenerator::coalesce()
-{
-	coalescenceKernel<<<getNumberOfCollisionDetectionKernelBlocks(), configuration.numCollisionDetectionKernelThreads>>>(g_dGraph);
+	collisionDetectionKernel<<<configuration.numLeafQuadrants, configuration.numCollisionDetectionKernelThreadsPerBlock>>>(g_dGraph);
 	cudaCheckError();
 }
 
 #else
-//////////////////////////////////////////////////////////////////////////
-void expansionKernel(unsigned int numDerivations, WorkQueue* workQueues1, WorkQueue* workQueues2, unsigned int startingQueue, unsigned int numQueues, Context* context)
-{
-	WorkQueue* frontQueues = workQueues1;
-	WorkQueue* backQueues = workQueues2;
-
-	for (unsigned int i = 0; i < numDerivations; i++)
-	{
-		for (unsigned int j = 0; j < numQueues; j++)
-		{
-			unsigned int currentQueue = startingQueue + j;
-			switch (currentQueue)
-			{
-			case EVALUATE_HIGHWAY_BRANCH:
-				{
-					HighwayBranch highwayBranch;
-					while (frontQueues[EVALUATE_HIGHWAY_BRANCH].count > 0)
-					{
-						frontQueues[EVALUATE_HIGHWAY_BRANCH].unsafePop(highwayBranch);
-						EvaluateHighwayBranch::execute(highwayBranch, context, backQueues);
-					}
-				}
-				break;
-			case EVALUATE_HIGHWAY:
-				{
-					Highway highway;
-					while (frontQueues[EVALUATE_HIGHWAY].count > 0)
-					{
-						frontQueues[EVALUATE_HIGHWAY].unsafePop(highway);
-						EvaluateHighway::execute(highway, context, backQueues);
-					}
-				}
-				break;
-			case INSTANTIATE_HIGHWAY:
-				{
-					Highway highway;
-					while (frontQueues[INSTANTIATE_HIGHWAY].count > 0)
-					{
-						frontQueues[INSTANTIATE_HIGHWAY].unsafePop(highway);
-						InstantiateHighway::execute(highway, context, backQueues);
-					}
-				}
-				break;
-			case EVALUATE_STREET:
-				{
-					Street street;
-					while (frontQueues[EVALUATE_STREET].count > 0)
-					{
-						frontQueues[EVALUATE_STREET].unsafePop(street);
-						EvaluateStreet::execute(street, context, backQueues);
-					}
-				}
-				break;
-			case INSTANTIATE_STREET:
-				{
-					Street street;
-					while (frontQueues[INSTANTIATE_STREET].count > 0)
-					{
-						frontQueues[INSTANTIATE_STREET].unsafePop(street);
-						InstantiateStreet::execute(street, context, backQueues);
-					}
-				}
-				break;
-			default:
-				THROW_EXCEPTION("invalid queue index");
-			}
-		}
-		swap(frontQueues, backQueues, WorkQueue);
-	}
-}
-
 //////////////////////////////////////////////////////////////////////////
 void RoadNetworkGraphGenerator::expand(unsigned int numDerivations, unsigned int startingQueue, unsigned int numQueues)
 {
@@ -1006,19 +749,9 @@ void RoadNetworkGraphGenerator::expand(unsigned int numDerivations, unsigned int
 }
 
 //////////////////////////////////////////////////////////////////////////
-void coalescenceKernel(Graph* graph)
+void RoadNetworkGraphGenerator::computeCollisions()
 {
-	QuadTree* quadtree = graph->quadtree;
-	for (unsigned int i = 0; i < quadtree->numLeafQuadrants; i++)
-	{
-		coalesceEdges(graph, &quadtree->quadrantsEdges[i]);
-	}
-}
-
-//////////////////////////////////////////////////////////////////////////
-void RoadNetworkGraphGenerator::coalesce()
-{
-	coalescenceKernel(g_dGraph);
+	collisionDetectionKernel(g_dGraph);
 }
 
 #endif

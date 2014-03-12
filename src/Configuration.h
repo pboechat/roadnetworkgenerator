@@ -19,11 +19,11 @@ struct Configuration
 	unsigned int worldHeight;
 	unsigned int numExpansionKernelBlocks;
 	unsigned int numExpansionKernelThreads;
-	unsigned int numCollisionDetectionKernelBlocksPerQuadrant;
-	unsigned int numCollisionDetectionKernelThreads;
+	unsigned int numCollisionDetectionKernelThreadsPerBlock;
 	unsigned int maxVertices;
 	unsigned int maxEdges;
-	unsigned int maxQuadrants;
+	unsigned int totalNumQuadrants;
+	unsigned int numLeafQuadrants;
 	unsigned int highwayLength;
 	unsigned int minSamplingRayLength;
 	unsigned int maxSamplingRayLength;

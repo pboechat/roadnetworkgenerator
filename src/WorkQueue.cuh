@@ -37,7 +37,7 @@ struct WorkQueue
 			}
 
 			reserved = reserves + overflow;
-			first = atomicAdd(&head, reserved);
+			first = atomicAdd(&head, (int)reserved);
 		}
 		else
 		{
@@ -76,7 +76,7 @@ struct WorkQueue
 		{
 			atomicAdd((int*)&count, activeThreads);
 			// FIXME: checking boundaries
-			if (count > MAX_NUM_WORKITEMS)
+			if (count >= MAX_NUM_WORKITEMS)
 			{
 				THROW_EXCEPTION1("max. number of work items overflow (%d)", count);
 			}
@@ -105,6 +105,7 @@ struct WorkQueue
 		unsigned int index = tail++ % MAX_NUM_WORKITEMS;
 
 		pack(index, item);
+		//readFlags[index] = true;
 		count++;
 	}
 #endif
@@ -151,7 +152,7 @@ private:
 	template<typename WorkItemType>
 	HOST_AND_DEVICE_CODE void pack(unsigned int index, WorkItemType& item)
 	{
-		unsigned int offset = index * WORK_ITEM_SIZE;
+		unsigned int offset = index * sizeof(WorkItemType);
 		*reinterpret_cast<WorkItemType*>(data + offset) = item;
 	}
 
@@ -159,7 +160,7 @@ private:
 	template<typename WorkItemType>
 	HOST_AND_DEVICE_CODE void unpack(unsigned int index, WorkItemType& item)
 	{
-		unsigned int offset = index * WORK_ITEM_SIZE;
+		unsigned int offset = index * sizeof(WorkItemType);
 		item = *reinterpret_cast<WorkItemType*>(data + offset);
 	}
 
