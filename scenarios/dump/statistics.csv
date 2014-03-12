@@ -1,5 +1,0 @@
-timestamp;config_name;expansion_kernel_blocks;expansion_kernel_threads;collision_detection_kernel_blocks;collision_detection_kernel_threads;primary_roadnetwork_expansion;collision_detection;primitives_extraction;secondary_roadnetwork_expansion;memory_copy_gpu_cpu;memory_copy_cpu_gpu;num_vertices;num_edges;num_collisions;memory_in_use;
-21:17:19;botafogo_bay_ld_1_gpu;12;256;32768;256;11.1145;13.553;1.3965;2.25197;35.5818;72.5762;601;713;110949;114721;
-21:17:20;botafogo_bay_ld_2_gpu;12;256;32768;256;11.2779;13.5286;1.5264;14.1437;37.0581;73.3312;2055;2371;496055;278711;
-21:17:22;botafogo_bay_ld_3_gpu;12;256;32768;256;11.1368;13.5943;1.34967;54.546;37.4133;73.838;5379;6081;2469079;646859;
-21:17:25;botafogo_bay_ld_4_gpu;12;256;32768;256;11.1392;13.5478;1.52159;2191.49;37.8934;70.535;51009;55561;168608188;5578889;
