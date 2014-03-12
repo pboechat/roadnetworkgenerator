@@ -404,9 +404,7 @@ void RoadNetworkGraphGenerator::execute()
 
 	STOP_GPU_TIMER(PrimaryRoadNetworkExpansion);
 
-	float elapsedTime1;
-	GET_GPU_TIMER_ELAPSED_TIME(PrimaryRoadNetworkExpansion, elapsedTime1);
-	Log::logger("default") << "Primary Road Network Expansion: " << elapsedTime1 << " (ms)" << Logger::endl;
+	Log::logger("default") << "Primary Road Network Expansion: " << elapsedTime_PrimaryRoadNetworkExpansion << " (ms)" << Logger::endl;
 
 	START_GPU_TIMER(CollisionsComputation);
 
@@ -414,9 +412,7 @@ void RoadNetworkGraphGenerator::execute()
 
 	STOP_GPU_TIMER(CollisionsComputation);
 
-	float elapsedTime2;
-	GET_GPU_TIMER_ELAPSED_TIME(CollisionsComputation, elapsedTime2);
-	Log::logger("default") << "Collisions Computation: " << elapsedTime2 << " (ms)" << Logger::endl;
+	Log::logger("default") << "Collisions Computation: " << elapsedTime_CollisionsComputation << " (ms)" << Logger::endl;
 
 	START_GPU_TIMER(GraphMemoryCopy_GpuToCpu);
 
@@ -455,9 +451,10 @@ void RoadNetworkGraphGenerator::execute()
 
 	STOP_CPU_TIMER(PrimitivesExtraction);
 
-	float elapsedTime3;
-	GET_CPU_TIMER_ELAPSED_TIME(PrimitivesExtraction, elapsedTime3);
-	Log::logger("default") << "Primitives Extraction: " << elapsedTime3 << " (ms)" << Logger::endl;
+	float elapsedTime_primitivesExtractionTime;
+	GET_CPU_TIMER_ELAPSED_TIME(PrimitivesExtraction, elapsedTime_primitivesExtractionTime);
+
+	Log::logger("default") << "Primitives Extraction: " << elapsedTime_primitivesExtractionTime << " (ms)" << Logger::endl;
 
 	free(graphCopy);
 	free(verticesCopy);
@@ -563,9 +560,7 @@ void RoadNetworkGraphGenerator::execute()
 
 	STOP_GPU_TIMER(SecondaryRoadNetworkExpansion);
 
-	float elapsedTime4;
-	GET_GPU_TIMER_ELAPSED_TIME(SecondaryRoadNetworkExpansion, elapsedTime4);
-	Log::logger("default") << "Secondary Road Network Expansion: " << elapsedTime4 << " (ms)" << Logger::endl;
+	Log::logger("default") << "Secondary Road Network Expansion: " << elapsedTime_SecondaryRoadNetworkExpansion << " (ms)" << Logger::endl;
 
 	START_GPU_TIMER(GraphMemoryCopy_GpuToCpu);
 
@@ -574,13 +569,11 @@ void RoadNetworkGraphGenerator::execute()
 
 	STOP_GPU_TIMER(GraphMemoryCopy_GpuToCpu);
 
-	float elapsedTime5;
-	GET_GPU_TIMER_ELAPSED_TIME(GraphMemoryCopy_GpuToCpu, elapsedTime5);
-	Log::logger("default") << "Graph Memory Copy (Gpu -> Cpu): " << elapsedTime5 << " (ms)" << Logger::endl;
+	Log::logger("default") << "Graph Memory Copy (Gpu -> Cpu): " << elapsedTime_GraphMemoryCopy_GpuToCpu << " (ms)" << Logger::endl;
 
-	float elapsedTime6;
-	GET_CPU_TIMER_ELAPSED_TIME(GraphMemoryCopy_CpuToGpu, elapsedTime6);
-	Log::logger("default") << "Graph Memory Copy (Cpu -> Gpu): " << elapsedTime6 << " (ms)" << Logger::endl;
+	float elapsedTime_GraphMemoryCopy_CpuToGpu;
+	GET_CPU_TIMER_ELAPSED_TIME(GraphMemoryCopy_CpuToGpu, elapsedTime_GraphMemoryCopy_CpuToGpu);
+	Log::logger("default") << "Graph Memory Copy (Cpu -> Gpu): " << elapsedTime_GraphMemoryCopy_CpuToGpu << " (ms)" << Logger::endl;
 
 #ifdef COLLECT_STATISTICS
 	maxPrimitiveSize = 0;
@@ -615,12 +608,12 @@ void RoadNetworkGraphGenerator::execute()
 				<< "expansion_kernel_threads" 
 				<< "collision_detection_kernel_blocks" 
 				<< "collision_detection_kernel_threads" 
-				<< "primary_roadnetwork_expansion" 
-				<< "collision_detection" 
-				<< "primitives_extraction" 
-				<< "secondary_roadnetwork_expansion" 
-				<< "memory_copy_gpu_cpu" 
-				<< "memory_copy_cpu_gpu" 
+				<< "primary_roadnetwork_expansion_time" 
+				<< "collisions_computation_time" 
+				<< "primitives_extraction_time" 
+				<< "secondary_roadnetwork_expansion_time" 
+				<< "memory_copy_gpu_cpu_time" 
+				<< "memory_copy_cpu_gpu_time" 
 				<< "num_vertices" 
 				<< "num_edges" 
 				<< "num_collisions" 
@@ -633,12 +626,12 @@ void RoadNetworkGraphGenerator::execute()
 			<< configuration.numExpansionKernelThreads 
 			<< configuration.numLeafQuadrants 
 			<< configuration.numCollisionDetectionKernelThreadsPerBlock
-			<< elapsedTime1 
-			<< elapsedTime2 
-			<< elapsedTime3 
-			<< elapsedTime4 
-			<< elapsedTime5 
-			<< elapsedTime6 
+			<< elapsedTime_PrimaryRoadNetworkExpansion 
+			<< elapsedTime_CollisionsComputation
+			<< elapsedTime_primitivesExtractionTime
+			<< elapsedTime_SecondaryRoadNetworkExpansion 
+			<< elapsedTime_GraphMemoryCopy_GpuToCpu 
+			<< elapsedTime_GraphMemoryCopy_CpuToGpu 
 			<< graph->numVertices 
 			<< graph->numEdges 
 			<< numCollisionChecks 
@@ -657,12 +650,12 @@ void RoadNetworkGraphGenerator::execute()
 				<< "expansion_kernel_threads" 
 				<< "collision_detection_kernel_blocks" 
 				<< "collision_detection_kernel_threads" 
-				<< "primary_roadnetwork_expansion" 
-				<< "collision_detection" 
-				<< "primitives_extraction" 
-				<< "secondary_roadnetwork_expansion" 
-				<< "memory_copy_gpu_cpu" 
-				<< "memory_copy_cpu_gpu" 
+				<< "primary_roadnetwork_expansion_time" 
+				<< "collisions_computation_time" 
+				<< "primitives_extraction_time" 
+				<< "secondary_roadnetwork_expansion_time" 
+				<< "memory_copy_gpu_cpu_time" 
+				<< "memory_copy_cpu_gpu_time" 
 				<< Logger::endl;
 		}
 		Log::logger("statistics") << Timer::getTimestamp() 
@@ -671,12 +664,12 @@ void RoadNetworkGraphGenerator::execute()
 			<< configuration.numExpansionKernelThreads 
 			<< configuration.numLeafQuadrants 
 			<< configuration.numCollisionDetectionKernelThreadsPerBlock
-			<< elapsedTime1 
-			<< elapsedTime2 
-			<< elapsedTime3 
-			<< elapsedTime4 
-			<< elapsedTime5 
-			<< elapsedTime6 
+			<< elapsedTime_PrimaryRoadNetworkExpansion 
+			<< elapsedTime_CollisionsComputation
+			<< elapsedTime_primitivesExtractionTime
+			<< elapsedTime_SecondaryRoadNetworkExpansion 
+			<< elapsedTime_GraphMemoryCopy_GpuToCpu 
+			<< elapsedTime_GraphMemoryCopy_CpuToGpu 
 			<< Logger::endl;
 	}
 #endif
@@ -728,10 +721,16 @@ void RoadNetworkGraphGenerator::execute()
 //////////////////////////////////////////////////////////////////////////
 void RoadNetworkGraphGenerator::expand(unsigned int numDerivations, unsigned int startingQueue, unsigned int numQueues)
 {
-	initializeExpansionKernel<<<1, 1>>>();
-	cudaCheckError();
-	expansionKernel<<<configuration.numExpansionKernelBlocks, configuration.numExpansionKernelThreads>>>(numDerivations, g_dWorkQueues1, g_dWorkQueues2, startingQueue, numQueues, g_dContext);
-	cudaCheckError();
+	WorkQueue* frontQueues = g_dWorkQueues1;
+	WorkQueue* backQueues = g_dWorkQueues2;
+	for (unsigned int i = 0; i < numDerivations; i++)
+	{
+		expansionKernel<<<configuration.numExpansionKernelBlocks, configuration.numExpansionKernelThreads>>>(frontQueues, backQueues, startingQueue, numQueues, g_dContext);
+		cudaCheckError();
+		WorkQueue* tmp = frontQueues;
+		frontQueues = backQueues;
+		backQueues = tmp;
+	}
 }
 
 //////////////////////////////////////////////////////////////////////////

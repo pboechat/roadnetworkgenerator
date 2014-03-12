@@ -1,10 +1,13 @@
 #ifndef LOG_H
 #define LOG_H
 
+#include <StringUtils.h>
+
 #include <string>
 #include <exception>
 #include <fstream>
 #include <iostream>
+#include <sstream>
 #include <cstdio>
 #include <cstdlib>
 #include <map>
@@ -468,12 +471,23 @@ public:
 
 	virtual void print(float arg0)
 	{
-		file << arg0 << ";";
+		file << useComma(arg0) << ";";
 	}
 
 	virtual void print(double arg0)
 	{
-		file << arg0 << ";";
+		file << useComma(arg0) << ";";
+	}
+
+private:
+	template<typename T>
+	std::string useComma(T arg0)
+	{
+		std::stringstream sstream;
+		sstream << arg0;
+		std::string str = sstream.str();
+		StringUtils::replace(str, ".", ",");
+		return str;
 	}
 
 };
