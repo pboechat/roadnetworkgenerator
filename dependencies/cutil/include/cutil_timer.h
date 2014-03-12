@@ -7,7 +7,7 @@
 	cudaEvent_t startEvent_##x, stopEvent_##x; \
 	cudaCheckedCall(cudaEventCreate(&startEvent_##x)); \
 	cudaCheckedCall(cudaEventCreate(&stopEvent_##x)); \
-	float elapsedTime_##x = 0
+	float elapsedTime_##x = 0.0f
 
 #define startTimer(x) \
 	cudaCheckedCall(cudaEventRecord(startEvent_##x, 0))
