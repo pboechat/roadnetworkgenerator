@@ -1,22 +1,16 @@
 #ifndef PSEUDORANDOMNUMBERS_CUH
 #define PSEUDORANDOMNUMBERS_CUH
 
-#ifdef USE_CUDA
-// *********************************************************************************
-// based on: http://stackoverflow.com/questions/837955/random-number-generator-in-cuda
-// *********************************************************************************
-__device__ int pseudoRandomNumbers(unsigned int x, unsigned int y, unsigned int z, unsigned int w)
-{   
-	x += 36969 * (z & 65535) + (z >> 16);
-	y += 18000 * (w & 65535) + (w >> 16);
+#include <CpuGpuCompatibility.h>
+#include <MathExtras.h>
 
-	return (x << 16) + y;  /* 32-bit result */
+DEVICE_CODE unsigned int getPseudoRandomNumber(unsigned int x, unsigned int y, unsigned int w, unsigned int h, unsigned int* pseudoRandomNumbersBuffer)
+{
+	x = MathExtras::clamp(0u, w, x);
+	y = MathExtras::clamp(0u, h, y);
+	return pseudoRandomNumbersBuffer[y * w + x];
 }
 
-#define RAND(__x, __y) pseudoRandomNumbers(__x, __y, context->configuration->randZ, context->configuration->randW)
-#else
-#include <random>
-#define RAND(__x, __y) rand()
-#endif
+#define RAND(__x, __y) getPseudoRandomNumber(__x, __y, g_dConfiguration.worldWidth, g_dConfiguration.worldHeight, context->pseudoRandomNumbersBuffer)
 
 #endif

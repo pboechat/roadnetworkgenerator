@@ -11,10 +11,6 @@ struct Configuration
 {
 	char name[MAX_CONFIGURATION_STRING_SIZE];
 	int seed;
-#ifdef USE_CUDA
-	unsigned int randZ;
-	unsigned int randW;
-#endif
 	unsigned int worldWidth;
 	unsigned int worldHeight;
 	unsigned int numExpansionKernelBlocks;
@@ -53,22 +49,31 @@ struct Configuration
 	char naturalPatternMapFilePath[MAX_CONFIGURATION_STRING_SIZE];
 	char radialPatternMapFilePath[MAX_CONFIGURATION_STRING_SIZE];
 	char rasterPatternMapFilePath[MAX_CONFIGURATION_STRING_SIZE];
-	vml_vec4 cycleColor;
-	vml_vec4 filamentColor;
-	vml_vec4 isolatedVertexColor;
-	vml_vec4 streetColor;
-	vml_vec4 quadtreeColor;
 	bool drawSpawnPointLabels;
 	bool drawGraphLabels;
 	bool drawQuadtree;
 	float labelFontSize;
 	float pointSize;
-	unsigned int numSpawnPoints;
-	vml_vec2 spawnPoints[MAX_SPAWN_POINTS];
 	unsigned int maxPrimitives;
 	float minBlockArea;
 	unsigned int vertexBufferSize;
 	unsigned int indexBufferSize;
+	//HOST_VARIABLE vml_vec2 spawnPoints[MAX_SPAWN_POINTS];
+	unsigned int numSpawnPoints;
+	float spawnPointsData[MAX_SPAWN_POINTS * 2];
+
+
+	vec4FieldDeclaration(CycleColor, HOST_AND_DEVICE_CODE);
+	vec4FieldDeclaration(FilamentColor, HOST_AND_DEVICE_CODE);
+	vec4FieldDeclaration(IsolatedVertexColor, HOST_AND_DEVICE_CODE);
+	vec4FieldDeclaration(StreetColor, HOST_AND_DEVICE_CODE);
+	vec4FieldDeclaration(QuadtreeColor, HOST_AND_DEVICE_CODE);
+
+	HOST_AND_DEVICE_CODE vml_vec2 getSpawnPoint(unsigned int i) const
+	{
+		unsigned int j = i << 1;
+		return vml_vec2(spawnPointsData[j], spawnPointsData[j + 1]);
+	}
 
 	HOST_AND_DEVICE_CODE Configuration() {}
 	HOST_AND_DEVICE_CODE ~Configuration() {}

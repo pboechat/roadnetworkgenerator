@@ -63,10 +63,11 @@ vml_vec4 getPropertyAsVec4(const std::map<std::string, std::string>& properties,
 	return ParseUtils::parseVec4(getProperty(properties, propertyName));
 }
 
-void getPropertyAsVec2Array(const std::map<std::string, std::string>& properties, const std::string& propertyName, vml_vec2* vec2Array, unsigned int& size, unsigned int maxSize)
+void getPropertyAsVec2Array(const std::map<std::string, std::string>& properties, const std::string& propertyName, float* dataArray, unsigned int& size, unsigned int maxSize)
 {
 	std::string propertyValue = getProperty(properties, propertyName);
 	std::smatch matches;
+	unsigned int i = 0;
 	size = 0;
 
 	while (std::regex_search(propertyValue, matches, std::regex(VEC2_VECTOR_PATTERN)))
@@ -87,7 +88,11 @@ void getPropertyAsVec2Array(const std::map<std::string, std::string>& properties
 		}
 
 		vec2Str = vec2Str.substr(0, pos + 1);
-		vec2Array[size++] = ParseUtils::parseVec2(vec2Str);
+		vml_vec2 value = ParseUtils::parseVec2(vec2Str);
+		dataArray[i] = value.x;
+		dataArray[i + 1] = value.y;
+		i += 2;
+		size++;
 		propertyValue = matches.suffix().str();
 	}
 }
@@ -161,10 +166,6 @@ void loadFromFile(Configuration& configuration, const std::string& filePath)
 	}
 
 	srand(configuration.seed);
-#ifdef USE_CUDA
-	configuration.randZ = rand();
-	configuration.randW = rand();
-#endif
 	configuration.worldWidth = getPropertyAsUnsignedInt(properties, "world_width");
 	configuration.worldHeight = getPropertyAsUnsignedInt(properties, "world_height");
 	configuration.numExpansionKernelBlocks = getPropertyAsUnsignedInt(properties, "num_expansion_kernel_blocks");
@@ -207,11 +208,11 @@ void loadFromFile(Configuration& configuration, const std::string& filePath)
 	}
 	configuration.numCollisionDetectionKernelThreadsPerBlock = MathExtras::powerOf2(MAX_EDGES_PER_QUADRANT);
 	configuration.snapRadius = getPropertyAsFloat(properties, "snap_radius");
-	configuration.cycleColor = getPropertyAsVec4(properties, "cycle_color");
-	configuration.filamentColor = getPropertyAsVec4(properties, "filament_color");
-	configuration.isolatedVertexColor = getPropertyAsVec4(properties, "isolated_vertex_color");
-	configuration.streetColor = getPropertyAsVec4(properties, "street_color");
-	configuration.quadtreeColor = getPropertyAsVec4(properties, "quadtree_color");
+	configuration.setCycleColor(getPropertyAsVec4(properties, "cycle_color"));
+	configuration.setFilamentColor(getPropertyAsVec4(properties, "filament_color"));
+	configuration.setIsolatedVertexColor(getPropertyAsVec4(properties, "isolated_vertex_color"));
+	configuration.setStreetColor(getPropertyAsVec4(properties, "street_color"));
+	configuration.setQuadtreeColor(getPropertyAsVec4(properties, "quadtree_color"));
 	configuration.drawSpawnPointLabels = getPropertyAsBool(properties, "draw_spawn_point_labels");
 	configuration.drawGraphLabels = getPropertyAsBool(properties, "draw_graph_labels");
 	configuration.drawQuadtree = getPropertyAsBool(properties, "draw_quadtree");
@@ -221,7 +222,7 @@ void loadFromFile(Configuration& configuration, const std::string& filePath)
 	configuration.minBlockArea = getPropertyAsFloat(properties, "min_block_area");
 	configuration.vertexBufferSize = getPropertyAsUnsignedInt(properties, "vertex_buffer_size");
 	configuration.indexBufferSize = getPropertyAsUnsignedInt(properties, "index_buffer_size");
-	getPropertyAsVec2Array(properties, "spawn_points", configuration.spawnPoints, configuration.numSpawnPoints, MAX_SPAWN_POINTS);
+	getPropertyAsVec2Array(properties, "spawn_points", configuration.spawnPointsData, configuration.numSpawnPoints, MAX_SPAWN_POINTS);
 	copyProperty(properties, "population_density_map", configuration.populationDensityMapFilePath, MAX_CONFIGURATION_STRING_SIZE);
 	copyProperty(properties, "water_bodies_map", configuration.waterBodiesMapFilePath, MAX_CONFIGURATION_STRING_SIZE);
 	copyProperty(properties, "blockades_map", configuration.blockadesMapFilePath, MAX_CONFIGURATION_STRING_SIZE);

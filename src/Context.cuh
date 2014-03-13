@@ -5,14 +5,12 @@
 
 #include <CpuGpuCompatibility.h>
 #include <Graph.h>
-#include <Configuration.h>
 #include <ImageMap.h>
 #include <Primitive.h>
 
 struct Context
 {
 	Graph* graph;
-	Configuration* configuration;
 	ImageMap* populationDensityMap;
 	ImageMap* waterBodiesMap;
 	ImageMap* blockadesMap;
@@ -20,6 +18,7 @@ struct Context
 	ImageMap* radialPatternMap;
 	ImageMap* rasterPatternMap;
 	Primitive* primitives;
+	unsigned int* pseudoRandomNumbersBuffer;
 
 	HOST_AND_DEVICE_CODE Context() {}
 	HOST_AND_DEVICE_CODE ~Context() {}

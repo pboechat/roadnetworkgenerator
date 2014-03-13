@@ -2,6 +2,7 @@
 #define CUTIL_H
 
 #include <cuda_runtime_api.h>
+#include <curand.h>
 
 #include <string>
 #include <sstream>
@@ -14,6 +15,17 @@ __host__ void checkCudaError(cudaError_t error, const char* file, int line)
 	{
 		std::stringstream stream;
 		stream << cudaGetErrorString(error) << " (@" << file << ":" << line << ")";
+		throw std::exception(stream.str().c_str());
+	}
+}
+
+//////////////////////////////////////////////////////////////////////////
+__host__ void checkCurandError(curandStatus_t status, const char* file, int line)
+{
+	if (status != CURAND_STATUS_SUCCESS) 
+	{
+		std::stringstream stream;
+		stream << "CURAND error code: " << status << " (@" << file << ":" << line << ")";
 		throw std::exception(stream.str().c_str());
 	}
 }
@@ -34,5 +46,6 @@ inline __device__ unsigned int lanemask_lt()
 
 #define cudaCheckedCall(call) checkCudaError(call, __FILE__, __LINE__)
 #define cudaCheckError() checkCudaError(__FILE__, __LINE__)
+#define curandCheckedCall(call) checkCurandError(call, __FILE__, __LINE__)
 
 #endif 

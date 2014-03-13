@@ -121,7 +121,10 @@ public:
 		drawGraphLabels = configuration.drawGraphLabels;
 		labelFontSize = configuration.labelFontSize;
 		spawnPoints.clear();
-		spawnPoints.insert(spawnPoints.end(), configuration.spawnPoints, (configuration.spawnPoints + configuration.numSpawnPoints));
+		for (unsigned int i = 0; i < configuration.numSpawnPoints; i++)
+		{
+			spawnPoints.push_back(configuration.getSpawnPoint(i));
+		}
 	}
 
 	virtual void update(Graph* graph, unsigned int numPrimitives, Primitive* primitives)

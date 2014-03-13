@@ -171,6 +171,8 @@ __device__ int connect(Graph* graph, int sourceVertexIndex, int destinationVerte
 
 	Edge& newEdge = graph->edges[newEdgeIndex];
 
+	newEdge.readFlag = false;
+
 	newEdge.index = newEdgeIndex;
 	newEdge.source = sourceVertexIndex;
 	newEdge.destination = destinationVertexIndex;
@@ -224,6 +226,8 @@ __device__ int connect(Graph* graph, int sourceVertexIndex, int destinationVerte
 	{
 		insert(graph->quadtree, newEdgeIndex, Line2D(sourceVertex.getPosition(), destinationVertex.getPosition()));
 	}
+
+	newEdge.readFlag = true;
 
 	return newEdgeIndex;
 }
@@ -355,6 +359,8 @@ DEVICE_CODE int splitEdge(Graph* graph, Edge& edge, int splitVertexIndex, bool u
 
 	Edge& newEdge = graph->edges[newEdgeIndex];
 
+	newEdge.readFlag = false;
+
 	newEdge.index = newEdgeIndex;
 	newEdge.source = splitVertexIndex;
 	newEdge.destination = oldDestinationVertexIndex;
@@ -392,6 +398,8 @@ DEVICE_CODE int splitEdge(Graph* graph, Edge& edge, int splitVertexIndex, bool u
 	{
 		insert(graph->quadtree, newEdgeIndex, Line2D(splitVertex.getPosition(), oldDestinationVertex.getPosition()));
 	}
+
+	newEdge.readFlag = true;
 
 	return newEdgeIndex;
 }
@@ -478,6 +486,8 @@ DEVICE_CODE bool addStreet(Graph* graph, Primitive* primitives, int sourceIndex,
 	{
 		Edge& boundaryEdge = graph->edges[bounds.edges[i++]];
 
+		while (!boundaryEdge.readFlag);
+
 		bool tryAgain;
 		do
 		{
@@ -488,15 +498,20 @@ DEVICE_CODE bool addStreet(Graph* graph, Primitive* primitives, int sourceIndex,
 				if (checkIntersection(graph, newEdgeLine, boundaryEdge, intersection))
 				{
 					destinationIndex = createVertex(graph, intersection);
-					int newEdgeIndex = splitEdge(graph, boundaryEdge, destinationIndex, false);
+
 					if (connect(graph, sourceIndex, destinationIndex, false) == -1)
 					{
 						// FIXME: checking invariants
 						THROW_EXCEPTION("unexpected situation");
 					}
 
-					// update bounds edges and vertices
+					int newEdgeIndex = splitEdge(graph, boundaryEdge, destinationIndex, false);
+
 					Edge& newEdge = graph->edges[newEdgeIndex];
+
+					newEdge.readFlag = false;
+
+					// update bounds edges and vertices
 					newEdge.numPrimitives = boundaryEdge.numPrimitives;
 					for (unsigned int j = 0; j < boundaryEdge.numPrimitives; j++)
 					{
@@ -525,6 +540,8 @@ DEVICE_CODE bool addStreet(Graph* graph, Primitive* primitives, int sourceIndex,
 						primitive.vertices[lastVertexIndex] = intersection;
 					}
 
+					newEdge.readFlag = true;
+
 					run = false;
 				}
 				
@@ -543,8 +560,6 @@ DEVICE_CODE bool addStreet(Graph* graph, Primitive* primitives, int sourceIndex,
 		destinationIndex = createVertex(graph, end);
 		connect(graph, sourceIndex, destinationIndex, false);
 	}
-
-	//THREADFENCE();
 
 	return run;
 }

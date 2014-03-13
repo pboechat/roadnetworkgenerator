@@ -20,13 +20,13 @@ DEVICE_CODE void getHalfMaxObstacleDeviationAngle(Road<RuleAttributesType>& road
 //////////////////////////////////////////////////////////////////////////
 DEVICE_CODE void getHalfMaxObstacleDeviationAngle(Road<HighwayRuleAttributes>& highway, int& halfMaxObstacleDeviationAngle, Context* context)
 {
-	halfMaxObstacleDeviationAngle = context->configuration->halfMaxHighwayObstacleDeviationAngle;
+	halfMaxObstacleDeviationAngle = g_dConfiguration.halfMaxHighwayObstacleDeviationAngle;
 }
 
 //////////////////////////////////////////////////////////////////////////
 DEVICE_CODE void getHalfMaxObstacleDeviationAngle(Road<StreetRuleAttributes>& street, int& halfMaxObstacleDeviationAngle, Context* context)
 {
-	halfMaxObstacleDeviationAngle = context->configuration->halfMaxStreetObstacleDeviationAngle;
+	halfMaxObstacleDeviationAngle = g_dConfiguration.halfMaxStreetObstacleDeviationAngle;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -36,13 +36,13 @@ DEVICE_CODE void getMinLength(Road<RuleAttributesType>& road, unsigned int& minL
 //////////////////////////////////////////////////////////////////////////
 DEVICE_CODE void getMinLength(Road<HighwayRuleAttributes>& highway, unsigned int& minLength, Context* context)
 {
-	minLength = context->configuration->minHighwayLength;
+	minLength = g_dConfiguration.minHighwayLength;
 }
 
 //////////////////////////////////////////////////////////////////////////
 DEVICE_CODE void getMinLength(Road<StreetRuleAttributes>& street, unsigned int& minLength, Context* context)
 {
-	minLength = context->configuration->minStreetLength;
+	minLength = g_dConfiguration.minStreetLength;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -75,7 +75,7 @@ DEVICE_CODE bool evaluateWaterBodies(Road<HighwayRuleAttributes>& road, const vm
 			vml_vec2 direction = vml_normalize(vml_rotate2D(vml_vec2(0.0f, 1.0f), road.roadAttributes.angle + vml_radians((float)angleIncrement)));
 			bool hit;
 			vml_vec2 hitPoint;
-			CAST_RAY(waterBodiesTexture, position, direction, length, 0, hit, hitPoint);
+			CAST_RAY(g_dWaterBodiesTexture, position, direction, length, 0, hit, hitPoint);
 			if (!hit)
 			{
 				road.state = SUCCEED;
@@ -96,7 +96,7 @@ DEVICE_CODE bool evaluateWaterBodies(Road<HighwayRuleAttributes>& road, const vm
 			vml_vec2 direction = vml_normalize(vml_rotate2D(vml_vec2(0.0f, 1.0f), road.roadAttributes.angle + vml_radians((float)angleIncrement)));
 			bool hit;
 			vml_vec2 hitPoint;
-			CAST_RAY(waterBodiesTexture, position, direction, length, 0, hit, hitPoint);
+			CAST_RAY(g_dWaterBodiesTexture, position, direction, length, 0, hit, hitPoint);
 			if (!hit)
 			{
 				road.state = SUCCEED;
@@ -142,7 +142,7 @@ DEVICE_CODE bool evaluateWaterBodies(Road<StreetRuleAttributes>& road, const vml
 	{
 		bool hit;
 		vml_vec2 hitPoint;
-		CAST_RAY(waterBodiesTexture, position, direction, length, 0, hit, hitPoint);
+		CAST_RAY(g_dWaterBodiesTexture, position, direction, length, 0, hit, hitPoint);
 		if (!hit)
 		{
 			road.state = SUCCEED;
@@ -194,7 +194,7 @@ DEVICE_CODE bool evaluateBlockades(Road<HighwayRuleAttributes>& road, const vml_
 
 			bool hit;
 			vml_vec2 hitPoint;
-			CAST_RAY(blockadesTexture, position, direction, length, 0, hit, hitPoint);
+			CAST_RAY(g_dBlockadesTexture, position, direction, length, 0, hit, hitPoint);
 			if (!hit)
 			{
 				road.state = SUCCEED;
@@ -216,7 +216,7 @@ DEVICE_CODE bool evaluateBlockades(Road<HighwayRuleAttributes>& road, const vml_
 
 			bool hit;
 			vml_vec2 hitPoint;
-			CAST_RAY(blockadesTexture, position, direction, length, 0, hit, hitPoint);
+			CAST_RAY(g_dBlockadesTexture, position, direction, length, 0, hit, hitPoint);
 			if (!hit)
 			{
 				road.state = SUCCEED;
@@ -262,7 +262,7 @@ DEVICE_CODE bool evaluateBlockades(Road<StreetRuleAttributes>& road, const vml_v
 	{
 		bool hit;
 		vml_vec2 hitPoint;
-		CAST_RAY(blockadesTexture, position, direction, length, 0, hit, hitPoint);
+		CAST_RAY(g_dBlockadesTexture, position, direction, length, 0, hit, hitPoint);
 		if (!hit)
 		{
 			road.state = SUCCEED;
@@ -293,20 +293,16 @@ DEVICE_CODE void evaluateLocalContraints(Road<StreetRuleAttributes>& road, Conte
 	vml_vec2 position = context->graph->vertices[road.roadAttributes.source].getPosition();
 
 	// remove roads that cross world boundaries
-	if (position.x < 0 || position.x > (float)context->configuration->worldWidth ||
-		position.y < 0 || position.y > (float)context->configuration->worldHeight)
+	if (position.x < 0 || position.x > (float)g_dConfiguration.worldWidth ||
+		position.y < 0 || position.y > (float)g_dConfiguration.worldHeight)
 	{
 		road.state = FAILED;
 		return;
 	}
 
-	if (!evaluateWaterBodies(road, position, context))
-	{
-		return;
-	}
-
 	if (context->blockadesMap == 0)
 	{
+		road.state = SUCCEED;
 		return;
 	}
 
@@ -319,8 +315,8 @@ DEVICE_CODE void evaluateLocalContraints(Road<HighwayRuleAttributes>& road, Cont
 	vml_vec2 position = context->graph->vertices[road.roadAttributes.source].getPosition();
 
 	// remove roads that cross world boundaries
-	if (position.x < 0 || position.x > (float)context->configuration->worldWidth ||
-		position.y < 0 || position.y > (float)context->configuration->worldHeight)
+	if (position.x < 0 || position.x > (float)g_dConfiguration.worldWidth ||
+		position.y < 0 || position.y > (float)g_dConfiguration.worldHeight)
 	{
 		road.state = FAILED;
 		return;

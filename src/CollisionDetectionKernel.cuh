@@ -15,10 +15,14 @@ DEVICE_CODE void computeCollisionsInQuadrant(Graph* graph, QuadrantEdges* quadra
 	{
 		Edge& thisEdge = graph->edges[quadrantEdges->edges[i]];
 
+		while(!thisEdge.readFlag);
+
 		int j = i - 1;
 		while (j >= 0)
 		{
 			Edge& otherEdge = graph->edges[quadrantEdges->edges[j]];
+
+			while(!otherEdge.readFlag);
 
 			bool tryAgain;
 			do
@@ -35,9 +39,7 @@ DEVICE_CODE void computeCollisionsInQuadrant(Graph* graph, QuadrantEdges* quadra
 							int newVertexIndex = createVertex(graph, intersection);
 							splitEdge(graph, otherEdge, newVertexIndex);
 							splitEdge(graph, thisEdge, newVertexIndex);
-
 							THREADFENCE();
-
 							tryAgain = false;
 							ATOMIC_EXCH(otherEdge.owner, int, -1);
 						}

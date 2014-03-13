@@ -156,11 +156,11 @@ public:
 			built = true;
 		}
 
-		cycleColor = configuration.cycleColor;
-		filamentColor = configuration.filamentColor;
-		isolatedVertexColor = configuration.isolatedVertexColor;
-		streetColor = configuration.streetColor;
-		quadtreeColor = configuration.quadtreeColor;
+		cycleColor = configuration.getCycleColor();
+		filamentColor = configuration.getFilamentColor();
+		isolatedVertexColor = configuration.getIsolatedVertexColor();
+		streetColor = configuration.getStreetColor();
+		quadtreeColor = configuration.getQuadtreeColor();
 	}
 
 	virtual void update(Graph* graph, unsigned int numPrimitives, Primitive* primitives)

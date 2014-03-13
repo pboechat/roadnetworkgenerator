@@ -16,9 +16,10 @@ struct Edge
 	unsigned char attr4;
 	unsigned int primitives[2];
 	unsigned int numPrimitives;
+	volatile bool readFlag;
 	volatile int owner;
 
-	HOST_AND_DEVICE_CODE Edge() : attr1(0), attr2(0), attr3(0), attr4(0), numPrimitives(0), owner(-1) {}
+	HOST_AND_DEVICE_CODE Edge() : attr1(0), attr2(0), attr3(0), attr4(0), numPrimitives(0), owner(-1), readFlag(false) {}
 	HOST_AND_DEVICE_CODE ~Edge() {}
 
 };

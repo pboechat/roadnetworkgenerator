@@ -38,7 +38,7 @@ DEVICE_CODE unsigned int createNewWorkItems(Street& road, int source, const vml_
 {
 	unsigned int newDepth = road.ruleAttributes.branchDepth + 1;
 
-	if (newDepth > context->configuration->maxStreetBranchDepth)
+	if (newDepth > g_dConfiguration.maxStreetBranchDepth)
 	{
 		return NONE;
 	}
@@ -49,7 +49,7 @@ DEVICE_CODE unsigned int createNewWorkItems(Street& road, int source, const vml_
 	{
 		creationMask |= ROAD_CONTINUATION;
 		roadContinuation.roadAttributes.source = source;
-		roadContinuation.roadAttributes.length = context->configuration->streetLength;
+		roadContinuation.roadAttributes.length = g_dConfiguration.streetLength;
 		roadContinuation.roadAttributes.angle = road.roadAttributes.angle;
 		roadContinuation.ruleAttributes.branchDepth = newDepth;
 		roadContinuation.ruleAttributes.boundsIndex = road.ruleAttributes.boundsIndex;
@@ -60,7 +60,7 @@ DEVICE_CODE unsigned int createNewWorkItems(Street& road, int source, const vml_
 	{
 		creationMask |= RIGHT_BRANCH;
 		rightBranch.roadAttributes.source = source;
-		rightBranch.roadAttributes.length = context->configuration->streetLength;
+		rightBranch.roadAttributes.length = g_dConfiguration.streetLength;
 		rightBranch.roadAttributes.angle = road.roadAttributes.angle + HALF_PI;
 		rightBranch.ruleAttributes.branchDepth = newDepth;
 		rightBranch.ruleAttributes.boundsIndex = road.ruleAttributes.boundsIndex;
@@ -71,7 +71,7 @@ DEVICE_CODE unsigned int createNewWorkItems(Street& road, int source, const vml_
 	{
 		creationMask |= LEFT_BRANCH;
 		leftBranch.roadAttributes.source = source;
-		leftBranch.roadAttributes.length = context->configuration->streetLength;
+		leftBranch.roadAttributes.length = g_dConfiguration.streetLength;
 		leftBranch.roadAttributes.angle = road.roadAttributes.angle - HALF_PI;
 		leftBranch.ruleAttributes.branchDepth = newDepth;
 		leftBranch.ruleAttributes.boundsIndex = road.ruleAttributes.boundsIndex;
@@ -86,18 +86,18 @@ DEVICE_CODE unsigned int createNewWorkItems(Highway& road, int source, const vml
 {
 	unsigned int newDepth = road.ruleAttributes.branchDepth + 1;
 
-	if (newDepth > context->configuration->maxHighwayBranchDepth)
+	if (newDepth > g_dConfiguration.maxHighwayBranchDepth)
 	{
 		return NONE;
 	}
 
-	bool branch = (road.ruleAttributes.branchingDistance == context->configuration->highwayBranchingDistance);
+	bool branch = (road.ruleAttributes.branchingDistance == g_dConfiguration.highwayBranchingDistance);
 
 	// highway continuation
 	unsigned int creationMask = ROAD_CONTINUATION;
 
 	roadContinuation.roadAttributes.source = source;
-	roadContinuation.roadAttributes.length = context->configuration->highwayLength;
+	roadContinuation.roadAttributes.length = g_dConfiguration.highwayLength;
 	roadContinuation.ruleAttributes.hasGoal = road.ruleAttributes.hasGoal;
 	roadContinuation.ruleAttributes.branchDepth = newDepth;
 	roadContinuation.ruleAttributes.setGoal(road.ruleAttributes.getGoal());
@@ -109,7 +109,7 @@ DEVICE_CODE unsigned int createNewWorkItems(Highway& road, int source, const vml
 		goalDistance = (unsigned int)vml_distance(position, roadContinuation.ruleAttributes.getGoal());
 	}
 
-	if (!roadContinuation.ruleAttributes.hasGoal || goalDistance <= context->configuration->goalDistanceThreshold)
+	if (!roadContinuation.ruleAttributes.hasGoal || goalDistance <= g_dConfiguration.goalDistanceThreshold)
 	{
 		vml_vec2 goal;
 		if (!findHighestPopulationDensity(position, road.roadAttributes.angle, goal, goalDistance, context))
@@ -159,7 +159,7 @@ DEVICE_CODE unsigned int createNewWorkItems(Highway& road, int source, const vml
 		creationMask |= LEFT_BRANCH;
 		leftBranch.delay = 0;
 		leftBranch.roadAttributes.source = source;
-		leftBranch.roadAttributes.length = context->configuration->highwayLength;
+		leftBranch.roadAttributes.length = g_dConfiguration.highwayLength;
 		leftBranch.roadAttributes.angle = roadContinuation.roadAttributes.angle - HALF_PI;
 		leftBranch.ruleAttributes.branchDepth = 0;
 		leftBranch.ruleAttributes.hasGoal = false;
@@ -168,7 +168,7 @@ DEVICE_CODE unsigned int createNewWorkItems(Highway& road, int source, const vml
 		creationMask |= RIGHT_BRANCH;
 		rightBranch.delay = 0;
 		rightBranch.roadAttributes.source = source;
-		rightBranch.roadAttributes.length = context->configuration->highwayLength;
+		rightBranch.roadAttributes.length = g_dConfiguration.highwayLength;
 		rightBranch.roadAttributes.angle = roadContinuation.roadAttributes.angle + HALF_PI;
 		rightBranch.ruleAttributes.branchDepth = 0;
 		rightBranch.ruleAttributes.hasGoal = false;
@@ -184,21 +184,21 @@ DEVICE_CODE Pattern findUnderlyingPattern(const vml_vec2& position, Context* con
 
 	if (context->naturalPatternMap != 0)
 	{
-		naturalPattern = TEX2D(naturalPatternTexture, (int)position.x, (int)position.y);
+		naturalPattern = TEX2D(g_dNaturalPatternTexture, (int)position.x, (int)position.y);
 	}
 
 	unsigned char radialPattern = 0;
 
 	if (context->radialPatternMap != 0)
 	{
-		radialPattern = TEX2D(radialPatternTexture, (int)position.x, (int)position.y);
+		radialPattern = TEX2D(g_dRadialPatternTexture, (int)position.x, (int)position.y);
 	}
 
 	unsigned char rasterPattern = 0;
 
 	if (context->rasterPatternMap != 0)
 	{
-		rasterPattern = TEX2D(rasterPatternTexture, (int)position.x, (int)position.y);
+		rasterPattern = TEX2D(g_dRasterPatternTexture, (int)position.x, (int)position.y);
 	}
 
 	if (rasterPattern > radialPattern)
@@ -231,17 +231,17 @@ DEVICE_CODE Pattern findUnderlyingPattern(const vml_vec2& position, Context* con
 //////////////////////////////////////////////////////////////////////////
 DEVICE_CODE bool findHighestPopulationDensity(const vml_vec2& start, float startingAngle, vml_vec2& goal, unsigned int& distance, Context* context)
 {
-	int currentAngleStep = -context->configuration->halfSamplingArc;
+	int currentAngleStep = -g_dConfiguration.halfSamplingArc;
 
 	unsigned char populationDensitiesSamplingBuffer[360];
 	unsigned int distancesSamplingBuffer[360];
 
-	for (unsigned int i = 0; i < context->configuration->samplingArc; i++, currentAngleStep++)
+	for (unsigned int i = 0; i < g_dConfiguration.samplingArc; i++, currentAngleStep++)
 	{
 		vml_vec2 direction = vml_normalize(vml_rotate2D(vml_vec2(0.0f, 1.0f), startingAngle + vml_radians((float)currentAngleStep)));
 		unsigned char populationDensity;
 		int distance;
-		SCAN(populationDensityTexture, start, direction, context->configuration->minSamplingRayLength, context->configuration->maxSamplingRayLength, populationDensity, distance);
+		SCAN(g_dPopulationDensityTexture, start, direction, g_dConfiguration.minSamplingRayLength, g_dConfiguration.maxSamplingRayLength, populationDensity, distance);
 		populationDensitiesSamplingBuffer[i] = populationDensity;
 		distancesSamplingBuffer[i] = distance;
 	}
@@ -250,7 +250,7 @@ DEVICE_CODE bool findHighestPopulationDensity(const vml_vec2& start, float start
 	unsigned int j = 0;
 	float angleIncrement = 0.0f;
 
-	for (unsigned int i = 0; i < context->configuration->samplingArc; i++)
+	for (unsigned int i = 0; i < g_dConfiguration.samplingArc; i++)
 	{
 		unsigned int weight = populationDensitiesSamplingBuffer[i] * distancesSamplingBuffer[i];
 
@@ -262,13 +262,13 @@ DEVICE_CODE bool findHighestPopulationDensity(const vml_vec2& start, float start
 		}
 	}
 
-	if (highestWeight < context->configuration->minSamplingWeight)
+	if (highestWeight < g_dConfiguration.minSamplingWeight)
 	{
 		return false;
 	}
 
 	distance = distancesSamplingBuffer[j];
-	goal = start + vml_rotate2D(vml_vec2(0.0f, (float)distance), startingAngle + vml_radians(angleIncrement - (float)context->configuration->halfSamplingArc));
+	goal = start + vml_rotate2D(vml_vec2(0.0f, (float)distance), startingAngle + vml_radians(angleIncrement - (float)g_dConfiguration.halfSamplingArc));
 
 	return true;
 }
@@ -276,18 +276,18 @@ DEVICE_CODE bool findHighestPopulationDensity(const vml_vec2& start, float start
 //////////////////////////////////////////////////////////////////////////
 DEVICE_CODE void applyGoalDeviation(const vml_vec2& position, Highway& highway, Context* context)
 {
-	if (context->configuration->maxHighwayGoalDeviation == 0)
+	if (g_dConfiguration.maxHighwayGoalDeviation == 0)
 	{
 		return;
 	}
 
-	highway.roadAttributes.angle += vml_radians((float)(RAND(position.x, position.y) % context->configuration->halfMaxHighwayGoalDeviation) - (int)context->configuration->maxHighwayGoalDeviation);
+	highway.roadAttributes.angle += vml_radians((float)(RAND(position.x, position.y) % g_dConfiguration.halfMaxHighwayGoalDeviation) - (int)g_dConfiguration.maxHighwayGoalDeviation);
 }
 
 //////////////////////////////////////////////////////////////////////////
 DEVICE_CODE bool applyNaturalPatternRule(const vml_vec2& position, unsigned int goalDistance, Highway& highway, Context* context)
 {
-	highway.roadAttributes.length = MathExtras::min(goalDistance, context->configuration->highwayLength);
+	highway.roadAttributes.length = MathExtras::min(goalDistance, g_dConfiguration.highwayLength);
 	highway.roadAttributes.angle = MathExtras::getAngle(vml_vec2(0.0f, 1.0f), highway.ruleAttributes.getGoal() - position);
 	applyGoalDeviation(position, highway, context);
 	return true;
@@ -306,8 +306,8 @@ DEVICE_CODE bool applyRasterPatternRule(const vml_vec2& position, unsigned int g
 	float angle = MathExtras::getAngle(vml_vec2(1.0f, 0.0f), highway.ruleAttributes.getGoal() - position);
 	unsigned int horizontalDistance = (unsigned int)abs((float)goalDistance * cos(angle));
 	unsigned int verticalDistance = (unsigned int)abs((float)goalDistance * sin(angle));
-	bool canMoveHorizontally = horizontalDistance >= context->configuration->minHighwayLength;
-	bool canMoveVertically = verticalDistance >= context->configuration->minHighwayLength;
+	bool canMoveHorizontally = horizontalDistance >= g_dConfiguration.minHighwayLength;
+	bool canMoveVertically = verticalDistance >= g_dConfiguration.minHighwayLength;
 	bool moveHorizontally;
 
 	if (!canMoveHorizontally && !canMoveVertically)
@@ -330,7 +330,7 @@ DEVICE_CODE bool applyRasterPatternRule(const vml_vec2& position, unsigned int g
 		moveHorizontally = (RAND(position.x, position.y) % 99) < 50;
 	}
 
-	unsigned int length = (RAND(position.x, position.y) % (context->configuration->highwayLength - context->configuration->minHighwayLength)) + context->configuration->minHighwayLength;
+	unsigned int length = (RAND(position.x, position.y) % (g_dConfiguration.highwayLength - g_dConfiguration.minHighwayLength)) + g_dConfiguration.minHighwayLength;
 
 	if (moveHorizontally)
 	{
@@ -364,7 +364,8 @@ struct InstantiateStreet
 		vml_vec2 direction = vml_rotate2D(vml_vec2(0.0f, road.roadAttributes.length), road.roadAttributes.angle);
 		int newSource;
 		vml_vec2 position;
-		if (addStreet(context->graph, context->primitives, road.roadAttributes.source, direction, road.ruleAttributes.boundsIndex, newSource, position))
+		bool run = addStreet(context->graph, context->primitives, road.roadAttributes.source, direction, road.ruleAttributes.boundsIndex, newSource, position);
+		if (run)
 		{
 			Street leftBranch(UNASSIGNED);
 			Street rightBranch(UNASSIGNED);

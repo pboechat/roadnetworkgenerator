@@ -101,6 +101,7 @@ target_link_libraries(
 	${OPENGL_glu_LIBRARY}
 	${CMAKE_SOURCE_DIR}/dependencies/FreeImage/lib/FreeImage.lib
 	${CMAKE_SOURCE_DIR}/dependencies/vld/lib/vld.lib
+	${CUDA_curand_LIBRARY}
 )
 
 set_target_properties(roadnetworkgenerator PROPERTIES DEBUG_POSTFIX d)
