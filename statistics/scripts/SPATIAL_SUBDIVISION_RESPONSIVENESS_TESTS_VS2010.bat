@@ -37,6 +37,6 @@ set ENDTIME=%time%
 
 call ..\..\..\..\statistics\scripts\TIMEDIFF.bat
 
-echo %DURATION% > Elapsed time: %REPORT_FILE% (ms)
+type %DURATION% > Elapsed time: %REPORT_FILE% (ms)
 
 endlocal

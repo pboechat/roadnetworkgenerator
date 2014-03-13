@@ -1,6 +1,8 @@
 #include <FileReader.h>
 #include <StringUtils.h>
 
+#include <sqlite3.h>
+
 #include <cstdio>
 #include <iostream>
 #include <fstream>
@@ -73,43 +75,11 @@ struct Group
 {
 	unsigned int	repetitions;
 	Record*			records;
-	/*std::string		*timestamp;
-	std::string		*config_name;
-	unsigned int	*expansion_kernel_blocks;
-	unsigned int	*expansion_kernel_threads;
-	unsigned int	*collision_detection_kernel_blocks;
-	unsigned int	*collision_detection_kernel_threads;
-	float			*primary_roadnetwork_expansion_time;
-	float			*collisions_computation_time;
-	float			*primitives_extraction_time;
-	float			*secondary_roadnetwork_expansion_time;
-	float			*memory_copy_gpu_cpu_time;
-	float			*memory_copy_cpu_gpu_time;
-	unsigned int	*num_vertices;
-	unsigned int	*num_edges;
-	unsigned long	*num_collisions;
-	unsigned int	*memory_in_use;*/
 
 	void allocate(unsigned int repetitions)
 	{
 		this->repetitions						= repetitions;
 		this->records							= new Record[repetitions];
-		/*timestamp								= new std::string[repetitions];
-		config_name								= new std::string[repetitions];
-		expansion_kernel_blocks					= new unsigned int[repetitions];
-		expansion_kernel_threads				= new unsigned int[repetitions];
-		collision_detection_kernel_blocks		= new unsigned int[repetitions];
-		collision_detection_kernel_threads		= new unsigned int[repetitions];
-		primary_roadnetwork_expansion_time		= new float[repetitions];
-		collisions_computation_time				= new float[repetitions];
-		primitives_extraction_time				= new float[repetitions];
-		secondary_roadnetwork_expansion_time	= new float[repetitions];
-		memory_copy_gpu_cpu_time				= new float[repetitions];
-		memory_copy_cpu_gpu_time				= new float[repetitions];
-		num_vertices							= new unsigned int[repetitions];
-		num_edges								= new unsigned int[repetitions];
-		num_collisions							= new unsigned long[repetitions];
-		memory_in_use							= new unsigned int[repetitions];*/
 	}
 
 	Record average()
@@ -156,23 +126,8 @@ struct Group
 	void deallocate()
 	{
 		delete[] records;
-		/*delete[] timestamp;
-		delete[] config_name;
-		delete[] expansion_kernel_blocks;
-		delete[] expansion_kernel_threads;
-		delete[] collision_detection_kernel_blocks;
-		delete[] collision_detection_kernel_threads;
-		delete[] primary_roadnetwork_expansion_time;
-		delete[] collisions_computation_time;
-		delete[] primitives_extraction_time;
-		delete[] secondary_roadnetwork_expansion_time;
-		delete[] memory_copy_gpu_cpu_time;
-		delete[] memory_copy_cpu_gpu_time;
-		delete[] num_vertices;
-		delete[] num_edges;
-		delete[] num_collisions;
-		delete[] memory_in_use;*/
 	}
+
 };
 
 float toFloat(const std::string& str)
@@ -191,26 +146,146 @@ std::string toString(float flt)
 	return str;
 }
 
+std::string toSQLiteString(const std::string& str)
+{
+	return std::string("'") + str + "'";
+}
+
 #define toInt(x) atoi(x.c_str())
 #define toLong(x) atol(x.c_str())
 
+void checkedSQLiteOpenCall(int result, sqlite3* db)
+{
+	if (result)
+	{
+		sqlite3_close(db);
+		std::stringstream sstream;
+		sstream << "can't open database: " << sqlite3_errmsg(db);
+		throw std::exception(sstream.str().c_str());
+	}
+}
+
+void checkedSQLiteCall(int result, char* errorMsg)
+{
+	if (result != SQLITE_OK)
+	{
+		sqlite3_free(errorMsg);
+	}
+}
+
+int sqliteCallback(void *notUsed, int argc, char **argv, char **azColName)
+{
+	for (int i = 0; i < argc; i++)
+	{
+		printf("%s = %s\n", azColName[i], argv[i] ? argv[i] : "NULL");
+	}
+	printf("\n");
+
+	return 0;
+}
+
+void outputToDatabase(std::string &outputFile, unsigned int numGroups, Group* groups)
+{
+	sqlite3 *db = 0;
+	char* errorMsg;
+
+	checkedSQLiteOpenCall(sqlite3_open(outputFile.c_str(), &db), db);
+
+	for (unsigned int i = 0; i < numGroups; i++)
+	{
+		Record avg = groups[i].average();
+
+		std::stringstream sqlCommand;
+		sqlCommand << "insert into statistics values ("
+			<< toSQLiteString(avg.timestamp)						<< ","
+			<< toSQLiteString(avg.config_name)						<< ","
+			<< avg.expansion_kernel_blocks							<< ","
+			<< avg.expansion_kernel_threads							<< ","
+			<< avg.collision_detection_kernel_blocks				<< ","
+			<< avg.collision_detection_kernel_threads				<< ","
+			<< avg.primary_roadnetwork_expansion_time				<< ","
+			<< avg.collisions_computation_time						<< ","
+			<< avg.primitives_extraction_time						<< ","
+			<< avg.secondary_roadnetwork_expansion_time				<< ","
+			<< avg.memory_copy_gpu_cpu_time							<< ","
+			<< avg.memory_copy_cpu_gpu_time							<< ","
+			<< avg.num_vertices										<< ","
+			<< avg.num_edges										<< ","
+			<< avg.num_collisions									<< ","
+			<< avg.memory_in_use									<< ");";
+
+		sqlite3_exec(db, sqlCommand.str().c_str(), sqliteCallback, 0, &errorMsg);
+	}
+	
+	sqlite3_close(db);
+}
+
+void outputToFile(std::string &outputFile, unsigned int numGroups, Group* groups)
+{
+	std::ofstream out;
+	out.open(outputFile.c_str(), std::ios::out);
+
+	out << "timestamp;" 
+		<< "config_name;" 
+		<< "expansion_kernel_blocks;" 
+		<< "expansion_kernel_threads;" 
+		<< "collision_detection_kernel_blocks;" 
+		<< "collision_detection_kernel_threads;" 
+		<< "primary_roadnetwork_expansion_time;" 
+		<< "collisions_computation_time;" 
+		<< "primitives_extraction_time;" 
+		<< "secondary_roadnetwork_expansion_time;" 
+		<< "memory_copy_gpu_cpu_time;" 
+		<< "memory_copy_cpu_gpu_time;" 
+		<< "num_vertices;" 
+		<< "num_edges;" 
+		<< "num_collisions;" 
+		<< "memory_in_use;" 
+		<< std::endl;
+
+	for (unsigned int i = 0; i < numGroups; i++)
+	{
+		Record avg = groups[i].average();
+		out << avg.timestamp										<< ";"
+			<< avg.config_name										<< ";"
+			<< avg.expansion_kernel_blocks							<< ";"
+			<< avg.expansion_kernel_threads							<< ";"
+			<< avg.collision_detection_kernel_blocks				<< ";"
+			<< avg.collision_detection_kernel_threads				<< ";"
+			<< toString(avg.primary_roadnetwork_expansion_time)		<< ";"
+			<< toString(avg.collisions_computation_time)			<< ";"
+			<< toString(avg.primitives_extraction_time)				<< ";"
+			<< toString(avg.secondary_roadnetwork_expansion_time)	<< ";"
+			<< toString(avg.memory_copy_gpu_cpu_time)				<< ";"
+			<< toString(avg.memory_copy_cpu_gpu_time)				<< ";"
+			<< avg.num_vertices										<< ";"
+			<< avg.num_edges										<< ";"
+			<< avg.num_collisions									<< ";"
+			<< avg.memory_in_use									<< ";"
+			<< std::endl;
+	}
+
+	out.close();
+}
+
 int main(int argc, char** argv)
 {
-	if (argc < 4)
+	if (argc < 5)
 	{
-		std::cout << "command line options: <input file> <repetitions> <output file>" << std::endl;
+		std::cout << "command line options: <input file> <repetitions> <file=0/database=1> <output file>" << std::endl;
 		exit(-1);
 	}
 
+	std::string inputFile = argv[1];
+	unsigned int repetitions = atoi(argv[2]);
+	unsigned int database = atoi(argv[3]) == 1;
+	std::string outputFile = argv[4];
+
 	try
 	{
-		std::string content = FileReader::read(argv[1]);
+		std::string content = FileReader::read(inputFile);
 		std::vector<std::string> records;
 		StringUtils::tokenize(content, "\n", records);
-
-		unsigned int repetitions = atoi(argv[2]);
-
-		std::string outputFile = argv[3];
 
 		unsigned int numRecords = records.size() - 1;
 
@@ -231,8 +306,8 @@ int main(int argc, char** argv)
 				std::string record = records[j++];
 				std::vector<std::string> fields;
 				StringUtils::tokenize(record, ";", fields);
-				group.records[k].timestamp =							fields[ftimestamp								];
-				group.records[k].config_name =							fields[fconfig_name								];
+				group.records[k].timestamp =							fields[ftimestamp											];
+				group.records[k].config_name =							fields[fconfig_name											];
 				group.records[k].expansion_kernel_blocks =				toInt(		fields[fexpansion_kernel_blocks					]);
 				group.records[k].expansion_kernel_threads =				toInt(		fields[fexpansion_kernel_threads				]);
 				group.records[k].collision_detection_kernel_blocks =	toInt(		fields[fcollision_detection_kernel_blocks		]);
@@ -252,50 +327,14 @@ int main(int argc, char** argv)
 
 		//////////////////////////////////////////////////////////////////////////
 
-		std::ofstream out;
-		out.open(outputFile.c_str(), std::ios::out);
-
-		out << "timestamp;" 
-			<< "config_name;" 
-			<< "expansion_kernel_blocks;" 
-			<< "expansion_kernel_threads;" 
-			<< "collision_detection_kernel_blocks;" 
-			<< "collision_detection_kernel_threads;" 
-			<< "primary_roadnetwork_expansion_time;" 
-			<< "collisions_computation_time;" 
-			<< "primitives_extraction_time;" 
-			<< "secondary_roadnetwork_expansion_time;" 
-			<< "memory_copy_gpu_cpu_time;" 
-			<< "memory_copy_cpu_gpu_time;" 
-			<< "num_vertices;" 
-			<< "num_edges;" 
-			<< "num_collisions;" 
-			<< "memory_in_use;" 
-			<< std::endl;
-
-		for (unsigned int i = 0; i < numGroups; i++)
+		if (database)
 		{
-			Record avg = groups[i].average();
-			out << avg.timestamp										<< ";"
-				<< avg.config_name										<< ";"
-				<< avg.expansion_kernel_blocks							<< ";"
-				<< avg.expansion_kernel_threads							<< ";"
-				<< avg.collision_detection_kernel_blocks				<< ";"
-				<< avg.collision_detection_kernel_threads				<< ";"
-				<< toString(avg.primary_roadnetwork_expansion_time)		<< ";"
-				<< toString(avg.collisions_computation_time)			<< ";"
-				<< toString(avg.primitives_extraction_time)				<< ";"
-				<< toString(avg.secondary_roadnetwork_expansion_time)	<< ";"
-				<< toString(avg.memory_copy_gpu_cpu_time)				<< ";"
-				<< toString(avg.memory_copy_cpu_gpu_time)				<< ";"
-				<< avg.num_vertices										<< ";"
-				<< avg.num_edges										<< ";"
-				<< avg.num_collisions									<< ";"
-				<< avg.memory_in_use									<< ";"
-				<< std::endl;
+			outputToDatabase(outputFile, numGroups, groups);
 		}
-
-		out.close();
+		else
+		{
+			outputToFile(outputFile, numGroups, groups);
+		}
 
 		//////////////////////////////////////////////////////////////////////////
 
@@ -304,13 +343,14 @@ int main(int argc, char** argv)
 			groups[i].deallocate();
 		}
 
-		return 0;
+		std::cout << "success...";
 	} 
 	catch (std::exception& e)
 	{
 		std::cerr << "error: " << e.what() << std::endl;
-		system("pause");
 	}
+
+	system("pause");
 
 	return -1;
 }

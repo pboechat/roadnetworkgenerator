@@ -8,7 +8,7 @@ call ..\..\..\..\statistics\scripts\SETENV.bat
 
 mkdir %RUNS_DIR%
 
-set REPETITIONS=10
+set REPETITIONS=2
 
 set STARTTIME=%time%
 
@@ -36,6 +36,6 @@ set ENDTIME=%time%
 
 call ..\..\..\..\statistics\scripts\TIMEDIFF.bat
 
-echo %DURATION% > Elapsed time: %REPORT_FILE% (ms)
+type %DURATION% > Elapsed time: %REPORT_FILE% (ms)
 
 endlocal
