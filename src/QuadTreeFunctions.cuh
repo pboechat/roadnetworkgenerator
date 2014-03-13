@@ -55,7 +55,7 @@ HOST_AND_DEVICE_CODE void initializeQuadtreeOnHost(QuadTree* quadtree, Box2D wor
 		quadrant.bounds = quadrantBounds;
 		quadrant.hasEdges = false;
 
-		if (depth == quadtree->maxDepth - 1) // leaf
+		if (depth == quadtree->maxDepth) // leaf
 		{
 			quadrant.edges = ATOMIC_ADD(quadtree->numQuadrantEdges, int, 1);
 
@@ -128,7 +128,7 @@ GLOBAL_CODE void initializeQuadtreeOnDevice(QuadTree* quadtree, Box2D worldBound
 		quadrant.bounds = quadrantBounds;
 		quadrant.hasEdges = false;
 
-		if (depth == (quadtree->maxDepth - 1)) // leaf
+		if (depth == quadtree->maxDepth) // leaf
 		{
 			quadrant.edges = ATOMIC_ADD(quadtree->numQuadrantEdges, int, 1);
 
@@ -201,7 +201,7 @@ DEVICE_CODE void insert(QuadTree* quadtree, int edgeIndex, const Line2D& edgeLin
 		{
 			quadrant.hasEdges = true;
 
-			if (quadrant.depth == quadtree->maxDepth - 1)
+			if (quadrant.depth == quadtree->maxDepth)
 			{
 				// FIXME: checking invariants
 				if (quadrant.edges == -1)
@@ -261,7 +261,7 @@ DEVICE_CODE void insert(QuadTree* quadtree, int edgeIndex, const Line2D& edgeLin
 
 		if (quadrant.bounds.isIntersected(edgeLine))
 		{
-			if (quadrant.depth == quadtree->maxDepth - 1)
+			if (quadrant.depth == quadtree->maxDepth)
 			{
 				// FIXME: checking invariants
 				if (quadrant.edges == -1)
@@ -355,7 +355,7 @@ DEVICE_CODE void query(QuadTree* quadtree, const Line2D& edgeLine, QueryResults&
 
 		if (quadrant->bounds.isIntersected(edgeLine))
 		{
-			if (quadrant->depth == quadtree->maxDepth - 1)
+			if (quadrant->depth == quadtree->maxDepth)
 			{
 				// FIXME: checking invariants
 				if (quadrant->edges == -1)

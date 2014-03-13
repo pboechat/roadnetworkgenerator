@@ -58,10 +58,8 @@ struct Configuration
 	float minBlockArea;
 	unsigned int vertexBufferSize;
 	unsigned int indexBufferSize;
-	//HOST_VARIABLE vml_vec2 spawnPoints[MAX_SPAWN_POINTS];
 	unsigned int numSpawnPoints;
 	float spawnPointsData[MAX_SPAWN_POINTS * 2];
-
 
 	vec4FieldDeclaration(CycleColor, HOST_AND_DEVICE_CODE);
 	vec4FieldDeclaration(FilamentColor, HOST_AND_DEVICE_CODE);

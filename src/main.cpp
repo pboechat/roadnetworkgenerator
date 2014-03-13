@@ -50,12 +50,12 @@
 //////////////////////////////////////////////////////////////////////////
 void printBasicUsage()
 {
-	Log::logger("default") << "Basic command line options: <width> <height> <configuration file>";
+	Log::logger("default") << "basic command line options: <width> <height> <configuration file>";
 }
 
 void printAdvancedUsage()
 {
-	Log::logger("default") << "Adv. command line options: <width> <height> <configuration file> <dump statistics> <dump first frame> <dump folder>";
+	Log::logger("default") << "adv. command line options: <width> <height> <configuration file> <dump statistics> <dump first frame> <dump folder>";
 }
 
 //////////////////////////////////////////////////////////////////////////

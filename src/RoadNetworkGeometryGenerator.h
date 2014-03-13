@@ -243,15 +243,15 @@ public:
 			vml_vec2 min = quadrant.bounds.getMin();
 			vml_vec2 max = quadrant.bounds.getMax();
 
-			vertices[lastVerticesIndex] =	  vml_vec4(max.x, max.y, 0.1f, 1.0f);
+			vertices[lastVerticesIndex]		= vml_vec4(max.x, max.y, 0.1f, 1.0f);
 			vertices[lastVerticesIndex + 1] = vml_vec4(min.x, max.y, 0.1f, 1.0f);
 			vertices[lastVerticesIndex + 2] = vml_vec4(min.x, min.y, 0.1f, 1.0f);
 			vertices[lastVerticesIndex + 3] = vml_vec4(max.x, min.y, 0.1f, 1.0f);
 
-			colors[lastVerticesIndex] =		vml_vec4(0.0f, 1.0f, 0.0f, 1.0f);
-			colors[lastVerticesIndex + 1] = vml_vec4(0.0f, 1.0f, 0.0f, 1.0f);
-			colors[lastVerticesIndex + 2] = vml_vec4(0.0f, 1.0f, 0.0f, 1.0f);
-			colors[lastVerticesIndex + 3] = vml_vec4(0.0f, 1.0f, 0.0f, 1.0f);
+			colors[lastVerticesIndex]		= vml_vec4(0.0f, 1.0f, 0.0f, 1.0f);
+			colors[lastVerticesIndex + 1]	= vml_vec4(0.0f, 1.0f, 0.0f, 1.0f);
+			colors[lastVerticesIndex + 2]	= vml_vec4(0.0f, 1.0f, 0.0f, 1.0f);
+			colors[lastVerticesIndex + 3]	= vml_vec4(0.0f, 1.0f, 0.0f, 1.0f);
 
 			// FIXME: checking boundaries
 			if (lastElementIndex + 8 >= indexBufferSize)
@@ -259,7 +259,7 @@ public:
 				throw std::exception("max. number of indices in index buffer overflow");
 			}
 
-			indices[lastElementIndex] = lastVerticesIndex;
+			indices[lastElementIndex]	  = lastVerticesIndex;
 			indices[lastElementIndex + 1] = lastVerticesIndex + 1;
 			indices[lastElementIndex + 2] = lastVerticesIndex + 1;
 			indices[lastElementIndex + 3] = lastVerticesIndex + 2;
