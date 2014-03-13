@@ -1,4 +1,5 @@
 @echo off
 
-del dump\*.png
-del dump\*.csv
+rmdir /S /Q ..\runs
+mkdir ..\runs
+type nul > ..\runs\dummy.txt
