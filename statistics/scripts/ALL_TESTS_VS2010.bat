@@ -8,7 +8,7 @@ call ..\..\..\..\statistics\scripts\SETENV.bat
 
 mkdir %RUNS_DIR%
 
-set REPETITIONS=100
+set REPETITIONS=5
 
 set STARTTIME=%time%
 

@@ -343,7 +343,7 @@ int main(int argc, char** argv)
 			groups[i].deallocate();
 		}
 
-		std::cout << "success...";
+		std::cout << "success..." << std::endl;
 	} 
 	catch (std::exception& e)
 	{

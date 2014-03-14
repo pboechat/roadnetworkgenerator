@@ -1,0 +1,35 @@
+-- WORK LOAD
+
+select num_edges as 'number of edges', primary_roadnetwork_expansion_time + collisions_computation_time + primitives_extraction_time + secondary_roadnetwork_expansion_time as 'millis.' from statistics where config_name like '%ld%' order by num_edges;
+select num_edges as 'number of edges', (primary_roadnetwork_expansion_time + collisions_computation_time + primitives_extraction_time + secondary_roadnetwork_expansion_time) / num_edges as 'millis. per edge' from statistics where config_name like '%ld%' order by num_edges;
+select num_edges as 'number of edges', primary_roadnetwork_expansion_time as 'primary roadnetwork extension time (ms)' from statistics where config_name like '%ld%' order by num_edges;
+select num_edges as 'number of edges', collisions_computation_time as 'collisions computation time (ms)' from statistics where config_name like '%ld%' order by num_edges;
+select num_edges as 'number of edges', primitives_extraction_time as 'primitives extraction time (ms)' from statistics where config_name like '%ld%' order by num_edges;
+select num_edges as 'number of edges', secondary_roadnetwork_expansion_time as 'secondary roadnetwork expansion time (ms)' from statistics where config_name like '%ld%' order by num_edges;
+select num_edges as 'number of edges', round(cast(memory_in_use as float) / 1048576.0, 3) as 'memory in use (mb)' from statistics where config_name like '%ld%' order by num_edges;
+
+-- SPATIAL SUBDIVITIONS
+
+select quadtree_depth as 'quadtree depth', avg(f2) as 'millis.' from (
+	select cast(substr(config_name, 17, 1) as int) as quadtree_depth, primary_roadnetwork_expansion_time + collisions_computation_time + primitives_extraction_time + secondary_roadnetwork_expansion_time as f2 from statistics where config_name like 'botafogo_bay_sd%'
+	union
+	select cast(substr(config_name, 24, 1) as int) as quadtree_depth, primary_roadnetwork_expansion_time + collisions_computation_time + primitives_extraction_time + secondary_roadnetwork_expansion_time as f2 from statistics where config_name like 'rio_de_janeiro_city_sd%'
+) group by 1;
+
+-- scenario specific analysis
+select cast(substr(config_name, 17, 1) as int) as 'quadtree depth', (primary_roadnetwork_expansion_time + collisions_computation_time + primitives_extraction_time + secondary_roadnetwork_expansion_time) / num_edges as 'millis. per edge' from statistics where config_name like 'botafogo_bay_sd%';
+select cast(substr(config_name, 17, 1) as int) as 'quadtree depth', num_collisions as 'no. of collision checks' from statistics where config_name like 'botafogo_bay_sd%';
+select cast(substr(config_name, 17, 1) as int) as 'quadtree depth', collisions_computation_time as 'collisions computation time (ms)' from statistics where config_name like 'botafogo_bay_sd%';
+select cast(substr(config_name, 17, 1) as int) as 'quadtree depth', secondary_roadnetwork_expansion_time as 'secondary roadnetwork expansion time (ms)' from statistics where config_name like 'botafogo_bay_sd%';
+
+select cast(substr(config_name, 24, 1) as int) as 'quadtree depth', (primary_roadnetwork_expansion_time + collisions_computation_time + primitives_extraction_time + secondary_roadnetwork_expansion_time) / num_edges as 'millis. per edge' from statistics where config_name like 'rio_de_janeiro_city_sd%';
+select cast(substr(config_name, 24, 1) as int) as 'quadtree depth', num_collisions as 'no. of collision checks'  from statistics where config_name like 'rio_de_janeiro_city_sd%';
+select cast(substr(config_name, 24, 1) as int) as 'quadtree depth', collisions_computation_time as 'collisions computation time (ms)' from statistics where config_name like 'rio_de_janeiro_city_sd%';
+select cast(substr(config_name, 24, 1) as int) as 'quadtree depth', secondary_roadnetwork_expansion_time as 'secondary roadnetwork expansion time (ms)' from statistics where config_name like 'rio_de_janeiro_city_sd%';
+
+-- PARALLELISM
+
+select expansion_kernel_blocks as 'number of blocks', avg(primary_roadnetwork_expansion_time + collisions_computation_time + primitives_extraction_time + secondary_roadnetwork_expansion_time) / num_edges as 'millis. per edge' from statistics where config_name like '%pr%' group by 1;
+select (expansion_kernel_blocks * expansion_kernel_threads) as 'number of threads', avg(primary_roadnetwork_expansion_time + collisions_computation_time + primitives_extraction_time + secondary_roadnetwork_expansion_time) / num_edges as 'millis. per edge' from statistics where config_name like '%pr%' group by 1;
+-- theoretical best block/thread combination
+select expansion_kernel_blocks, expansion_kernel_threads, (primary_roadnetwork_expansion_time + collisions_computation_time + primitives_extraction_time + secondary_roadnetwork_expansion_time) / num_edges as 'millis. per edge' from statistics where config_name like '%pr%' and expansion_kernel_blocks * expansion_kernel_threads = (select f1 as 'optimal number of threads' from (select (expansion_kernel_blocks * expansion_kernel_threads) as f1, avg(primary_roadnetwork_expansion_time + collisions_computation_time + primitives_extraction_time + secondary_roadnetwork_expansion_time) / num_edges as f2 from statistics where config_name like '%pr%' group by 1) where f2 = (select min(f2) from (select (expansion_kernel_blocks * expansion_kernel_threads), avg(primary_roadnetwork_expansion_time + collisions_computation_time + primitives_extraction_time + secondary_roadnetwork_expansion_time) / num_edges as f2 from statistics where config_name like '%pr%' group by 1))) order by 3;
