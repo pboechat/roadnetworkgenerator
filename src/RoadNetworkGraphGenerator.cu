@@ -138,6 +138,7 @@
 		throw std::exception(#__variable": insufficient memory"); \
 	}
 #define SAFE_FREE_ON_DEVICE(__variable) free(__variable)
+#define MEMCPY_TO_SYMBOL(__destination, __source, __size) memcpy(__destination, __source, __size)
 #define MEMCPY_HOST_TO_DEVICE(__destination, __source, __size) memcpy(__destination, __source, __size)
 #define MEMCPY2D_HOST_TO_DEVICE(__destination, __source, __hostPitch, __devicePitch, __width, __height) memcpy(__destination, __source, __hostPitch * __height)
 #define MEMCPY_DEVICE_TO_DEVICE(__destination, __source, __size) memcpy(__destination, __source, __size)
