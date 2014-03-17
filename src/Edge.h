@@ -16,10 +16,16 @@ struct Edge
 	unsigned char attr4;
 	unsigned int primitives[2];
 	unsigned int numPrimitives;
-	volatile bool readFlag;
 	volatile int owner;
+#ifdef USE_CUDA
+	volatile bool readFlag;
+#endif
 
-	HOST_AND_DEVICE_CODE Edge() : attr1(0), attr2(0), attr3(0), attr4(0), numPrimitives(0), owner(-1), readFlag(false) {}
+	HOST_AND_DEVICE_CODE Edge() : attr1(0), attr2(0), attr3(0), attr4(0), numPrimitives(0), owner(-1)
+#ifdef USE_CUDA
+		, readFlag(false) 
+#endif
+	{}
 	HOST_AND_DEVICE_CODE ~Edge() {}
 
 };

@@ -359,7 +359,9 @@ DEVICE_CODE int splitEdge(Graph* graph, Edge& edge, int splitVertexIndex, bool u
 
 	Edge& newEdge = graph->edges[newEdgeIndex];
 
+#ifdef USE_CUDA
 	newEdge.readFlag = false;
+#endif
 
 	newEdge.index = newEdgeIndex;
 	newEdge.source = splitVertexIndex;
@@ -399,7 +401,9 @@ DEVICE_CODE int splitEdge(Graph* graph, Edge& edge, int splitVertexIndex, bool u
 		insert(graph->quadtree, newEdgeIndex, Line2D(splitVertex.getPosition(), oldDestinationVertex.getPosition()));
 	}
 
+#ifdef USE_CUDA
 	newEdge.readFlag = true;
+#endif
 
 	return newEdgeIndex;
 }
@@ -486,7 +490,9 @@ DEVICE_CODE bool addStreet(Graph* graph, Primitive* primitives, int sourceIndex,
 	{
 		Edge& boundaryEdge = graph->edges[bounds.edges[i++]];
 
+#ifdef USE_CUDA
 		while (!boundaryEdge.readFlag);
+#endif
 
 		bool tryAgain;
 		do
@@ -509,7 +515,9 @@ DEVICE_CODE bool addStreet(Graph* graph, Primitive* primitives, int sourceIndex,
 
 					Edge& newEdge = graph->edges[newEdgeIndex];
 
+#ifdef USE_CUDA
 					newEdge.readFlag = false;
+#endif
 
 					// update bounds edges and vertices
 					newEdge.numPrimitives = boundaryEdge.numPrimitives;
@@ -540,7 +548,9 @@ DEVICE_CODE bool addStreet(Graph* graph, Primitive* primitives, int sourceIndex,
 						primitive.vertices[lastVertexIndex] = intersection;
 					}
 
+#ifdef USE_CUDA
 					newEdge.readFlag = true;
+#endif
 
 					run = false;
 				}

@@ -21,7 +21,6 @@
 #include <GL3/gl3w.h>
 #include <GL/utils/gl.h>
 
-
 #include <vector>
 
 class SceneRenderer : public Renderer
@@ -230,13 +229,14 @@ public:
 		glDisable(GL_BLEND);
 		glDepthMask(GL_TRUE);
 
-		if (g_dumpFirstFrame || !dumpedFirstFrame)
+		if (g_dumpFirstFrame && !dumpedFirstFrame)
 		{
 			unsigned int screenWidth = camera.getScreenWidth();
 			unsigned int screenHeight = camera.getScreenHeight();
 			unsigned char* pixels = new unsigned char[screenWidth * screenHeight * 3];
 			glReadPixels(0, 0, screenWidth, screenHeight, GL_RGB, GL_UNSIGNED_BYTE, pixels);
 			ImageUtils::saveImage(g_dumpFolder + "/" + configurationName + "_" + Timer::getTimestamp("_") + ".png", screenWidth, screenHeight, 24, pixels);
+			delete[] pixels;
 			dumpedFirstFrame = true;
 		}
 	}

@@ -15,14 +15,18 @@ DEVICE_CODE void computeCollisionsInQuadrant(Graph* graph, QuadrantEdges* quadra
 	{
 		Edge& thisEdge = graph->edges[quadrantEdges->edges[i]];
 
+#ifdef USE_CUDA
 		while(!thisEdge.readFlag);
+#endif
 
 		int j = i - 1;
 		while (j >= 0)
 		{
 			Edge& otherEdge = graph->edges[quadrantEdges->edges[j]];
 
+#ifdef USE_CUDA
 			while(!otherEdge.readFlag);
+#endif
 
 			bool tryAgain;
 			do

@@ -46,6 +46,7 @@ private:
 
 		virtual bool operator () (const Vertex& source, const Vertex& destination, const Edge& edge)
 		{
+			// secondary roadnetwork edges only
 			if (edge.attr1 != 0)
 			{
 				return true;

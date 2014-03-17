@@ -206,7 +206,7 @@ void loadFromFile(Configuration& configuration, const std::string& filePath)
 
 		configuration.totalNumQuadrants += numQuadrantsDepth;
 	}
-	configuration.numCollisionDetectionKernelThreadsPerBlock = MathExtras::powerOf2(MAX_EDGES_PER_QUADRANT);
+	configuration.numCollisionDetectionKernelThreads = MathExtras::powerOf2(MAX_EDGES_PER_QUADRANT);
 	configuration.snapRadius = getPropertyAsFloat(properties, "snap_radius");
 	configuration.setCycleColor(getPropertyAsVec4(properties, "cycle_color"));
 	configuration.setFilamentColor(getPropertyAsVec4(properties, "filament_color"));

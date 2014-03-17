@@ -15,7 +15,7 @@ struct Configuration
 	unsigned int worldHeight;
 	unsigned int numExpansionKernelBlocks;
 	unsigned int numExpansionKernelThreads;
-	unsigned int numCollisionDetectionKernelThreadsPerBlock;
+	unsigned int numCollisionDetectionKernelThreads;
 	unsigned int maxVertices;
 	unsigned int maxEdges;
 	unsigned int totalNumQuadrants;
@@ -75,6 +75,64 @@ struct Configuration
 
 	HOST_AND_DEVICE_CODE Configuration() {}
 	HOST_AND_DEVICE_CODE ~Configuration() {}
+
+#ifndef USE_CUDA
+	Configuration& operator = (const Configuration& other)
+	{
+		strcpy(name, other.name);
+		seed = other.seed;
+		worldWidth									= other.worldWidth								;
+		worldHeight									= other.worldHeight								;
+		numExpansionKernelBlocks					= other.numExpansionKernelBlocks					;
+		numExpansionKernelThreads					= other.numExpansionKernelThreads					;
+		numCollisionDetectionKernelThreads	= other.numCollisionDetectionKernelThreads;
+		maxVertices									= other.maxVertices								;
+		maxEdges									= other.maxEdges									;
+		totalNumQuadrants							= other.totalNumQuadrants							;
+		numLeafQuadrants							= other.numLeafQuadrants							;
+		highwayLength								= other.highwayLength								;
+		minSamplingRayLength						= other.minSamplingRayLength						;
+		maxSamplingRayLength						= other.maxSamplingRayLength						;
+		streetLength								= other.streetLength								;
+		maxStreetBranchDepth						= other.maxStreetBranchDepth						;
+		maxHighwayBranchDepth						= other.maxHighwayBranchDepth						;
+		highwayBranchingDistance					= other.highwayBranchingDistance					;
+		maxHighwayDerivation						= other.maxHighwayDerivation						;
+		maxStreetDerivation							= other.maxStreetDerivation						;
+		maxHighwayGoalDeviation						= other.maxHighwayGoalDeviation					;
+		halfMaxHighwayGoalDeviation					= other.halfMaxHighwayGoalDeviation				;
+		minSamplingWeight							= other.minSamplingWeight							;
+		goalDistanceThreshold						= other.goalDistanceThreshold						;
+		maxHighwayObstacleDeviationAngle			= other.maxHighwayObstacleDeviationAngle			;
+		halfMaxHighwayObstacleDeviationAngle		= other.halfMaxHighwayObstacleDeviationAngle		;
+		maxStreetObstacleDeviationAngle				= other.maxStreetObstacleDeviationAngle			;
+		halfMaxStreetObstacleDeviationAngle			= other.halfMaxStreetObstacleDeviationAngle		;
+		minHighwayLength							= other.minHighwayLength							;
+		minStreetLength								= other.minStreetLength							;
+		samplingArc									= other.samplingArc								;
+		halfSamplingArc								= other.halfSamplingArc							;
+		quadtreeDepth								= other.quadtreeDepth								;
+		snapRadius									= other.snapRadius								;
+		strcpy(populationDensityMapFilePath, other.populationDensityMapFilePath);
+		strcpy(waterBodiesMapFilePath, other.waterBodiesMapFilePath);;
+		strcpy(blockadesMapFilePath, other.blockadesMapFilePath);
+		strcpy(naturalPatternMapFilePath, other.naturalPatternMapFilePath);
+		strcpy(radialPatternMapFilePath, other.radialPatternMapFilePath);
+		strcpy(rasterPatternMapFilePath, other.rasterPatternMapFilePath);
+		drawSpawnPointLabels	= drawSpawnPointLabels	 ;
+		drawGraphLabels			= drawGraphLabels		 ;
+		drawQuadtree			= drawQuadtree			 ;
+		labelFontSize			= labelFontSize			 ;
+		pointSize				= pointSize				 ;
+		maxPrimitives			= maxPrimitives			 ;
+		minBlockArea			= minBlockArea			 ;
+		vertexBufferSize		= vertexBufferSize		 ;
+		indexBufferSize			= indexBufferSize		 ;
+		numSpawnPoints			= numSpawnPoints		 ;
+		memcpy(spawnPointsData, other.spawnPointsData, sizeof(float) * MAX_SPAWN_POINTS * 2);
+		return *this;
+	}
+#endif
 
 };
 
