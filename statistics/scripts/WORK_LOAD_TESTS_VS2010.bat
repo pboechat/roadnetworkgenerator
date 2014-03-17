@@ -1,41 +1,52 @@
 @echo off
 
-setlocal
+setlocal ENABLEDELAYEDEXPANSION
 
-chdir ..\..\build\mak.vc10\x32\src
+rem ===============
+rem	WORK LOAD TESTS
+rem ===============
 
-call ..\..\..\..\statistics\scripts\SETENV.bat
-
-mkdir %RUNS_DIR%
-
-set REPETITIONS=2
-
-set STARTTIME=%time%
-
-rem ==============================
-rem	WORK LOAD TESTS (botafogo bay)
-rem ==============================
+set /a c=0
+set /a t=5*%REPETITIONS%*4
 
 for /l %%i in (1,1,5) do (
 	for /l %%j in (1,1,%REPETITIONS%) do (
-		start /B /HIGH /WAIT %EXEC_BIN% 1024 768 %CONFIGS_DIR%\botafogo_bay_ld_%%i_gpu.config true true %RUNS_DIR%
+		set /a c=!c!+1
+		echo **********************
+		echo WORK LOAD TEST !c!/%t%
+		echo **********************
+		start /B /HIGH /WAIT %EXEC_BIN% 1024 768 %CONFIGS_DIR%\botafogo_bay_pw_%%i_gpu.config true false %RUNS_DIR%
 	)
 )
-
-rem =====================================
-rem	WORK LOAD TESTS (rio de janeiro city)
-rem =====================================
 
 for /l %%i in (1,1,5) do (
 	for /l %%j in (1,1,%REPETITIONS%) do (
-		start /B /HIGH /WAIT %EXEC_BIN% 1024 768 %CONFIGS_DIR%\rio_de_janeiro_city_ld_%%i_gpu.config true true %RUNS_DIR%
+		set /a c=!c!+1
+		echo **********************		
+		echo WORK LOAD TEST !c!/%t%
+		echo **********************
+		start /B /HIGH /WAIT %EXEC_BIN% 1024 768 %CONFIGS_DIR%\botafogo_bay_sw_%%i_gpu.config true false %RUNS_DIR%
 	)
 )
 
-set ENDTIME=%time%
+for /l %%i in (1,1,5) do (
+	for /l %%j in (1,1,%REPETITIONS%) do (
+		set /a c=!c!+1
+		echo **********************
+		echo WORK LOAD TEST !c!/%t%
+		echo **********************
+		start /B /HIGH /WAIT %EXEC_BIN% 1024 768 %CONFIGS_DIR%\rio_de_janeiro_city_pw_%%i_gpu.config true false %RUNS_DIR%
+	)
+)
 
-call ..\..\..\..\statistics\scripts\TIMEDIFF.bat
-
-type %DURATION% > Elapsed time: %REPORT_FILE% (ms)
+for /l %%i in (1,1,5) do (
+	for /l %%j in (1,1,%REPETITIONS%) do (
+		set /a c=!c!+1
+		echo **********************
+		echo WORK LOAD TEST !c!/%t%
+		echo **********************
+		start /B /HIGH /WAIT %EXEC_BIN% 1024 768 %CONFIGS_DIR%\rio_de_janeiro_city_sw_%%i_gpu.config true false %RUNS_DIR%
+	)
+)
 
 endlocal
