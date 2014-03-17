@@ -11,24 +11,26 @@
 #include <vector>
 #include <exception>
 
-#define MAX_REPETITIONS 1000
-
 #define ftimestamp									0
 #define fconfig_name								1
 #define fexpansion_kernel_blocks					2
 #define fexpansion_kernel_threads					3
 #define fcollision_detection_kernel_blocks			4
 #define fcollision_detection_kernel_threads			5
-#define fprimary_roadnetwork_expansion_time			6
-#define fcollisions_computation_time				7
-#define fprimitives_extraction_time					8
-#define fsecondary_roadnetwork_expansion_time		9
-#define fmemory_copy_gpu_cpu_time					10
-#define fmemory_copy_cpu_gpu_time					11
-#define fnum_vertices								12
-#define fnum_edges									13
-#define fnum_collisions								14
-#define fmemory_in_use								15
+#define fmax_highway_derivations					6
+#define fmax_street_derivations						7
+#define fquadtree_depth								8
+#define fprimary_roadnetwork_expansion_time			9
+#define fcollisions_computation_time				10
+#define fprimitives_extraction_time					11
+#define fsecondary_roadnetwork_expansion_time		12
+#define fmemory_copy_gpu_cpu_time					13
+#define fmemory_copy_cpu_gpu_time					14
+#define fnum_vertices								15
+#define fnum_primary_roadnetwork_edges				16
+#define fnum_secondary_roadnetwork_edges			17
+#define fnum_collisions								18
+#define fmemory_in_use								19
 
 struct Record
 {
@@ -38,6 +40,9 @@ struct Record
 	unsigned int	expansion_kernel_threads;
 	unsigned int	collision_detection_kernel_blocks;
 	unsigned int	collision_detection_kernel_threads;
+	unsigned int	max_highway_derivations;
+	unsigned int	max_street_derivations;
+	unsigned int	quadtree_depth;
 	float			primary_roadnetwork_expansion_time;
 	float			collisions_computation_time;
 	float			primitives_extraction_time;
@@ -45,7 +50,8 @@ struct Record
 	float			memory_copy_gpu_cpu_time;
 	float			memory_copy_cpu_gpu_time;
 	unsigned int	num_vertices;
-	unsigned int	num_edges;
+	unsigned int	num_primary_roadnetwork_edges;
+	unsigned int	num_secondary_roadnetwork_edges;
 	unsigned long	num_collisions;
 	unsigned int	memory_in_use;
 
@@ -56,6 +62,9 @@ struct Record
 		expansion_kernel_threads(0),
 		collision_detection_kernel_blocks(0),
 		collision_detection_kernel_threads(0),
+		max_highway_derivations(0),
+		max_street_derivations(0),
+		quadtree_depth(0),
 		primary_roadnetwork_expansion_time(0),
 		collisions_computation_time(0),
 		primitives_extraction_time(0),
@@ -63,7 +72,8 @@ struct Record
 		memory_copy_gpu_cpu_time(0),
 		memory_copy_cpu_gpu_time(0),
 		num_vertices(0),
-		num_edges(0),
+		num_primary_roadnetwork_edges(0),
+		num_secondary_roadnetwork_edges(0),
 		num_collisions(0),
 		memory_in_use(0)
 	{
@@ -93,6 +103,9 @@ struct Group
 			avg.expansion_kernel_threads				+= records[i].expansion_kernel_threads				;
 			avg.collision_detection_kernel_blocks		+= records[i].collision_detection_kernel_blocks		;
 			avg.collision_detection_kernel_threads		+= records[i].collision_detection_kernel_threads	;
+			avg.max_highway_derivations					+= records[i].max_highway_derivations				;
+			avg.max_street_derivations					+= records[i].max_street_derivations				;
+			avg.quadtree_depth							+= records[i].quadtree_depth						;
 			avg.primary_roadnetwork_expansion_time		+= records[i].primary_roadnetwork_expansion_time	;
 			avg.collisions_computation_time				+= records[i].collisions_computation_time			;
 			avg.primitives_extraction_time				+= records[i].primitives_extraction_time			;
@@ -100,7 +113,8 @@ struct Group
 			avg.memory_copy_gpu_cpu_time				+= records[i].memory_copy_gpu_cpu_time				;
 			avg.memory_copy_cpu_gpu_time				+= records[i].memory_copy_cpu_gpu_time				;
 			avg.num_vertices							+= records[i].num_vertices							;
-			avg.num_edges								+= records[i].num_edges								;
+			avg.num_primary_roadnetwork_edges			+= records[i].num_primary_roadnetwork_edges			;
+			avg.num_secondary_roadnetwork_edges			+= records[i].num_secondary_roadnetwork_edges		;
 			avg.num_collisions							+= records[i].num_collisions						;
 			avg.memory_in_use							+= records[i].memory_in_use							;
 		}
@@ -109,6 +123,9 @@ struct Group
 		avg.expansion_kernel_threads				/= repetitions;
 		avg.collision_detection_kernel_blocks		/= repetitions;
 		avg.collision_detection_kernel_threads		/= repetitions;
+		avg.max_highway_derivations					/= repetitions;
+		avg.max_street_derivations					/= repetitions;
+		avg.quadtree_depth							/= repetitions;
 		avg.primary_roadnetwork_expansion_time		/= repetitions;
 		avg.collisions_computation_time				/= repetitions;
 		avg.primitives_extraction_time				/= repetitions;
@@ -116,7 +133,8 @@ struct Group
 		avg.memory_copy_gpu_cpu_time				/= repetitions;
 		avg.memory_copy_cpu_gpu_time				/= repetitions;
 		avg.num_vertices							/= repetitions;
-		avg.num_edges								/= repetitions;
+		avg.num_primary_roadnetwork_edges			/= repetitions;
+		avg.num_secondary_roadnetwork_edges			/= repetitions;
 		avg.num_collisions							/= repetitions;
 		avg.memory_in_use							/= repetitions;
 
@@ -203,6 +221,9 @@ void outputToDatabase(std::string &outputFile, unsigned int numGroups, Group* gr
 			<< avg.expansion_kernel_threads							<< ","
 			<< avg.collision_detection_kernel_blocks				<< ","
 			<< avg.collision_detection_kernel_threads				<< ","
+			<< avg.max_highway_derivations							<< ","
+			<< avg.max_street_derivations							<< ","
+			<< avg.quadtree_depth									<< ","
 			<< avg.primary_roadnetwork_expansion_time				<< ","
 			<< avg.collisions_computation_time						<< ","
 			<< avg.primitives_extraction_time						<< ","
@@ -210,7 +231,8 @@ void outputToDatabase(std::string &outputFile, unsigned int numGroups, Group* gr
 			<< avg.memory_copy_gpu_cpu_time							<< ","
 			<< avg.memory_copy_cpu_gpu_time							<< ","
 			<< avg.num_vertices										<< ","
-			<< avg.num_edges										<< ","
+			<< avg.num_primary_roadnetwork_edges					<< ","
+			<< avg.num_secondary_roadnetwork_edges					<< ","
 			<< avg.num_collisions									<< ","
 			<< avg.memory_in_use									<< ");";
 
@@ -231,6 +253,9 @@ void outputToFile(std::string &outputFile, unsigned int numGroups, Group* groups
 		<< "expansion_kernel_threads;" 
 		<< "collision_detection_kernel_blocks;" 
 		<< "collision_detection_kernel_threads;" 
+		<< "max_highway_derivations;"
+		<< "max_street_derivations;"
+		<< "quadtree_depth;"
 		<< "primary_roadnetwork_expansion_time;" 
 		<< "collisions_computation_time;" 
 		<< "primitives_extraction_time;" 
@@ -238,7 +263,8 @@ void outputToFile(std::string &outputFile, unsigned int numGroups, Group* groups
 		<< "memory_copy_gpu_cpu_time;" 
 		<< "memory_copy_cpu_gpu_time;" 
 		<< "num_vertices;" 
-		<< "num_edges;" 
+		<< "num_primary_roadnetwork_edges;" 
+		<< "num_secondary_roadnetwork_edges;" 
 		<< "num_collisions;" 
 		<< "memory_in_use;" 
 		<< std::endl;
@@ -252,6 +278,9 @@ void outputToFile(std::string &outputFile, unsigned int numGroups, Group* groups
 			<< avg.expansion_kernel_threads							<< ";"
 			<< avg.collision_detection_kernel_blocks				<< ";"
 			<< avg.collision_detection_kernel_threads				<< ";"
+			<< avg.max_highway_derivations							<< ","
+			<< avg.max_street_derivations							<< ","
+			<< avg.quadtree_depth									<< ","
 			<< toString(avg.primary_roadnetwork_expansion_time)		<< ";"
 			<< toString(avg.collisions_computation_time)			<< ";"
 			<< toString(avg.primitives_extraction_time)				<< ";"
@@ -259,7 +288,8 @@ void outputToFile(std::string &outputFile, unsigned int numGroups, Group* groups
 			<< toString(avg.memory_copy_gpu_cpu_time)				<< ";"
 			<< toString(avg.memory_copy_cpu_gpu_time)				<< ";"
 			<< avg.num_vertices										<< ";"
-			<< avg.num_edges										<< ";"
+			<< avg.num_primary_roadnetwork_edges					<< ";"
+			<< avg.num_secondary_roadnetwork_edges					<< ";"
 			<< avg.num_collisions									<< ";"
 			<< avg.memory_in_use									<< ";"
 			<< std::endl;
@@ -312,6 +342,9 @@ int main(int argc, char** argv)
 				group.records[k].expansion_kernel_threads =				toInt(		fields[fexpansion_kernel_threads				]);
 				group.records[k].collision_detection_kernel_blocks =	toInt(		fields[fcollision_detection_kernel_blocks		]);
 				group.records[k].collision_detection_kernel_threads =	toInt(		fields[fcollision_detection_kernel_threads		]);
+				group.records[k].max_highway_derivations =				toInt(		fields[fmax_highway_derivations					]);
+				group.records[k].max_street_derivations =				toInt(		fields[fmax_street_derivations					]);
+				group.records[k].quadtree_depth =						toInt(		fields[fquadtree_depth							]);
 				group.records[k].primary_roadnetwork_expansion_time =	toFloat(	fields[fprimary_roadnetwork_expansion_time		]);	
 				group.records[k].collisions_computation_time =			toFloat(	fields[fcollisions_computation_time				]);
 				group.records[k].primitives_extraction_time = 			toFloat(	fields[fprimitives_extraction_time				]);
@@ -319,7 +352,8 @@ int main(int argc, char** argv)
 				group.records[k].memory_copy_gpu_cpu_time =				toFloat(	fields[fmemory_copy_gpu_cpu_time				]);
 				group.records[k].memory_copy_cpu_gpu_time = 			toFloat(	fields[fmemory_copy_cpu_gpu_time				]);
 				group.records[k].num_vertices = 						toInt(		fields[fnum_vertices							]);
-				group.records[k].num_edges = 							toInt(		fields[fnum_edges								]);
+				group.records[k].num_primary_roadnetwork_edges =		toInt(		fields[fnum_primary_roadnetwork_edges			]);
+				group.records[k].num_secondary_roadnetwork_edges =		toInt(		fields[fnum_secondary_roadnetwork_edges			]);
 				group.records[k].num_collisions = 						toLong(		fields[fnum_collisions							]);
 				group.records[k].memory_in_use = 						toInt(		fields[fmemory_in_use							]);
 			}
