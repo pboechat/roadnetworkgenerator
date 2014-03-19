@@ -66,14 +66,19 @@ endif()
 add_definitions(/D "USE_GLM")
 set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS};-DUSE_GLM")
 
-if (USE_CUDA)
-	add_definitions(/D "USE_CUDA")
-	set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS};-DUSE_CUDA")
+if (PARALLEL)
+	add_definitions(/D "PARALLEL")
+	set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS};-DPARALLEL")
 endif()
 
 if (COLLECT_STATISTICS)
 	add_definitions(/D "COLLECT_STATISTICS")
 	set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS};-DCOLLECT_STATISTICS")
+endif()
+
+if (PERSISTENT_THREADS)
+	add_definitions(/D "PERSISTENT_THREADS")
+	set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS};-DPERSISTENT_THREADS")
 endif()
 
 cuda_add_executable(

@@ -16,7 +16,7 @@ struct WorkQueue
 	unsigned char data[WORK_QUEUE_DATA_SIZE];
 	//volatile bool readFlags[WORK_QUEUE_DATA_SIZE];
 
-#ifdef USE_CUDA
+#ifdef PARALLEL
 	//////////////////////////////////////////////////////////////////////////
 	__device__ void reservePops(int reserves, unsigned int& first, unsigned int& reserved)
 	{

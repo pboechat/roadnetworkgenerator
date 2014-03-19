@@ -17,7 +17,7 @@
 #include <VertexFunctions.cuh>
 #include <Primitive.h>
 #include <IntersectionType.h>
-#ifdef USE_CUDA
+#ifdef PARALLEL
 #include <cutil.h>
 #endif
 
@@ -67,7 +67,7 @@ GLOBAL_CODE void updateNonPointerFields(Graph* graph, unsigned int numVertices, 
 #endif
 }
 
-#ifdef USE_CUDA
+#ifdef PARALLEL
 //////////////////////////////////////////////////////////////////////////
 __device__ __host__ int createVertex(Graph* graph, const vml_vec2& position)
 {
@@ -131,7 +131,7 @@ int createVertex(Graph* graph, const vml_vec2& position)
 }
 #endif
 
-#ifdef USE_CUDA
+#ifdef PARALLEL
 //////////////////////////////////////////////////////////////////////////
 __device__ int connect(Graph* graph, int sourceVertexIndex, int destinationVertexIndex, bool updateQuadtree = true, char attr1 = 0, char attr2 = 0, char attr3 = 0, char attr4 = 0)
 {
@@ -359,7 +359,7 @@ DEVICE_CODE int splitEdge(Graph* graph, Edge& edge, int splitVertexIndex, bool u
 
 	Edge& newEdge = graph->edges[newEdgeIndex];
 
-#ifdef USE_CUDA
+#ifdef PARALLEL
 	newEdge.readFlag = false;
 #endif
 
@@ -401,7 +401,7 @@ DEVICE_CODE int splitEdge(Graph* graph, Edge& edge, int splitVertexIndex, bool u
 		insert(graph->quadtree, newEdgeIndex, Line2D(splitVertex.getPosition(), oldDestinationVertex.getPosition()));
 	}
 
-#ifdef USE_CUDA
+#ifdef PARALLEL
 	newEdge.readFlag = true;
 #endif
 
@@ -490,7 +490,7 @@ DEVICE_CODE bool addStreet(Graph* graph, Primitive* primitives, int sourceIndex,
 	{
 		Edge& boundaryEdge = graph->edges[bounds.edges[i++]];
 
-#ifdef USE_CUDA
+#ifdef PARALLEL
 		while (!boundaryEdge.readFlag);
 #endif
 
@@ -515,7 +515,7 @@ DEVICE_CODE bool addStreet(Graph* graph, Primitive* primitives, int sourceIndex,
 
 					Edge& newEdge = graph->edges[newEdgeIndex];
 
-#ifdef USE_CUDA
+#ifdef PARALLEL
 					newEdge.readFlag = false;
 #endif
 
@@ -548,7 +548,7 @@ DEVICE_CODE bool addStreet(Graph* graph, Primitive* primitives, int sourceIndex,
 						primitive.vertices[lastVertexIndex] = intersection;
 					}
 
-#ifdef USE_CUDA
+#ifdef PARALLEL
 					newEdge.readFlag = true;
 #endif
 

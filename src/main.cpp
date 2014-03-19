@@ -17,7 +17,7 @@
 #include <ImageUtils.h>
 #include <Log.h>
 
-#ifdef USE_CUDA
+#ifdef PARALLEL
 #include <cuda_runtime_api.h>
 #endif
 #include <string>
@@ -108,7 +108,7 @@ void generateAndDisplay(const std::string& configurationFile, SceneRenderer& ren
 int main(int argc, char** argv)
 {
 	int returnValue = -1;
-#ifdef USE_CUDA
+#ifdef PARALLEL
 	bool cudaInitialized = false;
 #endif
 	unsigned int screenWidth;
@@ -154,7 +154,7 @@ int main(int argc, char** argv)
 
 	try
 	{
-#ifdef USE_CUDA
+#ifdef PARALLEL
 		Application application("Road Network Generator (GPU)", screenWidth, screenHeight);
 #else
 		Application application("Road Network Generator (CPU)", screenWidth, screenHeight);
@@ -165,7 +165,7 @@ int main(int argc, char** argv)
 			throw std::runtime_error("gl3wInit() failed");
 		}
 
-#ifdef USE_CUDA
+#ifdef PARALLEL
 		cudaDeviceProp deviceProperties;
 		cudaGetDeviceProperties(&deviceProperties, 0);
 		cudaSetDevice(0);
@@ -208,7 +208,7 @@ int main(int argc, char** argv)
 
 exit:
 
-#ifdef USE_CUDA
+#ifdef PARALLEL
 	if (cudaInitialized)
 	{
 		cudaDeviceReset();

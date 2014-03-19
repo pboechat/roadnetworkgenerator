@@ -15,7 +15,7 @@ DEVICE_CODE void computeCollisionsInQuadrant(Graph* graph, QuadrantEdges* quadra
 	{
 		Edge& thisEdge = graph->edges[quadrantEdges->edges[i]];
 
-#ifdef USE_CUDA
+#ifdef PARALLEL
 		while(!thisEdge.readFlag);
 #endif
 
@@ -24,7 +24,7 @@ DEVICE_CODE void computeCollisionsInQuadrant(Graph* graph, QuadrantEdges* quadra
 		{
 			Edge& otherEdge = graph->edges[quadrantEdges->edges[j]];
 
-#ifdef USE_CUDA
+#ifdef PARALLEL
 			while(!otherEdge.readFlag);
 #endif
 
@@ -63,7 +63,7 @@ DEVICE_CODE void computeCollisionsInQuadrant(Graph* graph, QuadrantEdges* quadra
 	}
 }
 
-#ifdef USE_CUDA
+#ifdef PARALLEL
 //////////////////////////////////////////////////////////////////////////
 __global__ void collisionDetectionKernel(Graph* graph)
 {

@@ -7,7 +7,7 @@
 // GPU/CPU COMPATIBILITY
 //////////////////////////////////////////////////////////////////////////
 
-#ifdef USE_CUDA
+#ifdef PARALLEL
 #include <cuda_runtime_api.h>
 #define HOST_CODE __host__
 #define DEVICE_CODE __device__

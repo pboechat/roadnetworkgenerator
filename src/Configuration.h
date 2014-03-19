@@ -76,7 +76,7 @@ struct Configuration
 	HOST_AND_DEVICE_CODE Configuration() {}
 	HOST_AND_DEVICE_CODE ~Configuration() {}
 
-#ifndef USE_CUDA
+#ifndef PARALLEL
 	Configuration& operator = (const Configuration& other)
 	{
 		strcpy(name, other.name);

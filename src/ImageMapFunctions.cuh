@@ -5,7 +5,7 @@
 #include <VectorMath.h>
 #include <MathExtras.h>
 
-#ifdef USE_CUDA
+#ifdef PARALLEL
 #define TEX2D(texture, x, y) tex2D(texture, x, y)
 #else
 #include <ImageMap.h>

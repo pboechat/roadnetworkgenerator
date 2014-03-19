@@ -48,7 +48,7 @@
 #define GET_CPU_TIMER_ELAPSED_TIME(x, y) y = timer_##x##.elapsedTime()
 #define DESTROY_CPU_TIMER(x)
 
-#ifdef USE_CUDA
+#ifdef PARALLEL
 #include <cutil.h>
 #include <cutil_timer.h>
 #define SAFE_MALLOC_ON_DEVICE(__variable, __type, __amount) cudaCheckedCall(cudaMalloc((void**)&__variable, sizeof(__type) * __amount))
@@ -420,7 +420,7 @@ void RoadNetworkGraphGenerator::execute()
 	MEMCPY_HOST_TO_DEVICE(dWorkQueues1, workQueues1, sizeof(WorkQueue) * NUM_PROCEDURES);
 	MEMCPY_HOST_TO_DEVICE(dWorkQueues2, workQueues2, sizeof(WorkQueue) * NUM_PROCEDURES);
 	
-#ifdef USE_CUDA
+#ifdef PARALLEL
 	MEMCPY_TO_SYMBOL(g_dConfiguration, &configuration, sizeof(Configuration)); 
 #else
 	g_dConfiguration = configuration;
@@ -751,7 +751,17 @@ void RoadNetworkGraphGenerator::execute()
 	SAFE_FREE_ON_DEVICE(dPseudoRandomNumbersBuffer);
 }
 
-#ifdef USE_CUDA
+#ifdef PARALLEL
+#ifdef PERSISTENT_THREADS
+//////////////////////////////////////////////////////////////////////////
+void RoadNetworkGraphGenerator::expand(unsigned int numDerivations, unsigned int startingQueue, unsigned int numQueues)
+{
+	initializeCounters<<<1, 1>>>();
+	cudaCheckError();
+	expansionKernel<<<configuration.numExpansionKernelBlocks, configuration.numExpansionKernelThreads>>>(numDerivations, dWorkQueues1, dWorkQueues2, startingQueue, numQueues, dContext);
+	cudaCheckError();
+}
+#else
 //////////////////////////////////////////////////////////////////////////
 void RoadNetworkGraphGenerator::expand(unsigned int numDerivations, unsigned int startingQueue, unsigned int numQueues)
 {
@@ -766,6 +776,7 @@ void RoadNetworkGraphGenerator::expand(unsigned int numDerivations, unsigned int
 		backQueues = tmp;
 	}
 }
+#endif
 
 //////////////////////////////////////////////////////////////////////////
 void RoadNetworkGraphGenerator::computeCollisions()
