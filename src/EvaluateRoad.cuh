@@ -75,7 +75,8 @@ DEVICE_CODE bool evaluateWaterBodies(Road<HighwayRuleAttributes>& road, const vm
 			vml_vec2 direction = vml_normalize(vml_rotate2D(vml_vec2(0.0f, 1.0f), road.roadAttributes.angle + vml_radians((float)angleIncrement)));
 			bool hit;
 			vml_vec2 hitPoint;
-			CAST_RAY(g_dWaterBodiesTexture, position, direction, length, 0, hit, hitPoint);
+			//CAST_RAY(g_dWaterBodiesTexture, position, direction, length, 0, hit, hitPoint);
+			CAST_RAY(context->waterBodiesMap, position, direction, length, 0, hit, hitPoint);
 			if (!hit)
 			{
 				road.state = SUCCEED;
@@ -96,7 +97,8 @@ DEVICE_CODE bool evaluateWaterBodies(Road<HighwayRuleAttributes>& road, const vm
 			vml_vec2 direction = vml_normalize(vml_rotate2D(vml_vec2(0.0f, 1.0f), road.roadAttributes.angle + vml_radians((float)angleIncrement)));
 			bool hit;
 			vml_vec2 hitPoint;
-			CAST_RAY(g_dWaterBodiesTexture, position, direction, length, 0, hit, hitPoint);
+			//CAST_RAY(g_dWaterBodiesTexture, position, direction, length, 0, hit, hitPoint);
+			CAST_RAY(context->waterBodiesMap, position, direction, length, 0, hit, hitPoint);
 			if (!hit)
 			{
 				road.state = SUCCEED;
@@ -142,7 +144,8 @@ DEVICE_CODE bool evaluateWaterBodies(Road<StreetRuleAttributes>& road, const vml
 	{
 		bool hit;
 		vml_vec2 hitPoint;
-		CAST_RAY(g_dWaterBodiesTexture, position, direction, length, 0, hit, hitPoint);
+		//CAST_RAY(g_dWaterBodiesTexture, position, direction, length, 0, hit, hitPoint);
+		CAST_RAY(context->waterBodiesMap, position, direction, length, 0, hit, hitPoint);
 		if (!hit)
 		{
 			road.state = SUCCEED;
@@ -194,7 +197,8 @@ DEVICE_CODE bool evaluateBlockades(Road<HighwayRuleAttributes>& road, const vml_
 
 			bool hit;
 			vml_vec2 hitPoint;
-			CAST_RAY(g_dBlockadesTexture, position, direction, length, 0, hit, hitPoint);
+			//CAST_RAY(g_dBlockadesTexture, position, direction, length, 0, hit, hitPoint);
+			CAST_RAY(context->blockadesMap, position, direction, length, 0, hit, hitPoint);
 			if (!hit)
 			{
 				road.state = SUCCEED;
@@ -216,7 +220,8 @@ DEVICE_CODE bool evaluateBlockades(Road<HighwayRuleAttributes>& road, const vml_
 
 			bool hit;
 			vml_vec2 hitPoint;
-			CAST_RAY(g_dBlockadesTexture, position, direction, length, 0, hit, hitPoint);
+			//CAST_RAY(g_dBlockadesTexture, position, direction, length, 0, hit, hitPoint);
+			CAST_RAY(context->blockadesMap, position, direction, length, 0, hit, hitPoint);
 			if (!hit)
 			{
 				road.state = SUCCEED;
@@ -262,7 +267,8 @@ DEVICE_CODE bool evaluateBlockades(Road<StreetRuleAttributes>& road, const vml_v
 	{
 		bool hit;
 		vml_vec2 hitPoint;
-		CAST_RAY(g_dBlockadesTexture, position, direction, length, 0, hit, hitPoint);
+		//CAST_RAY(g_dBlockadesTexture, position, direction, length, 0, hit, hitPoint);
+		CAST_RAY(context->blockadesMap, position, direction, length, 0, hit, hitPoint);
 		if (!hit)
 		{
 			road.state = SUCCEED;

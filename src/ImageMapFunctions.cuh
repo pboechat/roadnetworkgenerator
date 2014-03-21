@@ -6,9 +6,15 @@
 #include <MathExtras.h>
 
 #ifdef PARALLEL
-#define TEX2D(texture, x, y) tex2D(texture, x, y)
-#else
 #include <ImageMap.h>
+inline DEVICE_CODE unsigned char fetch(const ImageMap* texture, int x, int y)
+{
+	int x1 = MathExtras::clamp(0, (int)texture->width - 1, x);
+	int y1 = MathExtras::clamp(0, (int)texture->height - 1, y);
+	return texture->data[(y1 * texture->width) + x1];
+}
+#define TEX2D(texture, x, y) fetch(texture, x, y)
+#else
 inline unsigned char fetch(const CudaTexture2DMock& texture, int x, int y)
 {
 	int x1 = MathExtras::clamp(0, (int)texture.width - 1, x);

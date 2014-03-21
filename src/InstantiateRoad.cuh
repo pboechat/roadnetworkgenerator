@@ -184,21 +184,24 @@ DEVICE_CODE Pattern findUnderlyingPattern(const vml_vec2& position, Context* con
 
 	if (context->naturalPatternMap != 0)
 	{
-		naturalPattern = TEX2D(g_dNaturalPatternTexture, (int)position.x, (int)position.y);
+		//naturalPattern = TEX2D(g_dNaturalPatternTexture, (int)position.x, (int)position.y);
+		naturalPattern = TEX2D(context->naturalPatternMap, (int)position.x, (int)position.y);
 	}
 
 	unsigned char radialPattern = 0;
 
 	if (context->radialPatternMap != 0)
 	{
-		radialPattern = TEX2D(g_dRadialPatternTexture, (int)position.x, (int)position.y);
+		//radialPattern = TEX2D(g_dRadialPatternTexture, (int)position.x, (int)position.y);
+		radialPattern = TEX2D(context->radialPatternMap, (int)position.x, (int)position.y);
 	}
 
 	unsigned char rasterPattern = 0;
 
 	if (context->rasterPatternMap != 0)
 	{
-		rasterPattern = TEX2D(g_dRasterPatternTexture, (int)position.x, (int)position.y);
+		//rasterPattern = TEX2D(g_dRasterPatternTexture, (int)position.x, (int)position.y);
+		rasterPattern = TEX2D(context->rasterPatternMap, (int)position.x, (int)position.y);
 	}
 
 	if (rasterPattern > radialPattern)
@@ -241,7 +244,8 @@ DEVICE_CODE bool findHighestPopulationDensity(const vml_vec2& start, float start
 		vml_vec2 direction = vml_normalize(vml_rotate2D(vml_vec2(0.0f, 1.0f), startingAngle + vml_radians((float)currentAngleStep)));
 		unsigned char populationDensity;
 		int distance;
-		SCAN(g_dPopulationDensityTexture, start, direction, g_dConfiguration.minSamplingRayLength, g_dConfiguration.maxSamplingRayLength, populationDensity, distance);
+		//SCAN(g_dPopulationDensityTexture, start, direction, g_dConfiguration.minSamplingRayLength, g_dConfiguration.maxSamplingRayLength, populationDensity, distance);
+		SCAN(context->populationDensityMap, start, direction, g_dConfiguration.minSamplingRayLength, g_dConfiguration.maxSamplingRayLength, populationDensity, distance);
 		populationDensitiesSamplingBuffer[i] = populationDensity;
 		distancesSamplingBuffer[i] = distance;
 	}

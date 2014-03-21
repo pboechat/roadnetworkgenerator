@@ -228,7 +228,15 @@ DEVICE_VARIABLE Primitive* dPrimitives;
 DEVICE_VARIABLE unsigned int* dPseudoRandomNumbersBuffer;
 
 //////////////////////////////////////////////////////////////////////////
-#define allocateAndInitializeImageMap(__name1, __name2) \
+GLOBAL_CODE void initializeImageMapOnDevice(ImageMap* imageMap, unsigned int width, unsigned int height, unsigned char* data)
+{
+	imageMap->width = width;
+	imageMap->height = height;
+	imageMap->data = data;
+}
+
+//////////////////////////////////////////////////////////////////////////
+/*#define allocateAndInitializeImageMap(__name1, __name2) \
 	if (__name1##Map.data != 0) \
 	{ \
 		unsigned int hostPitch = sizeof(unsigned char) * __name1##Map.width; \
@@ -237,14 +245,23 @@ DEVICE_VARIABLE unsigned int* dPseudoRandomNumbersBuffer;
 		BIND_AS_TEXTURE2D(d##__name2##MapData, g_d##__name2##Texture, devicePitch, __name1##Map.width, __name1##Map.height); \
 		MEMCPY2D_HOST_TO_DEVICE(d##__name2##MapData, __name1##Map.data, hostPitch, devicePitch, __name1##Map.width, __name1##Map.height); \
 		SAFE_MALLOC_ON_DEVICE(d##__name2##Map, ImageMap, 1); \
+	}*/
+#define allocateAndInitializeImageMap(__name1, __name2) \
+	if (__name1##Map.data != 0) \
+	{ \
+		unsigned int mapSize = __name1##Map.width * __name1##Map.height; \
+		SAFE_MALLOC_ON_DEVICE(d##__name2##MapData, unsigned char, mapSize); \
+		MEMCPY_HOST_TO_DEVICE(d##__name2##MapData, __name1##Map.data, sizeof(unsigned char) * mapSize); \
+		SAFE_MALLOC_ON_DEVICE(d##__name2##Map, ImageMap, 1); \
+		INVOKE_GLOBAL_CODE4(initializeImageMapOnDevice, 1, 1, d##__name2##Map, __name1##Map.width, __name1##Map.height, d##__name2##MapData); \
 	}
 
-#define deallocateImageMap(__name1, __name2) \
+/*#define deallocateImageMap(__name1, __name2) \
 	if (__name1##Map.data != 0) \
 	{ \
 		UNBIND_TEXTURE2D(g_d##__name2##Texture); \
 		SAFE_FREE_ON_DEVICE(d##__name2##MapData); \
-	}
+	}*/
 
 //////////////////////////////////////////////////////////////////////////
 GLOBAL_CODE void initializeContext(Context* context,
@@ -717,12 +734,18 @@ void RoadNetworkGraphGenerator::execute()
 	SAFE_FREE_ON_DEVICE(dNaturalPatternMap);
 	SAFE_FREE_ON_DEVICE(dRadialPatternMap);
 	SAFE_FREE_ON_DEVICE(dRasterPatternMap);
-	deallocateImageMap(populationDensity, PopulationDensity);
+	SAFE_FREE_ON_DEVICE(dPopulationDensityMapData);
+	SAFE_FREE_ON_DEVICE(dWaterBodiesMapData);
+	SAFE_FREE_ON_DEVICE(dBlockadesMapData);
+	SAFE_FREE_ON_DEVICE(dNaturalPatternMapData);
+	SAFE_FREE_ON_DEVICE(dRadialPatternMapData);
+	SAFE_FREE_ON_DEVICE(dRasterPatternMapData);
+	/*deallocateImageMap(populationDensity, PopulationDensity);
 	deallocateImageMap(waterBodies, WaterBodies);
 	deallocateImageMap(blockades, Blockades);
 	deallocateImageMap(naturalPattern, NaturalPattern);
 	deallocateImageMap(radialPattern, RadialPattern);
-	deallocateImageMap(rasterPattern, RasterPattern);
+	deallocateImageMap(rasterPattern, RasterPattern);*/
 	SAFE_FREE_ON_DEVICE(dPrimitives);
 
 	SAFE_FREE_ON_DEVICE(dQuadrants);
