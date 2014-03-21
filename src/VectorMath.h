@@ -15,6 +15,9 @@
 //	GLM
 //////////////////////////////////////////////////////////////////////////
 
+#ifdef __CUDA_ARCH__
+#define GLM_FORCE_CUDA
+#endif
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/quaternion.hpp>

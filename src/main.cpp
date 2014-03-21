@@ -133,7 +133,7 @@ int main(int argc, char** argv)
 		goto exit;
 	}
 
-	if (argc > 4 && (g_dumpStatistics = IS_TRUE(argv[4])))
+	if (argc > 4)
 	{
 		if (argc < 6)
 		{
@@ -141,6 +141,7 @@ int main(int argc, char** argv)
 			goto exit;
 		}
 
+		g_dumpStatistics = IS_TRUE(argv[4]);
 		g_dumpFirstFrame = IS_TRUE(argv[5]);
 		g_dumpFolder = argv[6];
 
