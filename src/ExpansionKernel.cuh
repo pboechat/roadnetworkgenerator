@@ -115,13 +115,16 @@ __global__ void expansionKernel(unsigned int numDerivations, WorkQueue* queues1,
 			}
 		}
 
-		if (threadIdx.x == 0 && g_dCounter == 0)
+		if (threadIdx.x == 0)
 		{
-			derivation++;
-			WorkQueue* tmp = front;
-			front = back;
-			back = tmp;
-			state = 0;
+			if (state == 2 && g_dCounter == 0)
+			{
+				derivation++;
+				WorkQueue* tmp = front;
+				front = back;
+				back = tmp;
+				state = 0;
+			}
 		}
 
 		__syncthreads();

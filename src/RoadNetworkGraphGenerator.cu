@@ -756,6 +756,7 @@ void RoadNetworkGraphGenerator::execute()
 //////////////////////////////////////////////////////////////////////////
 void RoadNetworkGraphGenerator::expand(unsigned int numDerivations, unsigned int startingQueue, unsigned int numQueues)
 {
+	cudaFuncSetCacheConfig(&expansionKernel, cudaFuncCachePreferL1);
 	initializeCounters<<<1, 1>>>();
 	cudaCheckError();
 	expansionKernel<<<configuration.numExpansionKernelBlocks, configuration.numExpansionKernelThreads>>>(numDerivations, dWorkQueues1, dWorkQueues2, startingQueue, numQueues, dContext);
@@ -765,6 +766,7 @@ void RoadNetworkGraphGenerator::expand(unsigned int numDerivations, unsigned int
 //////////////////////////////////////////////////////////////////////////
 void RoadNetworkGraphGenerator::expand(unsigned int numDerivations, unsigned int startingQueue, unsigned int numQueues)
 {
+	cudaFuncSetCacheConfig(&expansionKernel, cudaFuncCachePreferL1);
 	WorkQueue* frontQueues = dWorkQueues1;
 	WorkQueue* backQueues = dWorkQueues2;
 	for (unsigned int i = 0; i < numDerivations; i++)

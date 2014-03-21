@@ -15,7 +15,7 @@
 //HOST_AND_DEVICE_CODE void removeEdgeReferencesInQuadrant(QuadrantEdges& quadrantEdges, int edgeIndex);
 
 //////////////////////////////////////////////////////////////////////////
-HOST_AND_DEVICE_CODE void initializeQuadtreeOnHost(QuadTree* quadtree, Box2D worldBounds, unsigned int depth, unsigned int totalNumQuadrants, unsigned int numLeafQuadrants, Quadrant* quadrants, QuadrantEdges* quadrantEdges)
+HOST_CODE void initializeQuadtreeOnHost(QuadTree* quadtree, Box2D worldBounds, unsigned int depth, unsigned int totalNumQuadrants, unsigned int numLeafQuadrants, Quadrant* quadrants, QuadrantEdges* quadrantEdges)
 {
 	quadtree->worldBounds = worldBounds;
 	quadtree->maxDepth = depth;

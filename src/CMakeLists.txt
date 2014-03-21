@@ -7,6 +7,7 @@ option(CUDA_BUILD_CC30 "Build with compute capability 3.0 support" TRUE)
 option(CUDA_BUILD_CC35 "Build with compute capability 3.5 support" FALSE)
 option(CUDA_BUILD_INFO "Build with kernel statistics and line numbers" FALSE)
 option(CUDA_BUILD_DEBUG "Build with kernel debug" TRUE)
+option(CUDA_BUILD_MAXRREGCOUNT_32 "Build with maxrregcount set to 32" FALSE)
 
 set(CUDA_NVCC_FLAGS "-use_fast_math;-w")
 
@@ -23,7 +24,7 @@ if(CUDA_BUILD_CC30)
 endif()
 
 if(CUDA_BUILD_CC35)
-	set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS};-gencode=arch=compute_35,code=sm_35;-maxrregcount=64")
+	set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS};-gencode=arch=compute_35,code=sm_35")
 	add_definitions(/D "CUDA_CC=35")
 	add_definitions(-DCUDA_CC=35)
 endif()
@@ -34,6 +35,10 @@ endif()
 
 if(CUDA_BUILD_DEBUG)
 	set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS};-G")
+endif()
+
+if(CUDA_BUILD_MAXRREGCOUNT_32)
+	set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS};-maxrregcount=32")
 endif()
 	
 find_package(OpenGL REQUIRED)

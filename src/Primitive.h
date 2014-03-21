@@ -19,7 +19,7 @@ enum PrimitiveType
 struct Primitive
 {
 	PrimitiveType type;
-	volatile int edges[MAX_EDGES_PER_PRIMITIVE];
+	/*volatile*/ int edges[MAX_EDGES_PER_PRIMITIVE];
 	vml_vec2 vertices[MAX_VERTICES_PER_PRIMITIVE];
 	volatile unsigned int numEdges;
 	volatile unsigned int numVertices;
