@@ -26,14 +26,21 @@
 class SceneRenderer : public Renderer
 {
 private:
+	enum ImageMapShadingType
+	{
+		FLAT,
+		LUMINANCE
+	};
+
 	struct ImageMapRenderData
 	{
 		Texture* texture;
 		vml_vec4 color1;
 		vml_vec4 color2;
+		ImageMapShadingType shadingType;
 		bool enabled;
 
-		ImageMapRenderData() : texture(0), enabled(false)
+		ImageMapRenderData() : texture(0), shadingType(FLAT), enabled(false)
 		{
 		}
 
@@ -99,9 +106,24 @@ private:
 
 	void drawImageMap(const ImageMapRenderData& imageMapRenderData)
 	{
+		if (imageMapRenderData.shadingType == FLAT)
+		{
+			imageMapShader.setSubroutine("flatColor", GL_FRAGMENT_SHADER);
+		}
+		else if (imageMapRenderData.shadingType == LUMINANCE)
+		{
+			imageMapShader.setSubroutine("luminance", GL_FRAGMENT_SHADER);
+		}
+		else
+		{
+			// FIXME: checking invariants
+			THROW_EXCEPTION("unknown image map shading type");
+		}
+
 		imageMapShader.setTexture("uBaseTex", *imageMapRenderData.texture, 0);
 		imageMapShader.setVec4("uColor1", imageMapRenderData.color1);
 		imageMapShader.setVec4("uColor2", imageMapRenderData.color2);
+
 		worldSizedQuad->draw();
 	}
 
@@ -121,6 +143,9 @@ public:
 		glEnable(GL_PROGRAM_POINT_SIZE);
 		glEnable(GL_CULL_FACE);
 		glCullFace(GL_BACK);
+
+		imageMapShader.identifySubroutine("luminance", GL_FRAGMENT_SHADER);
+		imageMapShader.identifySubroutine("flatColor", GL_FRAGMENT_SHADER);
 	}
 
 	~SceneRenderer()
@@ -241,10 +266,27 @@ public:
 		}
 	}
 
-	void togglePopulationDensityMap()
+	void togglePopulationDensityShadingType()
+	{
+		if (populationDensityMapData.shadingType == FLAT)
+		{
+			populationDensityMapData.shadingType = LUMINANCE;
+		}
+		else if (populationDensityMapData.shadingType == LUMINANCE)
+		{
+			populationDensityMapData.shadingType = FLAT;
+		}
+		else
+		{
+			// FIXME: checking invariants
+			THROW_EXCEPTION("unknown image map shading type");
+		}
+	}
+
+	/*void togglePopulationDensityMap()
 	{
 		populationDensityMapData.enabled = !populationDensityMapData.enabled;
-	}
+	}*/
 
 	void toggleWaterBodiesMap()
 	{

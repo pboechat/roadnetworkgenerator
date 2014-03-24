@@ -4,7 +4,7 @@ setlocal
 
 chdir ..\..\build\mak.vc10\x32\src
 
-call ..\..\..\..\statistics\scripts\SETENV.bat
+call %SCRIPTS_DIR%\SETENV.bat
 
 mkdir %RUNS_DIR%
 

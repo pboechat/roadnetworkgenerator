@@ -6,6 +6,7 @@
 #include <FileReader.h>
 #include <StringUtils.h>
 #include <ParseUtils.h>
+#include <MathExtras.h>
 
 #include <exception>
 #include <time.h>
@@ -15,56 +16,167 @@
 #include <vector>
 #include <map>
 
+#define parse(__defaultValue, __returnExpression) \
+	std::string propertyValue = getProperty(properties, propertyName); \
+	if (propertyValue.empty()) \
+	{ \
+		if (mandatory) \
+		{ \
+			std::string errorMessage = "config: '" + propertyName + "' not found"; \
+			throw std::exception(errorMessage.c_str()); \
+		} \
+		else \
+		{ \
+			return __defaultValue; \
+		} \
+	} \
+	else \
+	{ \
+		return __returnExpression; \
+	}
+
+#define parseInteger(__type) \
+	parse(0, (__type)atoi(propertyValue.c_str()))
+
+#define parseReal(__type) \
+	parse(0, (__type)atof(propertyValue.c_str()))
+
 bool hasProperty(const std::map<std::string, std::string>& properties, const std::string& propertyName)
 {
 	return properties.find(propertyName) != properties.end();
 }
 
-const std::string& getProperty(const std::map<std::string, std::string>& properties, const std::string& propertyName)
+std::string getProperty(const std::map<std::string, std::string>& properties, const std::string& propertyName)
 {
 	std::map<std::string, std::string>::const_iterator i;
 
 	if ((i = properties.find(propertyName)) == properties.end())
 	{
+		return "";
+	}
+	else
+	{
+		return i->second;
+	}
+	
+}
+
+unsigned char getPropertyAsUnsignedChar(const std::map<std::string, std::string>& properties, const std::string& propertyName, bool mandatory = true)
+{
+	/*if (mandatory && !hasProperty(properties, propertyName))
+	{
 		std::string errorMessage = "config: '" + propertyName + "' not found";
 		throw std::exception(errorMessage.c_str());
 	}
 
-	return i->second;
+	return (unsigned char)atoi(getProperty(properties, propertyName).c_str());*/
+
+	parseInteger(unsigned char);
 }
 
-unsigned char getPropertyAsUnsignedChar(const std::map<std::string, std::string>& properties, const std::string& propertyName)
+unsigned int getPropertyAsUnsignedInt(const std::map<std::string, std::string>& properties, const std::string& propertyName, bool mandatory = true)
 {
-	return (unsigned char)atoi(getProperty(properties, propertyName).c_str());
+	/*if (mandatory && !hasProperty(properties, propertyName))
+	{
+		std::string errorMessage = "config: '" + propertyName + "' not found";
+		throw std::exception(errorMessage.c_str());
+	}
+
+	return (unsigned int)atoi(getProperty(properties, propertyName).c_str());*/
+
+	parseInteger(unsigned int);
 }
 
-unsigned int getPropertyAsUnsignedInt(const std::map<std::string, std::string>& properties, const std::string& propertyName)
+long getPropertyAsInt(const std::map<std::string, std::string>& properties, const std::string& propertyName, bool mandatory = true)
 {
-	return (unsigned int)atoi(getProperty(properties, propertyName).c_str());
+	/*if (mandatory && !hasProperty(properties, propertyName))
+	{
+		std::string errorMessage = "config: '" + propertyName + "' not found";
+		throw std::exception(errorMessage.c_str());
+	}
+
+	return atoi(getProperty(properties, propertyName).c_str());*/
+	parseInteger(int);
 }
 
-long getPropertyAsInt(const std::map<std::string, std::string>& properties, const std::string& propertyName)
+float getPropertyAsFloat(const std::map<std::string, std::string>& properties, const std::string& propertyName, bool mandatory = true)
 {
-	return atoi(getProperty(properties, propertyName).c_str());
+	/*if (mandatory && !hasProperty(properties, propertyName))
+	{
+		std::string errorMessage = "config: '" + propertyName + "' not found";
+		throw std::exception(errorMessage.c_str());
+	}
+
+	return (float)atof(getProperty(properties, propertyName).c_str());*/
+	parseReal(float);
 }
 
-float getPropertyAsFloat(const std::map<std::string, std::string>& properties, const std::string& propertyName)
+bool getPropertyAsBool(const std::map<std::string, std::string>& properties, const std::string& propertyName, bool mandatory = true)
 {
-	return (float)atof(getProperty(properties, propertyName).c_str());
+	/*if (mandatory && !hasProperty(properties, propertyName))
+	{
+		std::string errorMessage = "config: '" + propertyName + "' not found";
+		throw std::exception(errorMessage.c_str());
+	}
+
+	return getProperty(properties, propertyName) == "true";*/
+	parse(false, propertyValue == "true");
 }
 
-bool getPropertyAsBool(const std::map<std::string, std::string>& properties, const std::string& propertyName)
+vml_vec3 getPropertyAsVec3(const std::map<std::string, std::string>& properties, const std::string& propertyName, bool mandatory = true)
 {
-	return getProperty(properties, propertyName) == "true";
+	/*if (mandatory && !hasProperty(properties, propertyName))
+	{
+		std::string errorMessage = "config: '" + propertyName + "' not found";
+		throw std::exception(errorMessage.c_str());
+	}
+
+	return ParseUtils::parseVec3(getProperty(properties, propertyName));*/
+	parse(vml_vec3(), ParseUtils::parseVec3(propertyValue));
 }
 
-vml_vec4 getPropertyAsVec4(const std::map<std::string, std::string>& properties, const std::string& propertyName)
+vml_vec4 getPropertyAsVec4(const std::map<std::string, std::string>& properties, const std::string& propertyName, bool mandatory = true)
 {
-	return ParseUtils::parseVec4(getProperty(properties, propertyName));
+	/*if (mandatory && !hasProperty(properties, propertyName))
+	{
+		std::string errorMessage = "config: '" + propertyName + "' not found";
+		throw std::exception(errorMessage.c_str());
+	}
+
+	return ParseUtils::parseVec4(getProperty(properties, propertyName));*/
+	parse(vml_vec4(), ParseUtils::parseVec4(propertyValue));
 }
 
-void getPropertyAsVec2Array(const std::map<std::string, std::string>& properties, const std::string& propertyName, float* dataArray, unsigned int& size, unsigned int maxSize)
+vml_quat getPropertyAsQuat(const std::map<std::string, std::string>& properties, const std::string& propertyName, bool mandatory = true)
 {
+	/*std::string propertyValue = getProperty(properties, propertyName);
+	if (propertyValue.empty())
+	{
+		if (mandatory)
+		{
+			std::string errorMessage = "config: '" + propertyName + "' not found";
+			throw std::exception(errorMessage.c_str());
+		}
+		else
+		{
+			return vml_quat();
+		}
+	}
+	else
+	{
+		return ParseUtils::parseQuat(propertyValue);
+	}*/
+	parse(vml_quat(), ParseUtils::parseQuat(propertyValue));
+}
+
+void getPropertyAsVec2Array(const std::map<std::string, std::string>& properties, const std::string& propertyName, float* dataArray, unsigned int& size, unsigned int maxSize, bool mandatory = true)
+{
+	if (mandatory && !hasProperty(properties, propertyName))
+	{
+		std::string errorMessage = "config: '" + propertyName + "' not found";
+		throw std::exception(errorMessage.c_str());
+	}
+
 	std::string propertyValue = getProperty(properties, propertyName);
 	std::smatch matches;
 	unsigned int i = 0;
@@ -213,6 +325,9 @@ void loadFromFile(Configuration& configuration, const std::string& filePath)
 	configuration.setIsolatedVertexColor(getPropertyAsVec4(properties, "isolated_vertex_color"));
 	configuration.setStreetColor(getPropertyAsVec4(properties, "street_color"));
 	configuration.setQuadtreeColor(getPropertyAsVec4(properties, "quadtree_color"));
+	configuration.definesCameraStats = getPropertyAsBool(properties, "defines_camera_stats", false);
+	configuration.setCameraPosition(getPropertyAsVec3(properties, "camera_position", false));
+	configuration.setCameraRotation(getPropertyAsQuat(properties, "camera_rotation", false));
 	configuration.drawSpawnPointLabels = getPropertyAsBool(properties, "draw_spawn_point_labels");
 	configuration.drawGraphLabels = getPropertyAsBool(properties, "draw_graph_labels");
 	configuration.drawQuadtree = getPropertyAsBool(properties, "draw_quadtree");

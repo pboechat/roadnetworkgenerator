@@ -13,16 +13,27 @@
 #include <GL/utils/gl_shader.h>
 
 #include <string>
+#include <map>
+#include <vector>
 
 class Shader
 {
 private:
+	struct Subroutine
+	{
+		unsigned int index;
+		std::string name;
+
+	};
+
 	Shader(const Shader&);
 	Shader& operator =(Shader&);
 
 	GL::VertexShader vertexShader;
 	GL::FragmentShader fragmentShader;
 	GL::Program program;
+
+	std::map<unsigned int, std::vector<Subroutine> > subroutinesByShaderType;
 
 public:
 	////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -32,6 +43,43 @@ public:
 		program.attachShader(fragmentShader);
 		program.link();
 		GL_CHECK_ERROR();
+	}
+
+	////////////////////////////////////////////////////////////////////////////////////////////////////
+	inline void identifySubroutine(const std::string& name, unsigned int shaderType)
+	{
+		Subroutine subroutine;
+		subroutine.name = name;
+		subroutine.index = glGetSubroutineIndex(program, shaderType, name.c_str());
+		GL_CHECK_ERROR();
+
+		std::map<unsigned int, std::vector<Subroutine> >::iterator it = subroutinesByShaderType.find(shaderType);
+		if (it != subroutinesByShaderType.end())
+		{
+			it->second.push_back(subroutine);
+		}
+		else
+		{
+			std::vector<Subroutine> subroutines;
+			subroutines.push_back(subroutine);
+			subroutinesByShaderType.insert(std::make_pair(shaderType, subroutines));
+		}
+	}
+
+	////////////////////////////////////////////////////////////////////////////////////////////////////
+	inline void setSubroutine(const std::string& name, unsigned int shaderType)
+	{
+		std::map<unsigned int, std::vector<Subroutine> >::iterator it = subroutinesByShaderType.find(shaderType);
+		std::vector<Subroutine>& subroutines = it->second;
+		for (unsigned int i = 0; i < subroutines.size(); i++)
+		{
+			Subroutine& subroutine = subroutines[i];
+			if (subroutine.name == name)
+			{
+				glUniformSubroutinesuiv(shaderType, 1, &subroutine.index);
+				return;
+			}
+		}
 	}
 
 	////////////////////////////////////////////////////////////////////////////////////////////////////

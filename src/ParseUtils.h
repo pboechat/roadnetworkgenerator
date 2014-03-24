@@ -16,6 +16,34 @@ class ParseUtils
 {
 public:
 	//////////////////////////////////////////////////////////////////////////
+	static vml_quat parseQuat(const std::string& aString)
+	{
+		std::vector<std::string> values;
+		StringUtils::tokenize(aString, ",", values);
+
+		if (values.size() != 4)
+		{
+			throw std::exception("parseQuat: invalid number of arguments");
+		}
+
+		std::string value = values[0];
+		StringUtils::replace(value, "(", "");
+		StringUtils::trim(value);
+		float x = (float)atof(value.c_str());
+		value = values[1];
+		StringUtils::trim(value);
+		float y = (float)atof(value.c_str());
+		value = values[2];
+		StringUtils::trim(value);
+		float z = (float)atof(value.c_str());
+		value = values[3];
+		StringUtils::replace(value, ")", "");
+		StringUtils::trim(value);
+		float w = (float)atof(value.c_str());
+		return vml_quat(w, x, y, z);
+	}
+
+	//////////////////////////////////////////////////////////////////////////
 	static vml_vec4 parseVec4(const std::string& aString)
 	{
 		std::vector<std::string> values;
@@ -41,6 +69,31 @@ public:
 		StringUtils::trim(value);
 		float w = (float)atof(value.c_str());
 		return vml_vec4(x, y, z, w);
+	}
+
+	//////////////////////////////////////////////////////////////////////////
+	static vml_vec3 parseVec3(const std::string& aString)
+	{
+		std::vector<std::string> values;
+		StringUtils::tokenize(aString, ",", values);
+
+		if (values.size() != 3)
+		{
+			throw std::exception("parseVec3: invalid number of arguments");
+		}
+
+		std::string value = values[0];
+		StringUtils::replace(value, "(", "");
+		StringUtils::trim(value);
+		float x = (float)atof(value.c_str());
+		value = values[1];
+		StringUtils::trim(value);
+		float y = (float)atof(value.c_str());
+		value = values[2];
+		StringUtils::replace(value, ")", "");
+		StringUtils::trim(value);
+		float z = (float)atof(value.c_str());
+		return vml_vec3(x, y, z);
 	}
 
 	//////////////////////////////////////////////////////////////////////////

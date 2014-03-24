@@ -35,46 +35,19 @@ public:
 	{
 	}
 
+	//////////////////////////////////////////////////////////////////////////
 	virtual void update(double deltaTime)
 	{
+		defaultNavigation(deltaTime);
+
 		if (getKey(VK_ESCAPE))
 		{
 			Application::instance->halt();
 		}
 
-		if (getKey(VK_LEFT) || getKey(65))
-		{
-			moveCameraLeft((float)deltaTime);
-		}
-
-		else if (getKey(VK_RIGHT) || getKey(68))
-		{
-			moveCameraRight((float)deltaTime);
-		}
-
-		if (getKey(VK_UP) || getKey(87))
-		{
-			moveCameraUp((float)deltaTime);
-		}
-
-		else if (getKey(VK_DOWN) || getKey(83))
-		{
-			moveCameraDown((float)deltaTime);
-		}
-
-		if (getKey(81) || getKey(33))
-		{
-			moveCameraForward((float)deltaTime);
-		}
-
-		else if (getKey(69) || getKey(34))
-		{
-			moveCameraBackward((float)deltaTime);
-		}
-
 		if (getKeyDown(VK_F1))
 		{
-			renderer.togglePopulationDensityMap();
+			renderer.togglePopulationDensityShadingType();
 		}
 
 		if (getKeyDown(VK_F2))
@@ -96,6 +69,19 @@ public:
 		{
 			callback(configurationFile, renderer, geometryGenerator, labelsGenerator, camera);
 		}
+
+		// DEBUG:
+		if (getKeyDown(VK_F6))
+		{
+			printCameraStats();
+		}
+	}
+
+	//////////////////////////////////////////////////////////////////////////
+	inline void printCameraStats()
+	{
+		std::cout << "Position: (" << camera.localTransform.position.x << ", " << camera.localTransform.position.y << ", " << camera.localTransform.position.z << ")" << std::endl
+				  << "Rotation: (" << camera.localTransform.rotation.x << ", " << camera.localTransform.rotation.y << ", " << camera.localTransform.rotation.z << ", " << camera.localTransform.rotation.w << ")" << std::endl;
 	}
 
 private:

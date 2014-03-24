@@ -92,7 +92,15 @@ void generateAndDisplay(const std::string& configurationFile, SceneRenderer& ren
 
 	if (firstTime)
 	{
-		camera.centerOnTarget(worldBounds);
+		if (configuration.definesCameraStats)
+		{
+			camera.localTransform.position = configuration.getCameraPosition();
+			camera.localTransform.rotation = configuration.getCameraRotation();
+		}
+		else
+		{
+			camera.centerOnTarget(worldBounds);
+		}
 		firstTime = false;
 	}
 
@@ -145,8 +153,12 @@ int main(int argc, char** argv)
 		g_dumpFirstFrame = IS_TRUE(argv[5]);
 		g_dumpFolder = argv[6];
 
-		Log::addLogger("statistics", new CSVLogger(g_dumpFolder + "/statistics.csv"));
-		Log::addLogger("error", new FileLogger("error.log"));
+		if (g_dumpStatistics)
+		{
+			Log::addLogger("statistics", new CSVLogger(g_dumpFolder + "/statistics.csv"));
+		}
+		
+		Log::addLogger("error", new MultiLogger(2, new ConsoleLogger(), new FileLogger("error.log")));
 	}
 	else
 	{
@@ -192,7 +204,7 @@ int main(int argc, char** argv)
 	catch (std::exception& e)
 	{
 		Log::logger("error") << Logger::endl << "Exception: " << Logger::endl  << Logger::endl << e.what() << Logger::endl << Logger::endl;
-		if (!g_dumpStatistics)
+		if (!g_dumpStatistics && !g_dumpFirstFrame)
 		{
 			system("pause");
 		}
@@ -201,7 +213,7 @@ int main(int argc, char** argv)
 	catch (...)
 	{
 		Log::logger("error") << Logger::endl << "Unknown error" << Logger::endl << Logger::endl;
-		if (!g_dumpStatistics)
+		if (!g_dumpStatistics && !g_dumpFirstFrame)
 		{
 			system("pause");
 		}

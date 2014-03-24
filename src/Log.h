@@ -4,6 +4,7 @@
 #include <StringUtils.h>
 
 #include <string>
+#include <cstdarg>
 #include <exception>
 #include <fstream>
 #include <iostream>
@@ -42,7 +43,6 @@ public:
 		return arg0;
 	}
 
-private:
 	virtual void printEndLine() = 0;
 
 };
@@ -208,6 +208,159 @@ public:
 	{
 	}
 
+};
+
+//////////////////////////////////////////////////////////////////////////
+class MultiLogger : public Logger
+{
+public:
+	MultiLogger(unsigned int numLoggers, Logger* logger, ...)
+	{
+		va_list arguments;
+		va_start(arguments, numLoggers);
+		for (unsigned int i = 0; i < numLoggers; i++)
+		{
+			others.push_back(va_arg(arguments, Logger*));
+		}
+		va_end (arguments);
+	}
+
+	virtual ~MultiLogger()
+	{
+		for (unsigned int i = 0; i < others.size(); i++)
+		{
+			delete others[i];
+		}
+		others.clear();
+	}
+
+	virtual bool firstUse() const
+	{
+		for (unsigned int i = 0; i < others.size(); i++)
+		{
+			if (!others[i]->firstUse())
+			{
+				return false;
+			}
+		}
+		return true;
+	}
+
+	virtual void print(const std::string& arg0)
+	{
+		for (unsigned int i = 0; i < others.size(); i++)
+		{
+			others[i]->print(arg0);
+		}
+	}
+
+	virtual void print(const char* arg0)
+	{
+		for (unsigned int i = 0; i < others.size(); i++)
+		{
+			others[i]->print(arg0);
+		}
+	}
+
+	virtual void print(bool arg0)
+	{
+		for (unsigned int i = 0; i < others.size(); i++)
+		{
+			others[i]->print(arg0);
+		}
+	}
+
+	virtual void print(unsigned char arg0)
+	{
+		for (unsigned int i = 0; i < others.size(); i++)
+		{
+			others[i]->print(arg0);
+		}
+	}
+
+	virtual void print(char arg0)
+	{
+		for (unsigned int i = 0; i < others.size(); i++)
+		{
+			others[i]->print(arg0);
+		}
+	}
+
+	virtual void print(unsigned short arg0)
+	{
+		for (unsigned int i = 0; i < others.size(); i++)
+		{
+			others[i]->print(arg0);
+		}
+	}
+
+	virtual void print(short arg0)
+	{
+		for (unsigned int i = 0; i < others.size(); i++)
+		{
+			others[i]->print(arg0);
+		}
+	}
+
+	virtual void print(unsigned int arg0)
+	{
+		for (unsigned int i = 0; i < others.size(); i++)
+		{
+			others[i]->print(arg0);
+		}
+	}
+
+	virtual void print(int arg0)
+	{
+		for (unsigned int i = 0; i < others.size(); i++)
+		{
+			others[i]->print(arg0);
+		}
+	}
+
+	virtual void print(unsigned long arg0)
+	{
+		for (unsigned int i = 0; i < others.size(); i++)
+		{
+			others[i]->print(arg0);
+		}
+	}
+
+	virtual void print(long arg0)
+	{
+		for (unsigned int i = 0; i < others.size(); i++)
+		{
+			others[i]->print(arg0);
+		}
+	}
+
+	virtual void print(float arg0)
+	{
+		for (unsigned int i = 0; i < others.size(); i++)
+		{
+			others[i]->print(arg0);
+		}
+	}
+
+	virtual void print(double arg0)
+	{
+		for (unsigned int i = 0; i < others.size(); i++)
+		{
+			others[i]->print(arg0);
+		}
+	}
+
+	virtual void printEndLine()
+	{
+		for (unsigned int i = 0; i < others.size(); i++)
+		{
+			others[i]->printEndLine();
+		}
+	}
+
+private:
+	std::vector<Logger*> others;
+	
 };
 
 //////////////////////////////////////////////////////////////////////////

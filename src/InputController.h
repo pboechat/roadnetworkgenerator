@@ -10,6 +10,7 @@
 
 #define CAMERA_PITCH_LIMIT 45.0f
 #define NUMBER_OF_VIRTUAL_KEYS 0xFF
+#define MOUSE_SENSITIVITY 0.01f
 
 class InputController
 {
@@ -83,9 +84,11 @@ public:
 
 protected:
 	Camera& camera;
+	vml_quat yaw;
+	vml_quat pitch;
 
 	////////////////////////////////////////////////////////////////////////////////////////////////////
-	InputController(Camera& camera, float moveSpeed, float rotationSpeed) : camera(camera), moveSpeed(moveSpeed), rotationSpeed(rotationSpeed), rightMouseButtonUp(false), rightMouseButtonDown(false), leftMouseButtonUp(false), leftMouseButtonDown(false), cameraYaw(0), cameraPitch(0), cameraRoll(0)
+	InputController(Camera& camera, float moveSpeed, float rotationSpeed) : camera(camera), moveSpeed(moveSpeed), rotationSpeed(rotationSpeed), rightMouseButtonUp(false), rightMouseButtonDown(false), leftMouseButtonUp(false), leftMouseButtonDown(false)
 	{
 		clearTemporaryRegisters();
 	}
@@ -130,32 +133,31 @@ protected:
 
 		vml_vec2 mousePosition = getMousePosition();
 
-		if (lastMousePosition.x == mousePosition.x && lastMousePosition.y == mousePosition.y)
+		glm::vec2 direction = mousePosition - lastMousePosition;
+		vml_quat yawIncrement, pitchIncrement;
+
+		if (direction.x >= MOUSE_SENSITIVITY)
 		{
-			return;
+			yawIncrement = vml_angle_axis(-rotationSpeed * (float)deltaTime, vml_vec3(0.0f, 1.0f, 0.0f));
+		}
+		else if (direction.x <= -MOUSE_SENSITIVITY)
+		{
+			yawIncrement = vml_angle_axis(rotationSpeed * (float)deltaTime, vml_vec3(0.0f, 1.0f, 0.0f));
 		}
 
-		vml_vec2 mouseDirection = vml_normalize(mousePosition - lastMousePosition);
-
-		if (mouseDirection.x > 0)
+		if (direction.y >= MOUSE_SENSITIVITY)
 		{
-			turnCameraRight((float)deltaTime);
+			pitchIncrement = vml_angle_axis(-rotationSpeed * (float)deltaTime, vml_vec3(1.0f, 0.0f, 0.0f));
+		}
+		else if (direction.y <= -MOUSE_SENSITIVITY)
+		{
+			pitchIncrement = vml_angle_axis(rotationSpeed * (float)deltaTime, vml_vec3(1.0f, 0.0f, 0.0f));
 		}
 
-		else if (mouseDirection.x < 0)
-		{
-			turnCameraLeft((float)deltaTime);
-		}
+		yaw = yawIncrement * yaw;
+		pitch = pitchIncrement * pitch;
 
-		if (mouseDirection.y > 0)
-		{
-			turnCameraUp((float)deltaTime);
-		}
-
-		else if (mouseDirection.y < 0)
-		{
-			turnCameraDown((float)deltaTime);
-		}
+		camera.localTransform.rotation = yaw * pitch;
 
 		lastMousePosition = mousePosition;
 	}
@@ -256,41 +258,6 @@ protected:
 		camera.localTransform.position -= vml_vec3(0, 1, 0) * moveSpeed * deltaTime;
 	}
 
-	////////////////////////////////////////////////////////////////////////////////////////////////////
-	inline void turnCameraUp(float deltaTime)
-	{
-		cameraPitch = MathExtras::clamp(cameraPitch - rotationSpeed * deltaTime, -CAMERA_PITCH_LIMIT, CAMERA_PITCH_LIMIT);
-		updateCameraRotation();
-	}
-
-	////////////////////////////////////////////////////////////////////////////////////////////////////
-	inline void turnCameraDown(float deltaTime)
-	{
-		cameraPitch = MathExtras::clamp(cameraPitch + rotationSpeed * deltaTime, -CAMERA_PITCH_LIMIT, CAMERA_PITCH_LIMIT);
-		updateCameraRotation();
-	}
-
-	////////////////////////////////////////////////////////////////////////////////////////////////////
-	inline void turnCameraLeft(float deltaTime)
-	{
-		cameraYaw += rotationSpeed * deltaTime;
-		updateCameraRotation();
-	}
-
-	////////////////////////////////////////////////////////////////////////////////////////////////////
-	void turnCameraRight(float deltaTime)
-	{
-		cameraYaw -= rotationSpeed * deltaTime;
-		updateCameraRotation();
-	}
-
-	////////////////////////////////////////////////////////////////////////////////////////////////////
-	inline void updateCameraRotation()
-	{
-		vml_vec3 forward = vml_angle_axis(cameraPitch, vml_vec3(1, 0, 0)) * vml_angle_axis(cameraYaw, vml_vec3(0, 1, 0)) * vml_vec3(0, 0, -1);
-		camera.localTransform.lookAt(camera.localTransform.position + forward);
-	}
-
 private:
 	struct InputBuffer
 	{
@@ -326,9 +293,6 @@ private:
 	bool keysUp[NUMBER_OF_VIRTUAL_KEYS];
 	bool keysDown[NUMBER_OF_VIRTUAL_KEYS];
 	vml_vec2 lastMousePosition;
-	float cameraYaw;
-	float cameraPitch;
-	float cameraRoll;
 
 	////////////////////////////////////////////////////////////////////////////////////////////////////
 	void clearTemporaryRegisters()

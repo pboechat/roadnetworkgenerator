@@ -60,12 +60,15 @@ struct Configuration
 	unsigned int indexBufferSize;
 	unsigned int numSpawnPoints;
 	float spawnPointsData[MAX_SPAWN_POINTS * 2];
+	bool definesCameraStats;
 
-	vec4FieldDeclaration(CycleColor, HOST_AND_DEVICE_CODE);
-	vec4FieldDeclaration(FilamentColor, HOST_AND_DEVICE_CODE);
-	vec4FieldDeclaration(IsolatedVertexColor, HOST_AND_DEVICE_CODE);
-	vec4FieldDeclaration(StreetColor, HOST_AND_DEVICE_CODE);
-	vec4FieldDeclaration(QuadtreeColor, HOST_AND_DEVICE_CODE);
+	vec4FieldDeclaration(CycleColor, HOST_CODE);
+	vec4FieldDeclaration(FilamentColor, HOST_CODE);
+	vec4FieldDeclaration(IsolatedVertexColor, HOST_CODE);
+	vec4FieldDeclaration(StreetColor, HOST_CODE);
+	vec4FieldDeclaration(QuadtreeColor, HOST_CODE);
+	vec3FieldDeclaration(CameraPosition, HOST_CODE);
+	quatFieldDeclaration(CameraRotation, HOST_CODE);
 
 	HOST_AND_DEVICE_CODE vml_vec2 getSpawnPoint(unsigned int i) const
 	{
@@ -76,63 +79,69 @@ struct Configuration
 	HOST_AND_DEVICE_CODE Configuration() {}
 	HOST_AND_DEVICE_CODE ~Configuration() {}
 
-#ifndef PARALLEL
 	Configuration& operator = (const Configuration& other)
 	{
 		strcpy(name, other.name);
 		seed = other.seed;
-		worldWidth									= other.worldWidth								;
-		worldHeight									= other.worldHeight								;
-		numExpansionKernelBlocks					= other.numExpansionKernelBlocks					;
-		numExpansionKernelThreads					= other.numExpansionKernelThreads					;
-		numCollisionDetectionKernelThreads	= other.numCollisionDetectionKernelThreads;
-		maxVertices									= other.maxVertices								;
-		maxEdges									= other.maxEdges									;
-		totalNumQuadrants							= other.totalNumQuadrants							;
-		numLeafQuadrants							= other.numLeafQuadrants							;
-		highwayLength								= other.highwayLength								;
-		minSamplingRayLength						= other.minSamplingRayLength						;
-		maxSamplingRayLength						= other.maxSamplingRayLength						;
-		streetLength								= other.streetLength								;
-		maxStreetBranchDepth						= other.maxStreetBranchDepth						;
-		maxHighwayBranchDepth						= other.maxHighwayBranchDepth						;
-		highwayBranchingDistance					= other.highwayBranchingDistance					;
-		maxHighwayDerivation						= other.maxHighwayDerivation						;
-		maxStreetDerivation							= other.maxStreetDerivation						;
-		maxHighwayGoalDeviation						= other.maxHighwayGoalDeviation					;
-		halfMaxHighwayGoalDeviation					= other.halfMaxHighwayGoalDeviation				;
-		minSamplingWeight							= other.minSamplingWeight							;
-		goalDistanceThreshold						= other.goalDistanceThreshold						;
-		maxHighwayObstacleDeviationAngle			= other.maxHighwayObstacleDeviationAngle			;
-		halfMaxHighwayObstacleDeviationAngle		= other.halfMaxHighwayObstacleDeviationAngle		;
-		maxStreetObstacleDeviationAngle				= other.maxStreetObstacleDeviationAngle			;
-		halfMaxStreetObstacleDeviationAngle			= other.halfMaxStreetObstacleDeviationAngle		;
-		minHighwayLength							= other.minHighwayLength							;
-		minStreetLength								= other.minStreetLength							;
-		samplingArc									= other.samplingArc								;
-		halfSamplingArc								= other.halfSamplingArc							;
-		quadtreeDepth								= other.quadtreeDepth								;
-		snapRadius									= other.snapRadius								;
+		worldWidth = other.worldWidth;
+		worldHeight = other.worldHeight;
+		numExpansionKernelBlocks = other.numExpansionKernelBlocks;
+		numExpansionKernelThreads = other.numExpansionKernelThreads;
+		numCollisionDetectionKernelThreads = other.numCollisionDetectionKernelThreads;
+		maxVertices = other.maxVertices;
+		maxEdges = other.maxEdges;
+		totalNumQuadrants = other.totalNumQuadrants;
+		numLeafQuadrants = other.numLeafQuadrants;
+		highwayLength = other.highwayLength;
+		minSamplingRayLength = other.minSamplingRayLength;
+		maxSamplingRayLength = other.maxSamplingRayLength;
+		streetLength = other.streetLength;
+		maxStreetBranchDepth = other.maxStreetBranchDepth;
+		maxHighwayBranchDepth = other.maxHighwayBranchDepth;
+		highwayBranchingDistance = other.highwayBranchingDistance;
+		maxHighwayDerivation = other.maxHighwayDerivation;
+		maxStreetDerivation = other.maxStreetDerivation;
+		maxHighwayGoalDeviation = other.maxHighwayGoalDeviation;
+		halfMaxHighwayGoalDeviation = other.halfMaxHighwayGoalDeviation;
+		minSamplingWeight = other.minSamplingWeight;
+		goalDistanceThreshold = other.goalDistanceThreshold;
+		maxHighwayObstacleDeviationAngle = other.maxHighwayObstacleDeviationAngle;
+		halfMaxHighwayObstacleDeviationAngle = other.halfMaxHighwayObstacleDeviationAngle;
+		maxStreetObstacleDeviationAngle = other.maxStreetObstacleDeviationAngle;
+		halfMaxStreetObstacleDeviationAngle = other.halfMaxStreetObstacleDeviationAngle;
+		minHighwayLength = other.minHighwayLength;
+		minStreetLength = other.minStreetLength;
+		samplingArc = other.samplingArc;
+		halfSamplingArc = other.halfSamplingArc;
+		quadtreeDepth = other.quadtreeDepth;
+		snapRadius = other.snapRadius;
 		strcpy(populationDensityMapFilePath, other.populationDensityMapFilePath);
 		strcpy(waterBodiesMapFilePath, other.waterBodiesMapFilePath);;
 		strcpy(blockadesMapFilePath, other.blockadesMapFilePath);
 		strcpy(naturalPatternMapFilePath, other.naturalPatternMapFilePath);
 		strcpy(radialPatternMapFilePath, other.radialPatternMapFilePath);
 		strcpy(rasterPatternMapFilePath, other.rasterPatternMapFilePath);
-		drawSpawnPointLabels	= drawSpawnPointLabels	 ;
-		drawGraphLabels			= drawGraphLabels		 ;
-		drawQuadtree			= drawQuadtree			 ;
-		labelFontSize			= labelFontSize			 ;
-		pointSize				= pointSize				 ;
-		maxPrimitives			= maxPrimitives			 ;
-		minBlockArea			= minBlockArea			 ;
-		vertexBufferSize		= vertexBufferSize		 ;
-		indexBufferSize			= indexBufferSize		 ;
-		numSpawnPoints			= numSpawnPoints		 ;
+		drawSpawnPointLabels = other.drawSpawnPointLabels ;
+		drawGraphLabels = other.drawGraphLabels ;
+		drawQuadtree = other.drawQuadtree ;
+		labelFontSize = other.labelFontSize ;
+		pointSize = other.pointSize ;
+		maxPrimitives = other.maxPrimitives ;
+		minBlockArea = other.minBlockArea ;
+		vertexBufferSize = other.vertexBufferSize ;
+		indexBufferSize = other.indexBufferSize ;
+		numSpawnPoints = other.numSpawnPoints ;
 		memcpy(spawnPointsData, other.spawnPointsData, sizeof(float) * MAX_SPAWN_POINTS * 2);
+		definesCameraStats = other.definesCameraStats;
+		setCycleColor(other.getCycleColor());
+		setFilamentColor(other.getFilamentColor());
+		setIsolatedVertexColor(other.getIsolatedVertexColor());
+		setStreetColor(other.getStreetColor());
+		setQuadtreeColor(other.getQuadtreeColor());
+		setCameraPosition(other.getCameraPosition());
+		setCameraRotation(other.getCameraRotation());
 		return *this;
-	}
-#endif
+}
 
 };
 

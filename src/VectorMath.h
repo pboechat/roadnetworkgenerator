@@ -100,7 +100,7 @@ typedef glm::quat vml_quat;
 		inline decl vml_vec4 get##name() const { return vml_vec4(x_##name, y_##name, z_##name, w_##name); } \
 		inline decl void set##name(const vml_vec4& arg0) { x_##name = arg0.x; y_##name = arg0.y; z_##name = arg0.z; w_##name = arg0.w; }
 
-#define quatFieldDeclaration(name) \
+#define quatFieldDeclaration(name, decl) \
 	protected: \
 		float x_##name, y_##name, z_##name, w_##name; \
 	public: \
